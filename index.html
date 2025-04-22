@@ -75,7 +75,7 @@
       bottom: 0;
       border-right: 0px solid #666;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       justify-content: space-between;
       align-items: center;
       padding: 20px 0;
@@ -119,7 +119,7 @@
 
 	#controls {
 	  display: flex;
-	  flex-direction: column;
+	  flex-direction: row;
 	  gap: 8px;
 	}
 
@@ -193,6 +193,8 @@
 		}
 
 	  .info-section {
+		font-family: "Share Tech Mono", monospace;
+	    font-weight: 400;
 		margin-bottom: 12px;
 		padding: 0px;
 	  }
@@ -203,6 +205,8 @@
 		font-size: 14px;
 		color: #ffee55;
 		margin-bottom: 4px;
+		padding-top: 4px; 
+		padding-bottom:4px;
 	  }
 
 	  .info-section p,
@@ -216,7 +220,7 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		margin-top: 24px;
+		margin-top: auto;
 	  }
 
 	  #infoProfitIcon {
@@ -261,7 +265,7 @@
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%);
-		font-size: 64px;
+		font-size: 48px;
 		font-weight: 900;
 		color: #ffee55;
 		text-shadow: 0 0 5px #000;
@@ -271,10 +275,131 @@
 	    margin-top: 8px;
 		letter-spacing: 0.1em;
 		font-family: "Orbitron", sans-serif;
+		font-size: 1.2em;
 		font-weight: 900;
 		color: #ffee55;
 	  }
+		
+	#characterPanel {
+      display: none;
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      color: #fff;
+      z-index: 1000;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    #characterGrid {
+      display: flex;
+      flex-direction: row;
+	  justify-content: center;
+	  margin-top: 16px;
+      gap: 20px;
+    }
 	
+		.ceszkoz {
+		  color: #f9eaa3;
+		  font-size: 20px;
+		  padding-top: 4px;
+		  padding-bottom: 4px;
+		}
+		
+		.ceszkoz h3 {
+		  color: #ffee55;
+		  font-size: 14px;
+		}
+		
+		
+		.clabel {
+		  color: #fff;
+		  font-size: 14px;
+		  margin-top: 2px;
+		  margin-bottom: 2px;
+		}
+		
+		.character-card {
+		  display: flex;
+		  flex-direction: column;
+		  max-width: 380px;
+		  background: radial-gradient(ellipse at top left, #222 60%, #000 100%);
+		  padding: 12px;
+		  border: 2px solid #ffaa00;
+		  border-radius: 10px;
+		}
+
+		.dice-row {
+		  display: flex;
+		  gap: 12px;
+		  padding: 8px;
+		  flex-wrap: wrap;
+		  
+		}
+
+		.dice {
+		  width: 16px;
+		  height: 16px;
+		  border-radius: 4px;
+		  cursor: pointer;
+		  display: flex;
+		  align-items: center;
+		  justify-content: center;
+		  font-size: 16px;
+		  color: #ffaa00;
+		  transition: transform 0.1s;
+		}
+	
+		.dice.active {
+		  color: #000;
+		}
+		
+		.dice.active img {
+		  filter: drop-shadow(0 0 5px #ffaa00);
+		  transition: filter 0.2s, opacity 0.2s;
+		}
+
+		.dice.inactive img {
+		  filter: grayscale(1) brightness(0.5);
+		  opacity: 0.4;
+		}
+		
+		@keyframes shake {
+		  0%   { transform: translate(0, 0); }
+		  25%  { transform: translate(-2px, 1px); transform: rotate(20deg); }
+		  50%  { transform: translate(2px, -1px); transform: rotate(-20deg);}
+		  75%  { transform: translate(-1px, 2px); transform: rotate(0deg);}
+		  100% { transform: translate(0, 0); }
+		}
+
+		.shake {
+		  animation: shake 0.3s ease;
+		}
+		
+		.top-buttons {
+		  display: flex;
+		  gap: 10px;
+		  margin-bottom: 20px;
+		}
+		
+		.loot-item {
+		  margin-right: 0px;
+		  padding: 4px 4px;
+		  border: 1px solid #ffaa00;
+		  border-radius: 6px;
+		  cursor: pointer;
+		  color: #ffee55;
+		  font-size: 13px;	
+		  background: #222;
+		  transition: opacity 0.2s;
+		}
+
+		.loot-item.faded {
+		  opacity: 0.3;
+		  text-decoration: line-through;
+		}
+
 	#timerContainer {
       font-family: "Orbitron", sans-serif;
 	  display: flex;
@@ -519,55 +644,70 @@
 		</div>
 
     </div>
-  <div id="leftPanel">
+    <div id="leftPanel">
  
-    <div id="uiPanel">
-	  <div id="controls">
-		<button id="toggleRotation" class="sci-button">
-		  <img src="https://img.icons8.com/isometric-line/50/FAB005/rotate.png" alt="rotate">
-		  <span id="rotationLabel">Forgatás: BE</span>
-		</button>
-		<button id="toggleAllTooltips" class="sci-button">
-		  <img src="https://img.icons8.com/isometric-line/50/ffaa00/info.png" alt="tooltip"> Tooltipek
-		</button>
-		<button id="switchModel" class="sci-button">
-		  <img src="https://img.icons8.com/isometric-line/50/FAB005/swap.png" alt="switch"> Modell csere
-		</button>
-	</div>
-		
-	<div id="infoBox">
-	  <span class="label">SECTOR:</span>
-	  <h2 id="infoTitle">Objektum neve</h2>
-	  <div id="infoPortraitWrapper" class="info-section" style="text-align:center;">
-		<img id="infoPortrait" src="/images/alap.jpg" alt="Vezető portré">
-		<div><strong>Vezető:</strong> <span id="infoLeader">N/A</span></div>
-	  </div>
+		<div id="uiPanel">
+		  <div id="controls">
+			<button id="toggleRotation" class="sci-button">
+			  <img src="https://img.icons8.com/isometric-line/50/FAB005/rotate.png" alt="rotate">
+			  <span id="rotationLabel">Forgatás: BE</span>
+			</button>
+			<button id="toggleAllTooltips" class="sci-button">
+			  <img src="https://img.icons8.com/isometric-line/50/ffaa00/info.png" alt="tooltip"> Tooltipek
+			</button>
+			<button id="toggleCharacterPanel" class="sci-button">
+			  <img src="https://img.icons8.com/isometric-line/50/FAB005/user.png" alt="character">Karakterek
+			</button>
+			<button id="switchModel" class="sci-button">
+			  <img src="https://img.icons8.com/isometric-line/50/FAB005/swap.png" alt="switch"> Modell csere
+			</button>
+		  </div>
+			
+			<div id="infoBox">
+			  <span class="label">SECTOR:</span>
+			  <h2 id="infoTitle">Objektum neve</h2>
+			  <div id="infoPortraitWrapper" class="info-section" style="text-align:center;">
+				<img id="infoPortrait" src="/images/alap.jpg" alt="Vezető portré">
+				<div><strong>Vezető:</strong> <span id="infoLeader">N/A</span></div>
+			  </div>
 
-	  <div class="info-section">
-		<strong>Leírás:</strong>
-		<p id="infoDetails">No data available.</p>
-	  </div>
+			  <div class="info-section">
+				<strong>Leírás:</strong>
+				<p id="infoDetails">No data available.</p>
+			  </div>
 
-	  <div class="info-section">
-		<strong>Képesség:</strong>
-		<div id="infoAbility">—</div>
-	  </div>
+			  <div class="info-section">
+				<strong>Képesség:</strong>
+				<div id="infoAbility">—</div>
+			  </div>
 
-	  <div class="info-section">
-		<strong>Hűbérúr:</strong>
-		<div id="infoHuberur">N/A</div>
-	  </div>
+			  <div class="info-section">
+				<strong>Hűbérúr:</strong>
+				<div id="infoHuberur">N/A</div>
+			  </div>
 
-	  <div id="infoProfitContainer">
-		<div id="infoProfitIcon">
-		  <div class="profit-label">PROFIT</div>
-		  <div id="infoProfit">0</div>
+			  <div id="infoProfitContainer">
+				<div id="infoProfitIcon">
+				  <div class="profit-label">PROFIT</div>
+				  <div id="infoProfit">0</div>
+				</div>
+			  </div>
+			</div>
+
 		</div>
+    </div>
+	
+	<div id="characterPanel">
+	  <div class="top-buttons">
+		<button id="backToCanvas" class="sci-button">Vissza</button>
+		<button id="resetdiceButton" class="sci-button">Reset</button>
+		<button id="undoButton" class="sci-button">Undo</button>
+		<button id="exportButton" class="sci-button">Export</button>
+		<input type="file" id="importInput" style="display:none" />
+		<button id="importButton" class="sci-button">Load</button>
 	  </div>
+	  <div id="characterGrid"></div>
 	</div>
-
-  </div>
-  </div>
 	
 	<div class="group-panel-container">
 	  <div id="groupPanelToggle" class="group-panel-toggle">⌄</div>
@@ -1048,6 +1188,8 @@
     rotate = !rotate;
     document.getElementById('rotationLabel').textContent = `Forgatás: ${rotate ? 'BE' : 'KI'}`;
   });
+  
+
 
   document.getElementById('toggleAllTooltips').addEventListener('click', toggleAllTooltips);
 
@@ -1055,7 +1197,258 @@
     currentModel = currentModel === 'model12.glb' ? 'model11.glb' : 'model12.glb';
     loadModel(currentModel);
   });
+  
+  const toggleCharacterPanel = document.getElementById('toggleCharacterPanel');
+  const characterPanel = document.getElementById('characterPanel');
+  const backToCanvas = document.getElementById('backToCanvas');
+  const characterGrid = document.getElementById('characterGrid');
+  const canvas = document.querySelector('canvas');
+  const resetBtn = document.getElementById('resetdiceButton');
+  const undoBtn = document.getElementById('undoButton');
+  const exportBtn = document.getElementById('exportButton');
+  const importBtn = document.getElementById('importButton');
+  const importInput = document.getElementById('importInput');
 
+  let state = JSON.parse(localStorage.getItem('diceState') || '{}');
+  let lastState = {};
+
+  function saveState() {
+    localStorage.setItem('diceState', JSON.stringify(state));
+  }
+
+  function deleteState() {
+    localStorage.removeItem('diceState', JSON.stringify(state));
+  }
+  
+  function profitTemplate(value) {
+    return `
+      <div id="infoProfitContainer">
+		    <div id="infoProfitIcon">
+				  <div class="profit-label">PROFIT</div>
+				  <div id="infoProfit">${value}</div>
+		    </div>
+      </div>
+    `;
+  }
+  
+  // Karakterek betöltése Google Sheets-ből
+  async function loadCharacters() {
+	const sheetUrl = "https://docs.google.com/spreadsheets/d/1HS2z9dVFxzIzQCb3Ix2e7fDNlU_unGRhQncjLFmzrN0/gviz/tq?gid=835830883&tqx=out:json";
+    const res = await fetch(sheetUrl);
+    const text = await res.text();
+    const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\((.*)\);/)[1]);
+    const table = json.table;
+    const headers = table.cols.map(c => c.label.toLowerCase());
+    const data = table.rows.map(row => Object.fromEntries(row.c.map((cell, i) => [headers[i], cell?.v ?? ""])));
+	
+
+    characterGrid.innerHTML = "";
+    data.forEach(char => {
+      const card = document.createElement("div");
+      card.className = "character-card";
+	  
+	  const lootItems = (char.loot || "").split(",").map(i => i.trim()).filter(Boolean);
+
+        card.innerHTML = `
+          <h2 id="infoTitle" style="text-align:center">${char.nev}</h2>
+          <div id="infoPortraitWrapper" class="info-section" style="text-align:center;">
+			<img src="/images/${char.portre}" style="width: 250px; border-radius: 6px; margin-bottom: 10px;" />
+          </div>
+		  <div class="info-section">
+			  <p>${char.leiras}</p>
+			  <p style="margin-top:8px; text-align:center";><strong style="color:#f9eaa3;">-==TALENTUM==-</strong></p>
+			  <div class="dice-row" id="diceContainer-${char.id}-kockak9"></div>
+			  <p>⮡ ${char.kepesseg1}</p>
+			  <p>⮡ ${char.kepesseg2}</p>
+			  <p>⮡ ${char.kepesseg3}</p>
+			  			  
+			  <p style="margin-top:8px; text-align:center;"><strong style="color: #f9eaa3;">-==ESZKÖZÖK==-</strong></p>
+			  
+			  <div class="ceszkoz"><h3>${char.factorium1}</h3>
+			  <div class="dice-row" id="diceContainer-${char.id}-kockak1"></div>
+			  <span class="clabel">⮡ Felügyelő: ${char.felugyelo1}</span>
+			  </div>
+			  
+			  <div class="ceszkoz"><h3>${char.factorium2}</h3>
+			  <div class="dice-row" id="diceContainer-${char.id}-kockak2"></div>
+			  <span class="clabel">⮡ Felügyelő: ${char.felugyelo1}</span>
+			  </div>
+			  
+			  <div class="ceszkoz"><h3>${char.factorium3}</h3>
+			  <div class="dice-row" id="diceContainer-${char.id}-kockak3"></div>
+			  <span class="clabel">⮡ Felügyelő: ${char.felugyelo1}</span>
+			  </div>
+			  
+			  <div class="ceszkoz"><h3>${char.factorium4}</h3>
+			  <div class="dice-row" id="diceContainer-${char.id}-kockak4"></div>
+			  <span class="clabel">⮡ Felügyelő: ${char.felugyelo1}</span>
+			  </div>
+			  
+			  <div class="ceszkoz"><h3>${char.factorium5}</h3>
+			  <div class="dice-row" id="diceContainer-${char.id}-kockak5"></div>
+			  <span class="clabel">⮡ Felügyelő: ${char.felugyelo1}</span>
+			  </div>
+			  
+			  <div class="ceszkoz"><h3>${char.factorium6}</h3>
+			  <div class="dice-row" id="diceContainer-${char.id}-kockak6"></div>
+			  <span class="clabel">⮡ Felügyelő: ${char.felugyelo1}</span>
+			  </div>
+			  
+			  <div class="ceszkoz"><h3>${char.factorium7}</h3>
+			  <div class="dice-row" id="diceContainer-${char.id}-kockak7"></div>
+			  <span class="clabel">⮡ Felügyelő: ${char.felugyelo1}</span>
+			  </div>
+			  
+			  <div class="ceszkoz"><h3>${char.factorium8}</h3>
+			  <div class="dice-row" id="diceContainer-${char.id}-kockak8"></div>
+			  <span class="clabel">⮡ Felügyelő: ${char.felugyelo1}</span>
+			  
+			  </div>
+			  
+			  <div class="ceszkoz"><p style="color: #f9eaa3; margin-top:8px";><strong>Loot:</strong></p>
+			  	  <div id="loot-${char.id}" class="dice-row"></div>
+			  </div>		  
+		  </div>
+          ${profitTemplate(char.profit)}
+        `;
+		
+		characterGrid.appendChild(card);
+	
+		const lootDiv = document.getElementById(`loot-${char.id}`);
+		lootDiv.className = "dice-row";
+		lootDiv.id = `loot-${char.id}`;		
+
+		lootItems.forEach(item => {
+		  const span = document.createElement("span");
+		  span.textContent = item;
+		  span.className = "loot-item";
+		  const isFaded = (state[char.id]?.lootFaded || []).includes(item);
+		  if (isFaded) span.classList.add("faded");
+
+		  span.onclick = () => {
+			lastState = JSON.parse(JSON.stringify(state));
+			state[char.id] = state[char.id] || {};
+			state[char.id].lootFaded = state[char.id].lootFaded || [];
+
+			if (state[char.id].lootFaded.includes(item)) {
+			  state[char.id].lootFaded = state[char.id].lootFaded.filter(i => i !== item);
+			} else {
+			  state[char.id].lootFaded.push(item);
+			}
+			saveState();
+			loadCharacters();
+		  };
+
+		  lootDiv.appendChild(span);
+		});
+	
+		for (let i = 1; i <= 9; i++) {
+        const row = document.createElement("div");
+        row.className = "dice-row";
+        const val = Number(state[char.id]?.[`kockak${i}`] ?? char[`kockak${i}`] ?? 0);
+        const container = document.getElementById(`diceContainer-${char.id}-kockak${i}`);
+			if (container) {
+			  
+			  container.innerHTML = "";
+			  for (let j = 1; j <= 6; j++) {
+				const d = document.createElement("div");
+				d.className = "dice";
+				if (j <= val) {
+				  d.classList.add("active");
+				} else {
+				  d.classList.add("inactive");
+				}
+				
+				const img = document.createElement("img");
+				  img.src = "https://img.icons8.com/color/48/dice.png";
+				  img.style.width = "28px";
+				  img.style.height = "28px";
+				  img.style.pointerEvents = "none";
+				  d.appendChild(img);
+				
+				d.onclick = () => {
+				  lastState = JSON.parse(JSON.stringify(state));
+				  state[char.id] = state[char.id] || {};
+				  const current = state[char.id]?.[`kockak${i}`] ?? char[`kockak${i}`];
+					if (j <= current) {
+					  // ha a kocka aktív → csökkentsük a számot
+					  state[char.id][`kockak${i}`] = j - 1;
+					} else {
+					  // ha a kocka inaktív → növelés addig
+					  state[char.id][`kockak${i}`] = j;
+					}
+				  const img = d.querySelector("img");
+					if (img) {
+					  img.classList.remove("shake");
+					  void img.offsetWidth;
+					  img.classList.add("shake");
+					  setTimeout(() => img.classList.remove("shake"), 300);
+					}
+				  saveState();
+				  loadCharacters();
+				};
+				container.appendChild(d);
+
+			  }
+			}
+        
+        }
+     
+      });
+    } 
+  
+  toggleCharacterPanel.addEventListener('click', () => {
+    characterPanel.style.display = 'block';
+    if (canvas) canvas.style.display = 'none';
+    loadCharacters();
+  });
+
+  backToCanvas.addEventListener('click', () => {
+    characterPanel.style.display = 'none';
+    if (canvas) canvas.style.display = 'block';
+  });
+
+	resetBtn.onclick = () => {
+	  lastState = JSON.parse(JSON.stringify(state));
+	  state = {};
+	  localStorage.removeItem("diceState");  // ⬅️ TELJESEN eltávolítja a mentett állapotot
+	  loadCharacters();                      // ⬅️ újra betölti a táblázatból
+	};
+
+  undoBtn.onclick = () => {
+    state = lastState;
+    saveState();
+    loadCharacters();
+  };
+
+  exportBtn.onclick = () => {
+    const blob = new Blob([JSON.stringify(state)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "diceState.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  importBtn.onclick = () => importInput.click();
+  importInput.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        state = JSON.parse(reader.result);
+        saveState();
+        loadCharacters();
+      } catch (err) {
+        alert("Hibás fájlformátum.");
+      }
+    };
+    reader.readAsText(file);
+  };
+  
+  
 	function animate() {
 	  requestAnimationFrame(animate);
 
