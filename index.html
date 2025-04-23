@@ -295,6 +295,7 @@
     #characterGrid {
       display: flex;
       flex-direction: row;
+	  flex-wrap: wrap;
 	  justify-content: center;
 	  margin-top: 16px;
       gap: 20px;
@@ -325,7 +326,7 @@
 		  flex-direction: column;
 		  max-width: 380px;
 		  background: radial-gradient(ellipse at top left, #222 60%, #000 100%);
-		  padding: 12px;
+		  padding: 20px;
 		  border: 2px solid #ffaa00;
 		  border-radius: 10px;
 		}
@@ -642,8 +643,9 @@
 		</div>
 		<div id="timerMessage">
 		</div>
-
-    </div>
+		
+		<div style="display:none;"><iframe style="background: radial-gradient(ellipse at top left, #222 60%, #000 100%) !important; border: 2px solid #666; box-shadow: 0 0 12px #ffaa00; color: #f9eaa3; font-family:"Orbitron"; font-weight: 400;" src="https://suno.com/embed/0e99a6ba-67e9-4a16-916b-6f9be1614085" width="250" height="120"><a href="https://suno.com/song/0e99a6ba-67e9-4a16-916b-6f9be1614085">Listen on Suno</a></iframe></div>
+	</div>
     <div id="leftPanel">
  
 		<div id="uiPanel">
@@ -1255,9 +1257,9 @@
 			<img src="/images/${char.portre}" style="width: 250px; border-radius: 6px; margin-bottom: 10px;" />
           </div>
 		  <div class="info-section">
-			  <p>${char.leiras}</p>
+			  <p style="height:7.5ex;">${char.leiras}</p>
 			  <p style="margin-top:8px; text-align:center";><strong style="color:#f9eaa3;">-==TALENTUM==-</strong></p>
-			  <div class="dice-row" id="diceContainer-${char.id}-kockak9"></div>
+			  <div class="dice-row" id="willContainer-${char.id}-kockak9"></div>
 			  <p>⮡ ${char.kepesseg1}</p>
 			  <p>⮡ ${char.kepesseg2}</p>
 			  <p>⮡ ${char.kepesseg3}</p>
@@ -1342,11 +1344,64 @@
 		  lootDiv.appendChild(span);
 		});
 	
-		for (let i = 1; i <= 9; i++) {
+	for (let i = 1; i <= 1; i++) {
         const row = document.createElement("div");
         row.className = "dice-row";
-        const val = Number(state[char.id]?.[`kockak${i}`] ?? char[`kockak${i}`] ?? 0);
-        const container = document.getElementById(`diceContainer-${char.id}-kockak${i}`);
+        const val = Number(state[char.id]?.[`kockak9`] ?? char[`kockak9`] ?? 0);
+        const container = document.getElementById(`willContainer-${char.id}-kockak9`);
+			if (container) {
+			  
+			  container.innerHTML = "";
+			  for (let j = 1; j <= 3; j++) {
+				const w = document.createElement("div");
+				w.className = "dice";
+				if (j <= val) {
+				  w.classList.add("active");
+				} else {
+				  w.classList.add("inactive");
+				}
+				
+				const img = document.createElement("img");
+				  img.src = "https://img.icons8.com/office/40/fire-element--v1.png";
+				  img.style.width = "28px";
+				  img.style.height = "28px";
+				  img.style.pointerEvents = "none";
+				  w.appendChild(img);
+				
+				w.onclick = () => {
+				  lastState = JSON.parse(JSON.stringify(state));
+				  state[char.id] = state[char.id] || {};
+				  const current = state[char.id]?.[`kockak9`] ?? char[`kockak9`];
+					if (j <= current) {
+					  // ha a kocka aktív → csökkentsük a számot
+					  state[char.id][`kockak9`] = j - 1;
+					} else {
+					  // ha a kocka inaktív → növelés addig
+					  state[char.id][`kockak9`] = j;
+					}
+				  const img = w.querySelector("img");
+					if (img) {
+					  img.classList.remove("shake");
+					  void img.offsetWidth;
+					  img.classList.add("shake");
+					  setTimeout(() => img.classList.remove("shake"), 300);
+					}
+				  saveState();
+				  loadCharacters();
+				};
+				container.appendChild(w);
+
+			  }
+			}
+        
+        }
+	
+	
+		for (let i = 1; i <= 9; i++) {
+			const row = document.createElement("div");
+			row.className = "dice-row";
+			const val = Number(state[char.id]?.[`kockak${i}`] ?? char[`kockak${i}`] ?? 0);
+			const container = document.getElementById(`diceContainer-${char.id}-kockak${i}`);
 			if (container) {
 			  
 			  container.innerHTML = "";
