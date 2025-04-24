@@ -660,6 +660,9 @@
 			<button id="toggleCharacterPanel" class="sci-button">
 			  <img src="https://img.icons8.com/isometric-line/50/FAB005/user.png" alt="character">Karakterek
 			</button>
+			<button id="toggleNPClist" class="sci-button">
+			  <img src="https://img.icons8.com/isometric-line/50/FAB005/user.png" alt="NPC">NPC-k
+			</button>
 			<button id="switchModel" class="sci-button">
 			  <img src="https://img.icons8.com/isometric-line/50/FAB005/swap.png" alt="switch"> Modell csere
 			</button>
@@ -709,6 +712,13 @@
 		<button id="importButton" class="sci-button">Load</button>
 	  </div>
 	  <div id="characterGrid"></div>
+	</div>
+	
+	<div id="NPCPanel" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; background:#111; z-index:9999; overflow-y:auto; padding: 20px;">
+	  <div class="top-buttons">
+		<button id="backToCanvas2" class="sci-button">Vissza</button>
+	  </div>
+	  <div id="NPCGrid" class="characterGrid" style="display: flex; flex-wrap: wrap; gap: 20px;"></div>
 	</div>
 	
 	<div class="group-panel-container">
@@ -1200,6 +1210,47 @@
     loadModel(currentModel);
   });
   
+  const toggleNPClist = document.getElementById('toggleNPClist');
+  const NPCPanel = document.getElementById('NPCPanel');
+  const backToCanvas2 = document.getElementById('backToCanvas2');
+  const NPCGrid = document.getElementById('NPCGrid');
+  const canvas2 = document.querySelector('canvas2');
+  
+    // NPC betöltése Google Sheets-ből
+  async function loadNPC() {
+	const sheetUrl = "https://docs.google.com/spreadsheets/d/1HS2z9dVFxzIzQCb3Ix2e7fDNlU_unGRhQncjLFmzrN0/gviz/tq?gid=1736935553&tqx=out:json";
+    const res = await fetch(sheetUrl);
+    const text = await res.text();
+    const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\((.*)\);/)[1]);
+    const table = json.table;
+    const headers = table.cols.map(c => c.label.toLowerCase());
+    const data = table.rows.map(row => Object.fromEntries(row.c.map((cell, i) => [headers[i], cell?.v ?? ""])));
+	
+
+    NPCGrid.innerHTML = "";
+    data.forEach(char => {
+      const NPCcard = document.createElement("div");
+      NPCcard.className = "NPCcard";
+	  
+	  NPCcard.innerHTML = `
+
+		  <div class="info-section" style="width:300px">
+			  <div id="infoPortraitWarpper" class="info-section" style="text-align:center;">
+			  <img id="infoPortrait" src="/images/${char.portre}"/>
+              </div>
+			  <h2 id="infoTitle" style="text-align:center;">${char.vezeto}</h2>
+			  <div id="infoPortraitWrapper" class="info-section" style="text-align:center;">
+				<div style="color:#f9eaa3;">Hajó: <strong style="color:#f9eaa3;"><span id="infoLeader">${char.nev}</span></strong></div>
+			  </div>	  
+		  </div>
+        `;
+		
+		NPCGrid.appendChild(NPCcard);
+	
+     
+      });
+    } 
+  
   const toggleCharacterPanel = document.getElementById('toggleCharacterPanel');
   const characterPanel = document.getElementById('characterPanel');
   const backToCanvas = document.getElementById('backToCanvas');
@@ -1451,6 +1502,17 @@
      
       });
     } 
+  
+  toggleNPClist.addEventListener('click', () => {
+    NPCPanel.style.display = 'block';
+    if (canvas2) canvas2.style.display = 'none';
+    loadNPC();
+  });
+  
+  backToCanvas2.addEventListener('click', () => {
+    NPCPanel.style.display = 'none';
+    if (canvas2) canvas2.style.display = 'block';
+  });
   
   toggleCharacterPanel.addEventListener('click', () => {
     characterPanel.style.display = 'block';
