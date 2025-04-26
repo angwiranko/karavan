@@ -10,14 +10,20 @@
   <style>
 
 	
-	body {
+	html, body {
       margin: 0;
+      padding: 0;
+      height: 100%; /* Teljes magasság */
       overflow: hidden;
-      background-color: #111;
-      font-family: 'Orbitron', sans-serif;
-    }
+	  font-family: 'Orbitron', sans-serif;
+	  background-color: #111;
 
-    canvas { display: block; }
+	}
+	#c {
+	  width: 100%;
+	  height: 100%;
+	  display: block;
+	}
 	
 	#uiPanel {
 	  position: absolute;
@@ -112,25 +118,20 @@
       font-size: 14px;
 	}
 	
-	.label {
+	.nametag {
 	color: #f9eaa3;
 	background: black;
 	width: auto;
 	}
 	
-    #grid-labels {
-      position: absolute;
-      top: 0;
-      left: 0;
-      color: white;
-      font-family: monospace;
-      pointer-events: none;
-    }
-    .grid-label {
-      position: absolute;
-      font-size: 12px;
-      opacity: 0.3;
-    }
+	#ui {
+	  pointer-events: none;
+	}
+
+	#ui button {
+	  pointer-events: auto;
+	}
+	
     .color-button {
       width: 30px;
       height: 30px;
@@ -149,46 +150,50 @@
       "imports": {
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
         "three/examples/jsm/loaders/GLTFLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js",
-        "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js"
+        "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js",
+		"three/examples/jsm/geometries/TextGeometry.js": "https://unpkg.com/three@0.160.0/examples/jsm/geometries/TextGeometry.js",
+		"three/examples/jsm/loaders/FontLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/FontLoader.js"
       }
     }
     </script>
 </head>
 <body>
 
-<div id="grid-labels"></div>
+<canvas id="c"></canvas>
 
 <div id="uiPanel">
-  <div id="controls">
-  <button id="addPlayer" class="sci-button">➕ Új Player</button>
-  <button id="addNPC" class="sci-button">➕ Új NPC</button>
-  <button id="deleteSelected" class="sci-button">🗑️ Karakter törlés</button>
-  <button id="saveMap" class="sci-button">💾 Mentés</button>
-  <button id="loadMap" class="sci-button">📂 Betöltés</button>
-  <input type="file" id="fileInput" style="display: none;">
-  </div>
-  <div id="popup" class="infoBox" style="display: none;">
-  <h3 style="font-family:'Orbitron'; color:#ffee55; padding-top:4px; padding-bottom:12px; font-size: 20px; margin:0px">Új Karakter</h3>
-  <label>Név: <input type="text" id="charName" value="Név" class="label"></label><br><br>
-  <div id="colorPalette">
-    <label>Szín:</label>
-    <button class="color-button" style="background-color: #ff0000;" data-color="#ff0000"></button>
-    <button class="color-button" style="background-color: #00ff00;" data-color="#00ff00"></button>
-    <button class="color-button" style="background-color: #0000ff;" data-color="#0000ff"></button>
-    <button class="color-button" style="background-color: #ffffff;" data-color="#ffffff"></button>
-  </div>
-  <br>
-  <label>HP: <input type="number" id="charHP" class="label" value="1"></label><br><br>
-  <div style="display: flex; flex-direction:row; gap:8px">
-  <button id="confirmAdd" class="sci-button">➕ Létrehozás</button>
-  <button id="cancelAdd" class="sci-button">❌ Mégse</button>
-  </div>
-</div>
 
-<div id="infoPanel">
-  <div id="infoName" class="infoName">Név: -</div>
-  <div id="infoHP" class="infoHP">HP: -</div>
-</div>
+  <div id="controls">
+    <button id="addPlayer" class="sci-button">➕ Új Player</button>
+    <button id="addNPC" class="sci-button">➕ Új NPC</button>
+    <button id="deleteSelected" class="sci-button">🗑️ Karakter törlés</button>
+    <button id="saveMap" class="sci-button">💾 Mentés</button>
+    <button id="loadMap" class="sci-button">📂 Betöltés</button>
+    <input type="file" id="fileInput" style="display: none;">
+  </div>
+  
+  <div id="popup" class="infoBox" style="display: none;">
+    <h3 style="font-family:'Orbitron'; color:#ffee55; padding-top:4px; padding-bottom:12px; font-size: 20px; margin:0px">Új Karakter</h3>
+    <label>Név: <input type="text" id="charName" value="Név" class="nametag"></label><br><br>
+    <div id="colorPalette">
+      <label>Szín:</label>
+      <button class="color-button" style="background-color: #ff0000;" data-color="#ff0000"></button>
+      <button class="color-button" style="background-color: #00ff00;" data-color="#00ff00"></button>
+      <button class="color-button" style="background-color: #0000ff;" data-color="#0000ff"></button>
+      <button class="color-button" style="background-color: #ffffff;" data-color="#ffffff"></button>
+    </div>
+    <br>
+    <label>HP: <input type="number" id="charHP" class="nametag" value="1"></label><br><br>
+    <div style="display: flex; flex-direction:row; gap:8px">
+      <button id="confirmAdd" class="sci-button">➕ Létrehozás</button>
+      <button id="cancelAdd" class="sci-button">❌ Mégse</button>
+    </div>
+  </div>
+
+  <div id="infoPanel">
+    <div id="infoName" class="infoName">Név: -</div>
+    <div id="infoHP" class="infoHP">HP: -</div>
+  </div>
   
 </div>
 
@@ -198,21 +203,38 @@
   import * as THREE from 'three';
   import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
-
+  import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
+  import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 
   // Scene, Camera, Renderer
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x222222);
 
-  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
-  camera.position.set(0, 800, 800);
-  camera.lookAt(0, 0, 0);
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
+  let scene, camera, renderer, controls;
   
+  const canvas = document.querySelector( '#c' );
+  renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
+  renderer.setSize(window.innerWidth, window.innerHeight, true);
+  renderer.setPixelRatio(window.devicePixelRatio || 1);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 800, 800);
+  camera.lookAt(0, 0, 0);  
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x222222);
+  
+  // OrbitControls
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 0, 0);
+  controls.update();
+  
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  let selectedPlayer = null;
+  let originalMaterial = null;
+	
     // Gombok
   const addPlayerBtn = document.getElementById('addPlayer');
   const addNPCBtn = document.getElementById('addNPC');
@@ -223,7 +245,6 @@
   const fileInput2 = document.getElementById('fileInput');
   console.log("fileInput:", fileInput2);
   
-
   
   // popup
   const charNameInput = document.getElementById('charName');
@@ -271,9 +292,6 @@
     infoPanel.style.display = 'block';
   }
   
-
-  
-  
   // Popup gombok
   cancelAddBtn.addEventListener('click', () => {
     closePopup();
@@ -318,16 +336,6 @@ let creatingType = null; // "player" vagy "enemy"
     }
   });
   
-  // OrbitControls
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 0, 0);
-  controls.update();
-  
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
-  let selectedPlayer = null;
-  let originalMaterial = null;
-
   // Fények
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
   scene.add(ambientLight);
@@ -354,6 +362,41 @@ let creatingType = null; // "player" vagy "enemy"
   // Grid Helper
   const grid = new THREE.GridHelper(1000, 10, 0x888888, 0x444444);
   scene.add(grid);
+  
+  // Gridszámozás
+  function createLetterNumberGrid(gridSize = 10, cellSize = 100) {
+    const loader = new FontLoader();
+    loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  
+      for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+          const label = `${letters[row]}${col + 1}`;
+  
+          const textGeometry = new TextGeometry(label, {
+            font: font,
+            size: 8,
+            height: 1,
+          });
+  
+          const textMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffff00,
+            transparent: true,
+            opacity: 0.5
+          });
+          const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+  
+          const posX = col * cellSize - (gridSize * cellSize) / 2 + cellSize / 2;
+          const posZ = row * cellSize - (gridSize * cellSize) / 2 + cellSize / 2;
+  
+          textMesh.position.set(posX, 2, posZ);
+          textMesh.rotation.x = -Math.PI / 2;
+  
+          scene.add(textMesh);
+        }
+      }
+    });
+  }
 
   // Terrain csoport
   const terrain = new THREE.Group();
@@ -624,55 +667,10 @@ let creatingType = null; // "player" vagy "enemy"
     }
   }
 
-
-
-  // Grid feliratok
-  const labelContainer = document.getElementById('grid-labels');
- 
   
-  function createLabels() {
-    labelContainer.innerHTML = '';
-    
-    for (let row = 0; row < gridSize; row++) {
-      for (let col = 0; col < gridSize; col++) {
-        const label = document.createElement('div');
-        label.className = 'grid-label';
-        label.textContent = String.fromCharCode(65 + row) + (col + 1);
-        labelContainer.appendChild(label);
-      }
-    }
-  }
-  
-    function updateLabels() {
-    const labels = document.querySelectorAll('.grid-label');
-    let index = 0;
-    
-    for (let row = 0; row < gridSize; row++) {
-      for (let col = 0; col < gridSize; col++) {
-        const label = labels[index];
-        if (!label) continue;
-  
-        const x = -500 + col * cellSize + cellSize / 2;
-        const z = -500 + row * cellSize + cellSize / 2;
-        const vector = new THREE.Vector3(x, 0, z);
-        vector.project(camera);
-  
-        const sx = (vector.x * 0.5 + 0.5) * window.innerWidth;
-        const sy = (-vector.y * 0.5 + 0.5) * window.innerHeight;
-  
-        label.style.left = `${sx}px`;
-        label.style.top = `${sy}px`;
-  
-        index++;
-      }
-    }
-  }
-
-  createLabels();
-
   renderer.domElement.addEventListener('click', (event) => {
       event.preventDefault();
-  
+	   
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   
@@ -693,6 +691,7 @@ let creatingType = null; // "player" vagy "enemy"
               const y = hitBigBlock.point.y + 20;
   
               selectedPlayer.position.set(x, y, z);
+              updateInfoPanel(null);
   
           } else if (planeIntersects.length > 0) {
               // Ha a plane-re kattintottunk
@@ -712,6 +711,7 @@ let creatingType = null; // "player" vagy "enemy"
               //const snappedZ = (gridZ * cellSize) - (gridSize * cellSize) / 2 + cellSize / 2;
   
               selectedPlayer.position.set(x, y, z);
+              updateInfoPanel(null);
   
           
 		  
@@ -733,6 +733,7 @@ let creatingType = null; // "player" vagy "enemy"
               //const snappedZ = (gridZ * cellSize) - (gridSize * cellSize) / 2 + cellSize / 2;
   
               selectedPlayer.position.set(x, y, z);
+              updateInfoPanel(null);
   
           } 
 		  
@@ -762,26 +763,36 @@ let creatingType = null; // "player" vagy "enemy"
   
               updateInfoPanel(selectedPlayer);
               console.log('Kiválasztott karakter:', selectedPlayer);
-          }
+          } else {
+             // NINCS találat -> elrejtjük az infopanelt
+             if (selectedPlayer && originalMaterial) {
+                 selectedPlayer.material = originalMaterial;
+             }
+             selectedPlayer = null;
+             originalMaterial = null;
+             updateInfoPanel(null);
+         }
       }
   });
+
 
   // Render loop
   function animate() {
     requestAnimationFrame(animate);
 	controls.update();
     renderer.render(scene, camera);
-    updateLabels();
   }
+    
+	
+  createLetterNumberGrid();
   animate();
-
-  // Átméretezés figyelése
+    
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    createLabels(); // újrapozícionáljuk a címkéket
   });
+  
   
   loadMapBtn.onclick = () => {
   console.log("📂 Betöltés gomb megnyomva");
