@@ -164,7 +164,8 @@
 <div id="uiPanel">
 
   <div id="controls">
-    <button id="addPlayer" class="sci-button">➕ Új Player</button>
+    <button id="toggleNames" class="sci-button">👁️ Nevek</button>
+	<button id="addPlayer" class="sci-button">➕ Új Player</button>
     <button id="addNPC" class="sci-button">➕ Új NPC</button>
     <button id="deleteSelected" class="sci-button">🗑️ Karakter törlés</button>
     <button id="saveMap" class="sci-button">💾 Mentés</button>
@@ -183,7 +184,7 @@
       <button class="color-button" style="background-color: #ffffff;" data-color="#ffffff"></button>
     </div>
     <br>
-    <label>HP: <input type="number" id="charHP" class="nametag" value="1"></label><br><br>
+    <label>Méret: <input type="number" id="charSize" class="nametag" value="20"></label><br><br>
     <div style="display: flex; flex-direction:row; gap:8px">
       <button id="confirmAdd" class="sci-button">➕ Létrehozás</button>
       <button id="cancelAdd" class="sci-button">❌ Mégse</button>
@@ -244,12 +245,28 @@
   const loadMapBtn = document.getElementById('loadMap');
   const fileInput2 = document.getElementById('fileInput');
   console.log("fileInput:", fileInput2);
+  const toggleNamesBtn = document.getElementById('toggleNames');
+  let namesVisible = false;
+  
+  toggleNamesBtn.addEventListener('click', () => {
+    namesVisible = !namesVisible;
+  
+    [...players.children, ...enemies.children].forEach(obj => {
+      if (obj.children.length > 0) {
+        obj.children.forEach(child => {
+          if (child.type === "Sprite") {
+            child.visible = namesVisible;
+          }
+        });
+      }
+    });
+  });
   
   
   // popup
   const charNameInput = document.getElementById('charName');
   const charColorInput = document.getElementById('charColor');
-  const charHPInput = document.getElementById('charHP');
+  const charSizeInput = document.getElementById('charSize');
   const confirmAddBtn = document.getElementById('confirmAdd');
   const cancelAddBtn = document.getElementById('cancelAdd');
   
@@ -285,10 +302,10 @@
       return;
     }
   
-    const { name, hp } = object.userData || {};
+    const { name, size } = object.userData || {};
     
     infoName.textContent = `${name || '-'}`;
-    infoHP.textContent = `HP: ${hp != null ? hp : '-'}`;
+    infoHP.textContent = `HP: ${size != null ? (size / 20).toFixed(0) : '-'}`;
     infoPanel.style.display = 'block';
   }
   
@@ -301,12 +318,12 @@
   confirmAddBtn.addEventListener('click', () => {
     const name = charNameInput.value;
     const color = selectedColor;
-    const hp = parseInt(charHPInput.value);
+    const size = parseFloat(charSizeInput.value);
   
     if (creatingType === "player") {
-      createPlayer(0, 0, color, name, hp);
+      createPlayer(0, 0, color, name, size);
     } else if (creatingType === "enemy") {
-      createEnemy(0, 0, color, name, hp);
+      createEnemy(0, 0, color, name, size);
     }
   
     closePopup();
@@ -412,52 +429,83 @@ let creatingType = null; // "player" vagy "enemy"
   enemies.name = "Enemies";
   scene.add(enemies);
   
-  // Függvény karakter létrehozására
-  function createPlayer(x, z, color = 0x0000ff, name = "Player", hp = 10) {
-    const geometry = new THREE.SphereGeometry(20, 16, 16);
+  //névtagek karaktereknek
+  function createNameLabel(name) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.width = 256;
+    canvas.height = 64;
+  
+    context.fillStyle = 'white';
+	context.font = 'bold 28px monospace';
+    context.textAlign = 'center';
+	context.textBaseline = 'middle';
+    context.fillText(name, canvas.width / 2, canvas.height / 2 + 10);
+  
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(80, 20, 1); // Méret
+    sprite.visible = false; // Alapból láthatatlan
+	sprite.userData.isNameLabel = true;
+  
+    return sprite;
+  }
+  
+  // Függvény karakter és enemyk létrehozására
+  function createPlayer(x, z, color = 0x0000ff, name = "Player", size = 20) {
+    const geometry = new THREE.SphereGeometry(size, 16, 16);
     const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(color) });
     const sphere = new THREE.Mesh(geometry, material);
+    const nameLabel = createNameLabel(name);
+	nameLabel.visible = namesVisible;
+    sphere.add(nameLabel);
+    nameLabel.position.set(0, 30, 0); // A gömb fölé helyezzük
+
+    sphere.position.set(x, size, z);
   
-    sphere.position.set(x, 20, z);
-  
-    // Egyedi adatokat adunk hozzá
     sphere.userData = {
       type: "player",
       name,
-      hp
+      size
     };
   
+
+    
     players.add(sphere);
   }
   
-  // Függvény ellenfél létrehozására
-  function createEnemy(x, z, color = 0xff0000, name = "Enemy", hp = 10) {
-    const geometry = new THREE.SphereGeometry(20, 16, 16);
+  function createEnemy(x, z, color = 0xff0000, name = "Enemy", size = 20) {
+    const geometry = new THREE.SphereGeometry(size, 16, 16);
     const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(color) });
     const sphere = new THREE.Mesh(geometry, material);
-  
-    sphere.position.set(x, 20, z);
+    const nameLabel = createNameLabel(name);
+	nameLabel.visible = namesVisible;
+    sphere.add(nameLabel);
+    nameLabel.position.set(0, 30, 0); // A gömb fölé helyezzük
+
+    sphere.position.set(x, size, z);
   
     sphere.userData = {
-      type: "enemy",
+      type: "Enemy",
       name,
-      hp
+      size
     };
-  
+      
     enemies.add(sphere);
   }
   
   // Példa: Létrehozunk néhány karaktert és ellenfelet
-  createPlayer(-450, 550);
-  createPlayer(-350, 550);
-  createPlayer(-250, 550);
-  createPlayer(-150, 550);
-  createPlayer(-50, 550);
-  createEnemy(450, 550);
-  createEnemy(350, 550);
-  createEnemy(250, 550);
-  createEnemy(150, 550);
-  createEnemy(50, 550);
+  createPlayer(-450, 550, 0x0000ff, "Ares");
+  createPlayer(-350, 550, 0x0000ff, "Cassius");
+  createPlayer(-250, 550, 0x0000ff, "Omega");
+  createPlayer(-150, 550, 0x0000ff, "Agrippa");
+  createPlayer(-50, 550, 0x0000ff, "Ignatius");
+  createEnemy(450, 550, 0xff0000, "Enemy1");
+  createEnemy(350, 550, 0xff0000, "Enemy2");
+  createEnemy(250, 550, 0xff0000, "Enemy3");
+  createEnemy(150, 550, 0xff0000, "Enemy4");
+  createEnemy(50, 550, 0xff0000, "Enemy5");
   
  // TORZÍTó
   function distortGeometry(geometry, amount = 1) {
@@ -667,6 +715,26 @@ let creatingType = null; // "player" vagy "enemy"
     }
   }
 
+  // Mozgás Karakter
+  function smoothMove(object, targetX, targetY, targetZ, duration = 500) {
+    const startPosition = object.position.clone();
+    const startTime = performance.now();
+  
+    function animate() {
+      const elapsed = performance.now() - startTime;
+      const t = Math.min(elapsed / duration, 1); // 0..1 közötti idő interpoláció
+  
+      object.position.lerpVectors(startPosition, new THREE.Vector3(targetX, targetY, targetZ), t);
+  
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      }
+    }
+  
+    animate();
+  }
+
+
   
   renderer.domElement.addEventListener('click', (event) => {
       event.preventDefault();
@@ -681,16 +749,16 @@ let creatingType = null; // "player" vagy "enemy"
           const terrainIntersects = raycaster.intersectObjects(terrain.children, true);
           const planeIntersects = raycaster.intersectObject(plane, true);
 		  const boxIntersects = raycaster.intersectObject(box, true);
-  
-          const hitBigBlock = terrainIntersects.find(obj => obj.object.userData?.type === "bigBlock");
+          const size = selectedPlayer.userData.size || 20; // ha nincs size, default 20
+		  const hitBigBlock = terrainIntersects.find(obj => obj.object.userData?.type === "bigBlock");
   
           if (hitBigBlock) {
               // Nagy blokkra tesszük
               const x = hitBigBlock.point.x;
               const z = hitBigBlock.point.z;
-              const y = hitBigBlock.point.y + 20;
+              const y = hitBigBlock.point.y + size;
   
-              selectedPlayer.position.set(x, y, z);
+              smoothMove(selectedPlayer, x, y, z, 500);
               updateInfoPanel(null);
   
           } else if (planeIntersects.length > 0) {
@@ -699,7 +767,7 @@ let creatingType = null; // "player" vagy "enemy"
   
               const x = planeIntersects[0].point.x;
               const z = planeIntersects[0].point.z;
-              const y = planeIntersects[0].point.y + 20;
+			  const y = planeIntersects[0].point.y + size;
 			  
               //const offsetX = point.x + (gridSize * cellSize) / 2;
               //const offsetZ = point.z + (gridSize * cellSize) / 2;
@@ -710,7 +778,7 @@ let creatingType = null; // "player" vagy "enemy"
               //const snappedX = (gridX * cellSize) - (gridSize * cellSize) / 2 + cellSize / 2;
               //const snappedZ = (gridZ * cellSize) - (gridSize * cellSize) / 2 + cellSize / 2;
   
-              selectedPlayer.position.set(x, y, z);
+              smoothMove(selectedPlayer, x, y, z, 500);
               updateInfoPanel(null);
   
           
@@ -721,7 +789,7 @@ let creatingType = null; // "player" vagy "enemy"
   
               const x = boxIntersects[0].point.x;
               const z = boxIntersects[0].point.z;
-              const y = boxIntersects[0].point.y + 20;
+              const y = boxIntersects[0].point.y + size;
 			  
               //const offsetX = point.x + (gridSize * cellSize) / 2;
               //const offsetZ = point.z + (gridSize * cellSize) / 2;
@@ -732,7 +800,7 @@ let creatingType = null; // "player" vagy "enemy"
               //const snappedX = (gridX * cellSize) - (gridSize * cellSize) / 2 + cellSize / 2;
               //const snappedZ = (gridZ * cellSize) - (gridSize * cellSize) / 2 + cellSize / 2;
   
-              selectedPlayer.position.set(x, y, z);
+              smoothMove(selectedPlayer, x, y, z, 500);
               updateInfoPanel(null);
   
           } 
@@ -744,15 +812,21 @@ let creatingType = null; // "player" vagy "enemy"
   
       } else {
           // Ha karaktert választunk ki
-          const intersects = raycaster.intersectObjects([...players.children, ...enemies.children]);
-          if (intersects.length > 0) {
+          const intersects = raycaster.intersectObjects([...players.children, ...enemies.children], true);
+		  
+		  // Szűrés, hogy a Sprite-okat ignoráljuk:
+          const validIntersects = intersects.filter(i => !i.object.userData.isNameLabel);
+          
+          if (validIntersects.length > 0) {
+              const intersectedObject = validIntersects[0].object;
+          
               if (selectedPlayer && originalMaterial) {
                   selectedPlayer.material = originalMaterial;
               }
-  
-              selectedPlayer = intersects[0].object;
+          
+              selectedPlayer = intersectedObject;
               originalMaterial = selectedPlayer.material;
-  
+          
               selectedPlayer.material = new THREE.MeshStandardMaterial({
                   color: 0x00ffff,
                   emissive: 0x00ffff,
@@ -760,18 +834,19 @@ let creatingType = null; // "player" vagy "enemy"
                   metalness: 0.3,
                   roughness: 0.5
               });
-  
+          
               updateInfoPanel(selectedPlayer);
               console.log('Kiválasztott karakter:', selectedPlayer);
           } else {
-             // NINCS találat -> elrejtjük az infopanelt
-             if (selectedPlayer && originalMaterial) {
-                 selectedPlayer.material = originalMaterial;
-             }
-             selectedPlayer = null;
-             originalMaterial = null;
-             updateInfoPanel(null);
-         }
+              if (selectedPlayer && originalMaterial) {
+                  selectedPlayer.material = originalMaterial;
+              }
+              selectedPlayer = null;
+              originalMaterial = null;
+              updateInfoPanel(null);
+          }
+		  
+
       }
   });
 
@@ -828,11 +903,11 @@ fileInput2.onchange = (e) => {
     terrain.clear();
 
     data.players.forEach(item => {
-      createPlayer(item.position.x, item.position.z, item.color, item.name, item.hp);
+      createPlayer(item.position.x, item.position.z, item.color, item.name, item.size);
     });
 
     data.enemies.forEach(item => {
-      createEnemy(item.position.x, item.position.z, item.color, item.name, item.hp);
+      createEnemy(item.position.x, item.position.z, item.color, item.name, item.size);
     });
 
     data.terrain.forEach(item => {
@@ -870,7 +945,7 @@ fileInput2.onchange = (e) => {
     players.children.forEach(obj => {
       mapData.players.push({
         name: obj.userData.name,
-        hp: obj.userData.hp,
+        size: obj.userData.size,
         color: '#' + obj.material.color.getHexString(),
         position: {
           x: obj.position.x,
@@ -883,7 +958,7 @@ fileInput2.onchange = (e) => {
     enemies.children.forEach(obj => {
       mapData.enemies.push({
         name: obj.userData.name,
-        hp: obj.userData.hp,
+        size: obj.userData.size,
         color: '#' + obj.material.color.getHexString(),
         position: {
           x: obj.position.x,
