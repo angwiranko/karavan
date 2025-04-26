@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Warhammer 40k Térkép Generator - Three.js (ES Modules)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@200..800&family=Share+Tech+Mono&display=swap" rel="stylesheet"> 
+  <link rel="stylesheet" href="https://use.typekit.net/xmi4cwr.css">
+  <style>
+
+	
+	body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #111;
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    canvas { display: block; }
+	
+	#uiPanel {
+	  position: absolute;
+	  top: 30px;
+	  left: 10px;
+	  z-index: 10;
+	  display: flex;
+	  flex-direction: column;
+	  align-items: flex-start;
+	  gap: 10px;
+	}
+
+	#controls {
+	  display: flex;
+	  flex-direction: row;
+	  gap: 8px;
+	}
+
+    .sci-button {
+      font-family: "Orbitron", sans-serif;
+      background: linear-gradient(145deg, #1a1a1a, #2b2b2b);
+      color: #ffee55;
+      border: 2px solid #666;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      text-shadow: 0 0 3px #000;
+      box-shadow: 0 0 10px #ffaa00;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.3s;
+	  width: auto;
+	  height: auto;
+	  white-space: nowrap;
+    }
+
+    .sci-button:hover {
+      background: #333;
+    }
+
+    .sci-button img {
+      width: 24px;
+      height: 24px;
+      filter: brightness(1.5);
+    }
+
+    .infoBox {
+      position: relative;
+      top: 20px;
+      left: 20px;
+      background: radial-gradient(ellipse at top left, #222 60%, #000 100%);
+      border: 2px solid #666;
+      box-shadow: 0 0 12px #ffaa00;
+      color: #f9eaa3;
+      font-family: "Share Tech Mono", monospace;
+      font-weight: 400;
+      text-shadow: 0 0 3px #000;
+      border-radius: 8px;
+      z-index: 1000;
+      padding: 16px;
+      width: auto;
+	}
+
+    #infoPanel {
+      display: none;
+	  position: relative;
+      top: 20px;
+      left: 20px;
+	  padding: 16px;
+      background: radial-gradient(ellipse at top left, #222 60%, #000 100%);
+      border: 2px solid #666;
+      box-shadow: 0 0 12px #ffaa00;
+      color: #f9eaa3;
+      font-family: "Share Tech Mono", monospace;
+      font-weight: 400;
+      text-shadow: 0 0 3px #000;
+      border-radius: 8px;
+      width: auto;
+    }
+	.infoName {
+      font-family: "Orbitron", sans-serif;
+      color: #ffee55;
+      padding: 4px 4px;
+      font-size: 14px;
+	}
+	.infoHP {
+      font-family: "Share Tech Mono", monospace;
+      font-weight: 400;
+      padding: 4px 4px;
+      font-size: 14px;
+	}
+	
+	.label {
+	color: #f9eaa3;
+	background: black;
+	width: auto;
+	}
+	
+    #grid-labels {
+      position: absolute;
+      top: 0;
+      left: 0;
+      color: white;
+      font-family: monospace;
+      pointer-events: none;
+    }
+    .grid-label {
+      position: absolute;
+      font-size: 12px;
+      opacity: 0.3;
+    }
+    .color-button {
+      width: 30px;
+      height: 30px;
+      border: 2px solid white;
+      margin: 2px;
+      cursor: pointer;
+      border-radius: 50%;
+      outline: none;
+    }
+    .color-button.selected {
+      border: 3px solid yellow;
+    }
+  </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/examples/jsm/loaders/GLTFLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js",
+        "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js"
+      }
+    }
+    </script>
+</head>
+<body>
+
+<div id="grid-labels"></div>
+
+<div id="uiPanel">
+  <div id="controls">
+  <button id="addPlayer" class="sci-button">➕ Új Player</button>
+  <button id="addNPC" class="sci-button">➕ Új NPC</button>
+  <button id="deleteSelected" class="sci-button">🗑️ Karakter törlés</button>
+  <button id="saveMap" class="sci-button">💾 Mentés</button>
+  <button id="loadMap" class="sci-button">📂 Betöltés</button>
+  <input type="file" id="fileInput" style="display: none;">
+  </div>
+  <div id="popup" class="infoBox" style="display: none;">
+  <h3 style="font-family:'Orbitron'; color:#ffee55; padding-top:4px; padding-bottom:12px; font-size: 20px; margin:0px">Új Karakter</h3>
+  <label>Név: <input type="text" id="charName" value="Név" class="label"></label><br><br>
+  <div id="colorPalette">
+    <label>Szín:</label>
+    <button class="color-button" style="background-color: #ff0000;" data-color="#ff0000"></button>
+    <button class="color-button" style="background-color: #00ff00;" data-color="#00ff00"></button>
+    <button class="color-button" style="background-color: #0000ff;" data-color="#0000ff"></button>
+    <button class="color-button" style="background-color: #ffffff;" data-color="#ffffff"></button>
+  </div>
+  <br>
+  <label>HP: <input type="number" id="charHP" class="label" value="1"></label><br><br>
+  <div style="display: flex; flex-direction:row; gap:8px">
+  <button id="confirmAdd" class="sci-button">➕ Létrehozás</button>
+  <button id="cancelAdd" class="sci-button">❌ Mégse</button>
+  </div>
+</div>
+
+<div id="infoPanel">
+  <div id="infoName" class="infoName">Név: -</div>
+  <div id="infoHP" class="infoHP">HP: -</div>
+</div>
+  
+</div>
+
+
+
+<script type="module">
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+  import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+
+
+  // Scene, Camera, Renderer
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x222222);
+
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 800, 800);
+  camera.lookAt(0, 0, 0);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+  
+    // Gombok
+  const addPlayerBtn = document.getElementById('addPlayer');
+  const addNPCBtn = document.getElementById('addNPC');
+  const deleteSelectedBtn = document.getElementById('deleteSelected');
+  const popup = document.getElementById('popup');
+  const saveMapBtn = document.getElementById('saveMap');
+  const loadMapBtn = document.getElementById('loadMap');
+  const fileInput2 = document.getElementById('fileInput');
+  console.log("fileInput:", fileInput2);
+  
+
+  
+  // popup
+  const charNameInput = document.getElementById('charName');
+  const charColorInput = document.getElementById('charColor');
+  const charHPInput = document.getElementById('charHP');
+  const confirmAddBtn = document.getElementById('confirmAdd');
+  const cancelAddBtn = document.getElementById('cancelAdd');
+  
+  let selectedColor = "#00ffff"; // alapértelmezett szín
+
+  const colorButtons = document.querySelectorAll('.color-button');
+  colorButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      selectedColor = button.getAttribute('data-color');
+  
+      // Kijelölés vizuálisan
+      colorButtons.forEach(btn => btn.classList.remove('selected'));
+      button.classList.add('selected');
+    });
+  });
+  
+  function openPopup() {
+    popup.style.display = 'block';
+  }
+  
+  function closePopup() {
+    popup.style.display = 'none';
+  }
+  
+  // infopanel
+  const infoPanel = document.getElementById('infoPanel');
+  const infoName = document.getElementById('infoName');
+  const infoHP = document.getElementById('infoHP');
+  
+  function updateInfoPanel(object) {
+    if (!object) {
+      infoPanel.style.display = 'none';
+      return;
+    }
+  
+    const { name, hp } = object.userData || {};
+    
+    infoName.textContent = `${name || '-'}`;
+    infoHP.textContent = `HP: ${hp != null ? hp : '-'}`;
+    infoPanel.style.display = 'block';
+  }
+  
+
+  
+  
+  // Popup gombok
+  cancelAddBtn.addEventListener('click', () => {
+    closePopup();
+  });
+  
+  // Létrehozás gomb
+  confirmAddBtn.addEventListener('click', () => {
+    const name = charNameInput.value;
+    const color = selectedColor;
+    const hp = parseInt(charHPInput.value);
+  
+    if (creatingType === "player") {
+      createPlayer(0, 0, color, name, hp);
+    } else if (creatingType === "enemy") {
+      createEnemy(0, 0, color, name, hp);
+    }
+  
+    closePopup();
+  });
+
+let creatingType = null; // "player" vagy "enemy"
+  
+  // Player hozzáadása
+  addPlayerBtn.addEventListener('click', () => {
+    creatingType = "player";
+    openPopup();
+  });
+  
+  // NPC hozzáadása
+  addNPCBtn.addEventListener('click', () => {
+    creatingType = "enemy";
+    openPopup();
+  });
+    
+  // Kijelölt törlése
+  deleteSelectedBtn.addEventListener('click', () => {
+    if (selectedPlayer) {
+      selectedPlayer.parent.remove(selectedPlayer);
+      selectedPlayer = null;
+	  updateInfoPanel(null);
+      originalMaterial = null;
+    }
+  });
+  
+  // OrbitControls
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 0, 0);
+  controls.update();
+  
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  let selectedPlayer = null;
+  let originalMaterial = null;
+
+  // Fények
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+  scene.add(ambientLight);
+
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+  directionalLight.position.set(100, 500, 100);
+  scene.add(directionalLight);
+
+  // Talaj (Plane)
+  const planeGeometry = new THREE.PlaneGeometry(1000, 1000, 10, 10);
+  const planeMaterial = new THREE.MeshStandardMaterial({ color: 0x444444, wireframe: false });
+  const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+  plane.rotation.x = -Math.PI / 2;
+  scene.add(plane);
+  
+  // BOX (Plane)
+  const boxGeometry = new THREE.PlaneGeometry(1000, 100, 10, 1);
+  const boxMaterial = new THREE.MeshStandardMaterial({ color: 0x444444, wireframe: true });
+  const box = new THREE.Mesh(boxGeometry, boxMaterial);
+  box.rotation.x = -Math.PI / 2;
+  box.position.set(0, 0, 550);
+  scene.add(box);
+
+  // Grid Helper
+  const grid = new THREE.GridHelper(1000, 10, 0x888888, 0x444444);
+  scene.add(grid);
+
+  // Terrain csoport
+  const terrain = new THREE.Group();
+  terrain.name = "Terrain";
+  scene.add(terrain);
+  
+  // Karakterek (Players) és Ellenfelek (Enemies) csoport
+  const players = new THREE.Group();
+  players.name = "Players";
+  scene.add(players);
+  
+  const enemies = new THREE.Group();
+  enemies.name = "Enemies";
+  scene.add(enemies);
+  
+  // Függvény karakter létrehozására
+  function createPlayer(x, z, color = 0x0000ff, name = "Player", hp = 10) {
+    const geometry = new THREE.SphereGeometry(20, 16, 16);
+    const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(color) });
+    const sphere = new THREE.Mesh(geometry, material);
+  
+    sphere.position.set(x, 20, z);
+  
+    // Egyedi adatokat adunk hozzá
+    sphere.userData = {
+      type: "player",
+      name,
+      hp
+    };
+  
+    players.add(sphere);
+  }
+  
+  // Függvény ellenfél létrehozására
+  function createEnemy(x, z, color = 0xff0000, name = "Enemy", hp = 10) {
+    const geometry = new THREE.SphereGeometry(20, 16, 16);
+    const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(color) });
+    const sphere = new THREE.Mesh(geometry, material);
+  
+    sphere.position.set(x, 20, z);
+  
+    sphere.userData = {
+      type: "enemy",
+      name,
+      hp
+    };
+  
+    enemies.add(sphere);
+  }
+  
+  // Példa: Létrehozunk néhány karaktert és ellenfelet
+  createPlayer(-450, 550);
+  createPlayer(-350, 550);
+  createPlayer(-250, 550);
+  createPlayer(-150, 550);
+  createPlayer(-50, 550);
+  createEnemy(450, 550);
+  createEnemy(350, 550);
+  createEnemy(250, 550);
+  createEnemy(150, 550);
+  createEnemy(50, 550);
+  
+ // TORZÍTó
+  function distortGeometry(geometry, amount = 1) {
+    const positionAttribute = geometry.attributes.position;
+    for (let i = 0; i < positionAttribute.count; i++) {
+      const x = positionAttribute.getX(i);
+      const y = positionAttribute.getY(i);
+      const z = positionAttribute.getZ(i);
+  
+      // Véletlenszerűen elmozdítjuk a vertexeket
+      positionAttribute.setX(i, x + (Math.random() - 0.9) * amount);
+      positionAttribute.setY(i, y + (Math.random() - 0.9) * amount);
+      positionAttribute.setZ(i, z + (Math.random() - 0.9) * amount);
+    }
+    positionAttribute.needsUpdate = true;
+    geometry.computeVertexNormals();
+  }
+
+  // random szobák
+  const gridSize = 10;
+  const cellSize = 100;
+  
+  const occupied = new Array(gridSize).fill(0).map(() => new Array(gridSize).fill(false));
+  const occupiedBigBlocks = new Array(gridSize).fill(0).map(() => new Array(gridSize).fill(false));
+
+
+  for (let gx = 0; gx < gridSize; gx++) {
+    for (let gz = 0; gz < gridSize; gz++) {
+      const cellType = Math.random();
+      if (cellType < 0.15) { // pl. 15% eséllyel bigBlock
+        occupiedBigBlocks[gx][gz] = true;
+      }
+    }
+  }
+
+
+  for (let gx = 0; gx < gridSize; gx++) {
+    for (let gz = 0; gz < gridSize; gz++) {
+      if (occupied[gx][gz]) continue; // Ha már foglalt, átugorjuk
+  
+      const cellType = Math.random();
+  
+      const centerX = gx * cellSize - 500 + cellSize / 2;
+      const centerZ = gz * cellSize - 500 + cellSize / 2;
+  
+      if (cellType < 0.05 && gx < gridSize - 1 && gz < gridSize - 1) {
+        // Nagy szoba: 2x2 terület
+        occupied[gx][gz] = true;
+        occupied[gx+1][gz] = true;
+        occupied[gx][gz+1] = true;
+        occupied[gx+1][gz+1] = true;
+  
+        // A szoba középpontja
+        const roomCenterX = centerX + cellSize / 2;
+        const roomCenterZ = centerZ + cellSize / 2;
+  
+        // 6 oszlop egy négyzetben, nagyobb távolságra
+        for (let i = 0; i < 6; i++) {
+          const angle = (i / 6) * Math.PI * 2;
+          const x = roomCenterX + Math.cos(angle) * 50;
+          const z = roomCenterZ + Math.sin(angle) * 50;
+  
+          const column = new THREE.Mesh(
+            new THREE.CylinderGeometry(10, 10, 80, 8),
+            new THREE.MeshStandardMaterial({ color: 0xffffff })
+          );
+          column.position.set(x, 40, z);
+          terrain.add(column);
+        }
+		
+      } else if (cellType < 0.1) {
+        // ÚJ! Nagy blokk, 1x1 cellás, masszív akadály
+		
+		function createBlockFence(blockX, blockY, blockZ, blockWidth, blockDepth, gx, gz) {
+        const fenceMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+        const fenceSpacing = 25;
+        const fenceHeightBase = -20;
+      
+        // Irányok: észak (-z), dél (+z), nyugat (-x), kelet (+x)
+      
+        // Ha NINCS szomszéd felfelé (észak, gz-1)
+        if (!(gz > 0 && occupiedBigBlocks[gx][gz - 1])) {
+          for (let i = -blockWidth / 2 + 10; i <= blockWidth / 2 - 10; i += fenceSpacing) {
+            const height = fenceHeightBase + Math.random() * 30;
+            const block = new THREE.Mesh(
+              new THREE.BoxGeometry(10, height, 10),
+              fenceMaterial
+            );
+            block.position.set(blockX + i, blockY + height / 2, blockZ - blockDepth / 2 + 5);
+            terrain.add(block);
+          }
+        }
+      
+        // Ha NINCS szomszéd lefelé (dél, gz+1)
+        if (!(gz < gridSize - 1 && occupiedBigBlocks[gx][gz + 1])) {
+          for (let i = -blockWidth / 2 + 10; i <= blockWidth / 2 - 10; i += fenceSpacing) {
+            const height = fenceHeightBase + Math.random() * 30;
+            const block = new THREE.Mesh(
+              new THREE.BoxGeometry(10, height, 10),
+              fenceMaterial
+            );
+            block.position.set(blockX + i, blockY + height / 2, blockZ + blockDepth / 2 - 5);
+            terrain.add(block);
+          }
+        }
+      
+        // Ha NINCS szomszéd balra (nyugat, gx-1)
+        if (!(gx > 0 && occupiedBigBlocks[gx - 1][gz])) {
+          for (let i = -blockDepth / 2 + 10; i <= blockDepth / 2 - 10; i += fenceSpacing) {
+            const height = fenceHeightBase + Math.random() * 30;
+            const block = new THREE.Mesh(
+              new THREE.BoxGeometry(10, height, 10),
+              fenceMaterial
+            );
+            block.position.set(blockX - blockWidth / 2 + 5, blockY + height / 2, blockZ + i);
+            terrain.add(block);
+          }
+        }
+      
+        // Ha NINCS szomszéd jobbra (kelet, gx+1)
+        if (!(gx < gridSize - 1 && occupiedBigBlocks[gx + 1][gz])) {
+          for (let i = -blockDepth / 2 + 10; i <= blockDepth / 2 - 10; i += fenceSpacing) {
+            const height = fenceHeightBase + Math.random() * 30;
+            const block = new THREE.Mesh(
+              new THREE.BoxGeometry(10, height, 10),
+              fenceMaterial
+            );
+            block.position.set(blockX + blockWidth / 2 - 5, blockY + height / 2, blockZ + i);
+            terrain.add(block);
+          }
+        }
+      }
+		for (let gx = 0; gx < gridSize; gx++) {
+			for (let gz = 0; gz < gridSize; gz++) {
+				if (occupiedBigBlocks[gx][gz]) {
+				const centerX = gx * cellSize - 500 + cellSize / 2;
+				const centerZ = gz * cellSize - 500 + cellSize / 2;
+				
+				const bigBlock = new THREE.Mesh(
+				  new THREE.BoxGeometry(100, 100, 100, 10, 10, 10),
+				  new THREE.MeshStandardMaterial({ color: 0xffffff })
+				);
+
+				// Új torzítás hívás:
+				//if (Math.random() < 0.7) {
+				//  distortGeometry(bigBlock.geometry, 1); // 70% eséllyel torzítjuk, 6 egység elmozdulással
+				//}
+				
+				bigBlock.position.set(centerX, 50, centerZ);
+				bigBlock.userData = { type: "bigBlock" };
+				
+				// Jelöljük, hogy ide bigBlock került
+				occupiedBigBlocks[gx][gz] = true;
+
+				// Korlát létrehozása
+				createBlockFence(bigBlock.position.x, bigBlock.position.y + 50, bigBlock.position.z, 100, 100, gx, gz);
+				
+				// --- ÚJ: random kivágott lyukak generálása ---
+				for (let i = 0; i < Math.floor(Math.random() * 4) + 2; i++) { // 2-5 "lyuk"
+				  const hole = new THREE.Mesh(
+					new THREE.BoxGeometry(
+					  Math.random() * 20 + 10, // szélesség 10-30
+					  Math.random() * 20 + 10, // magasság
+					  Math.random() * 20 + 10  // mélység
+					),
+					new THREE.MeshStandardMaterial({ color: 0x888888 }) // Sötétszürke "lyuk" anyag
+				  );
+				
+				  hole.position.set(
+					bigBlock.position.x + (Math.random() - 0.5) * 90, // Kb. a blokk belsejében random
+					bigBlock.position.y + (Math.random() - 0.5) * 90,
+					bigBlock.position.z + (Math.random() - 0.5) * 90
+				  );
+				
+				  terrain.add(hole);
+				}
+				
+				terrain.add(bigBlock);
+					}
+		  }
+		}
+	  
+      } else if (cellType < 0.5) {
+        // Folyosó generálása
+        const isHorizontal = Math.random() < 0.5; // 50% eséllyel vízszintes vagy függőleges
+      
+        for (let i = -2; i <= 2; i++) {
+          const height = Math.random() * 30 + 10; // random magasság
+		  const block = new THREE.Mesh(
+            new THREE.BoxGeometry(20, height, 20),
+            new THREE.MeshStandardMaterial({ color: 0xffffff })
+          );
+      
+          if (isHorizontal) {
+            // Vízszintes folyosó (kelet-nyugat)
+            block.position.set(centerX + i * 20, height / 2, centerZ - cellSize/2 + 10); 
+          } else {
+            // Függőleges folyosó (észak-dél)
+            block.position.set(centerX - cellSize/2 + 10, height / 2, centerZ + i * 20);
+          }
+      
+          terrain.add(block);
+        }
+      } else {
+        // Üres cella
+      }
+    }
+  }
+
+
+
+  // Grid feliratok
+  const labelContainer = document.getElementById('grid-labels');
+ 
+  
+  function createLabels() {
+    labelContainer.innerHTML = '';
+    
+    for (let row = 0; row < gridSize; row++) {
+      for (let col = 0; col < gridSize; col++) {
+        const label = document.createElement('div');
+        label.className = 'grid-label';
+        label.textContent = String.fromCharCode(65 + row) + (col + 1);
+        labelContainer.appendChild(label);
+      }
+    }
+  }
+  
+    function updateLabels() {
+    const labels = document.querySelectorAll('.grid-label');
+    let index = 0;
+    
+    for (let row = 0; row < gridSize; row++) {
+      for (let col = 0; col < gridSize; col++) {
+        const label = labels[index];
+        if (!label) continue;
+  
+        const x = -500 + col * cellSize + cellSize / 2;
+        const z = -500 + row * cellSize + cellSize / 2;
+        const vector = new THREE.Vector3(x, 0, z);
+        vector.project(camera);
+  
+        const sx = (vector.x * 0.5 + 0.5) * window.innerWidth;
+        const sy = (-vector.y * 0.5 + 0.5) * window.innerHeight;
+  
+        label.style.left = `${sx}px`;
+        label.style.top = `${sy}px`;
+  
+        index++;
+      }
+    }
+  }
+
+  createLabels();
+
+  renderer.domElement.addEventListener('click', (event) => {
+      event.preventDefault();
+  
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  
+      raycaster.setFromCamera(mouse, camera);
+  
+      if (selectedPlayer) {
+          // Ha karaktert mozgatunk
+          const terrainIntersects = raycaster.intersectObjects(terrain.children, true);
+          const planeIntersects = raycaster.intersectObject(plane, true);
+		  const boxIntersects = raycaster.intersectObject(box, true);
+  
+          const hitBigBlock = terrainIntersects.find(obj => obj.object.userData?.type === "bigBlock");
+  
+          if (hitBigBlock) {
+              // Nagy blokkra tesszük
+              const x = hitBigBlock.point.x;
+              const z = hitBigBlock.point.z;
+              const y = hitBigBlock.point.y + 20;
+  
+              selectedPlayer.position.set(x, y, z);
+  
+          } else if (planeIntersects.length > 0) {
+              // Ha a plane-re kattintottunk
+              //const point = planeIntersects[0].point;
+  
+              const x = planeIntersects[0].point.x;
+              const z = planeIntersects[0].point.z;
+              const y = planeIntersects[0].point.y + 20;
+			  
+              //const offsetX = point.x + (gridSize * cellSize) / 2;
+              //const offsetZ = point.z + (gridSize * cellSize) / 2;
+  
+              //const gridX = Math.floor(offsetX / cellSize);
+              //const gridZ = Math.floor(offsetZ / cellSize);
+  
+              //const snappedX = (gridX * cellSize) - (gridSize * cellSize) / 2 + cellSize / 2;
+              //const snappedZ = (gridZ * cellSize) - (gridSize * cellSize) / 2 + cellSize / 2;
+  
+              selectedPlayer.position.set(x, y, z);
+  
+          
+		  
+		  } else if (boxIntersects.length > 0) {
+              // Ha a box-ra kattintottunk
+              //const point = planeIntersects[0].point;
+  
+              const x = boxIntersects[0].point.x;
+              const z = boxIntersects[0].point.z;
+              const y = boxIntersects[0].point.y + 20;
+			  
+              //const offsetX = point.x + (gridSize * cellSize) / 2;
+              //const offsetZ = point.z + (gridSize * cellSize) / 2;
+  
+              //const gridX = Math.floor(offsetX / cellSize);
+              //const gridZ = Math.floor(offsetZ / cellSize);
+  
+              //const snappedX = (gridX * cellSize) - (gridSize * cellSize) / 2 + cellSize / 2;
+              //const snappedZ = (gridZ * cellSize) - (gridSize * cellSize) / 2 + cellSize / 2;
+  
+              selectedPlayer.position.set(x, y, z);
+  
+          } 
+		  
+          // Mindig engedjük el a karaktert, akár volt találat, akár nem
+          selectedPlayer.material = originalMaterial;
+          selectedPlayer = null;
+          originalMaterial = null;
+  
+      } else {
+          // Ha karaktert választunk ki
+          const intersects = raycaster.intersectObjects([...players.children, ...enemies.children]);
+          if (intersects.length > 0) {
+              if (selectedPlayer && originalMaterial) {
+                  selectedPlayer.material = originalMaterial;
+              }
+  
+              selectedPlayer = intersects[0].object;
+              originalMaterial = selectedPlayer.material;
+  
+              selectedPlayer.material = new THREE.MeshStandardMaterial({
+                  color: 0x00ffff,
+                  emissive: 0x00ffff,
+                  emissiveIntensity: 0.5,
+                  metalness: 0.3,
+                  roughness: 0.5
+              });
+  
+              updateInfoPanel(selectedPlayer);
+              console.log('Kiválasztott karakter:', selectedPlayer);
+          }
+      }
+  });
+
+  // Render loop
+  function animate() {
+    requestAnimationFrame(animate);
+	controls.update();
+    renderer.render(scene, camera);
+    updateLabels();
+  }
+  animate();
+
+  // Átméretezés figyelése
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    createLabels(); // újrapozícionáljuk a címkéket
+  });
+  
+  loadMapBtn.onclick = () => {
+  console.log("📂 Betöltés gomb megnyomva");
+  fileInput2.click();
+};
+
+
+fileInput2.onchange = (e) => {
+  console.log("📂 File input változott!");
+
+  const file = e.target.files[0];
+  if (!file) {
+    console.warn("⚠️ Nem lett kiválasztva fájl");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    console.log("📂 Fájl olvasva");
+    let data;
+    try {
+      data = JSON.parse(reader.result);
+      console.log("✅ JSON beolvasva:", data);
+    } catch (err) {
+      console.error("❌ JSON parse error:", err);
+      alert("Hibás fájlformátum!");
+      return;
+    }
+
+    // Clear régi térkép
+    players.clear();
+    enemies.clear();
+    terrain.clear();
+
+    data.players.forEach(item => {
+      createPlayer(item.position.x, item.position.z, item.color, item.name, item.hp);
+    });
+
+    data.enemies.forEach(item => {
+      createEnemy(item.position.x, item.position.z, item.color, item.name, item.hp);
+    });
+
+    data.terrain.forEach(item => {
+      let obj;
+      if (item.type === "cube") {
+        obj = new THREE.Mesh(
+          new THREE.BoxGeometry(50, 100, 50),
+          new THREE.MeshStandardMaterial({ color: 0xffffff })
+        );
+      } else {
+        obj = new THREE.Mesh(
+          new THREE.CylinderGeometry(20, 20, 100, 16),
+          new THREE.MeshStandardMaterial({ color: 0xffffff })
+        );
+      }
+      obj.position.set(item.position.x, item.position.y, item.position.z);
+      obj.scale.set(item.size.x, item.size.y, item.size.z);
+      terrain.add(obj);
+    });
+
+    alert("✅ Betöltés sikeres!");
+  };
+  reader.readAsText(file);
+};
+
+      //MENTÉS
+  
+  saveMapBtn.onclick = () => {
+    const mapData = {
+      players: [],
+      enemies: [],
+      terrain: []
+    };
+  
+    players.children.forEach(obj => {
+      mapData.players.push({
+        name: obj.userData.name,
+        hp: obj.userData.hp,
+        color: '#' + obj.material.color.getHexString(),
+        position: {
+          x: obj.position.x,
+          y: obj.position.y,
+          z: obj.position.z
+        }
+      });
+    });
+  
+    enemies.children.forEach(obj => {
+      mapData.enemies.push({
+        name: obj.userData.name,
+        hp: obj.userData.hp,
+        color: '#' + obj.material.color.getHexString(),
+        position: {
+          x: obj.position.x,
+          y: obj.position.y,
+          z: obj.position.z
+        }
+      });
+    });
+  
+    terrain.children.forEach(obj => {
+      const type = (obj.geometry.type === "BoxGeometry") ? "cube" : "cylinder";
+      mapData.terrain.push({
+        type,
+        position: {
+          x: obj.position.x,
+          y: obj.position.y,
+          z: obj.position.z
+        },
+        size: {
+          x: obj.scale.x,
+          y: obj.scale.y,
+          z: obj.scale.z
+        }
+      });
+    });
+  
+    const blob = new Blob([JSON.stringify(mapData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "map.json"; // --> itt a fájlnév
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  
+</script>
+
+</body>
+</html>

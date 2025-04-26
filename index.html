@@ -666,6 +666,9 @@
 			<button id="switchModel" class="sci-button">
 			  <img src="https://img.icons8.com/isometric-line/50/FAB005/swap.png" alt="switch"> Modell csere
 			</button>
+			<button id="openBattlemap" class="sci-button">
+			  <img src="https://img.icons8.com/isometric-line/50/ffaa00/treasure-map.png" alt="battlemap"> Battlemap
+			</button>
 		  </div>
 			
 			<div id="infoBox">
@@ -819,6 +822,10 @@
 	startPauseButton.addEventListener('click', toggleStartPause);
     resetButton.addEventListener('click', resetTimer);
     updateDisplay();
+
+	document.getElementById('openBattlemap').addEventListener('click', () => {
+	  window.open('battlemap.html', '_blank');
+	});
 
 //THREEEEE
   let data = [];
