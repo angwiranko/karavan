@@ -192,6 +192,9 @@
   </div>
 
   <div id="infoPanel">
+  <div id="infoPortraitPanel" style="text-align:center; margin-bottom:8px;">
+    <canvas id="infoPortraitCanvas" width="128" height="128" style="border-radius:12px;"></canvas>
+  </div>
     <div id="infoName" class="infoName">Név: -</div>
     <div id="infoHP" class="infoHP">HP: -</div>
   </div>
@@ -304,6 +307,37 @@
   
     const { name, size } = object.userData || {};
     
+    const portraitCanvas = document.getElementById('infoPortraitCanvas');
+    const ctx = portraitCanvas.getContext('2d');
+    const img = new Image();
+    img.src = "/images/" + (name?.toLowerCase() || "alap") + ".jpg";
+    
+    img.onload = () => {
+      ctx.clearRect(0, 0, 128, 128);
+    
+      const cropSize = Math.min(img.width, img.height);
+      const cropX = (img.width - cropSize) / 2;
+      const cropY = (img.height - cropSize) / 2;
+    
+      const radius = 12;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(128 - radius, 0);
+      ctx.quadraticCurveTo(128, 0, 128, radius);
+      ctx.lineTo(128, 128 - radius);
+      ctx.quadraticCurveTo(128, 128, 128 - radius, 128);
+      ctx.lineTo(radius, 128);
+      ctx.quadraticCurveTo(0, 128, 0, 128 - radius);
+      ctx.lineTo(0, radius);
+      ctx.quadraticCurveTo(0, 0, radius, 0);
+      ctx.closePath();
+      ctx.clip();
+    
+      ctx.drawImage(img, cropX, cropY, cropSize, cropSize, 0, 0, 128, 128);
+      ctx.restore();
+    };
+	
     infoName.textContent = `${name || '-'}`;
     infoHP.textContent = `HP: ${size != null ? (size / 20).toFixed(0) : '-'}`;
     infoPanel.style.display = 'block';
@@ -430,37 +464,75 @@ let creatingType = null; // "player" vagy "enemy"
   scene.add(enemies);
   
   //névtagek karaktereknek
-  function createNameLabel(name) {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.width = 256;
-    canvas.height = 64;
-  
+  function createNameLabel(name, portreURL = "/images/alap.jpg") {
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  canvas.width = 256;
+  canvas.height = 128;
+
+  const texture = new THREE.CanvasTexture(canvas);
+  const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+  const sprite = new THREE.Sprite(material);
+  sprite.scale.set(120, 60, 1);
+  sprite.visible = namesVisible;
+  sprite.userData.isNameLabel = true;
+
+  const img = new Image();
+  img.src = portreURL;
+
+  img.onload = () => {
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Négyzetes crop középről
+    const cropSize = Math.min(img.width, img.height);
+    const cropX = (img.width - cropSize) / 2;
+    const cropY = (img.height - cropSize) / 2;
+
+    // Lekerekített kép – középre igazítva
+    const radius = 8;
+    const drawX = (canvas.width - 64) / 2;
+    const drawY = 0;
+
+    context.save();
+    context.beginPath();
+    context.moveTo(drawX + radius, drawY);
+    context.lineTo(drawX + 64 - radius, drawY);
+    context.quadraticCurveTo(drawX + 64, drawY, drawX + 64, drawY + radius);
+    context.lineTo(drawX + 64, drawY + 64 - radius);
+    context.quadraticCurveTo(drawX + 64, drawY + 64, drawX + 64 - radius, drawY + 64);
+    context.lineTo(drawX + radius, drawY + 64);
+    context.quadraticCurveTo(drawX, drawY + 64, drawX, drawY + 64 - radius);
+    context.lineTo(drawX, drawY + radius);
+    context.quadraticCurveTo(drawX, drawY, drawX + radius, drawY);
+    context.closePath();
+    context.clip();
+
+    context.drawImage(img, cropX, cropY, cropSize, cropSize, drawX, drawY, 64, 64);
+    context.restore();
+
+    // Szöveg középen
     context.fillStyle = 'white';
-	context.font = 'bold 28px monospace';
+    context.font = 'bold 24px monospace';
     context.textAlign = 'center';
-	context.textBaseline = 'middle';
-    context.fillText(name, canvas.width / 2, canvas.height / 2 + 10);
-  
-    const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
-    const sprite = new THREE.Sprite(material);
-    sprite.scale.set(80, 20, 1); // Méret
-    sprite.visible = false; // Alapból láthatatlan
-	sprite.userData.isNameLabel = true;
-  
-    return sprite;
-  }
+    context.textBaseline = 'middle';
+    context.fillText(name, canvas.width / 2, 96);
+
+    texture.needsUpdate = true;
+  };
+
+  return sprite;
+}
   
   // Függvény karakter és enemyk létrehozására
   function createPlayer(x, z, color = 0x0000ff, name = "Player", size = 20) {
     const geometry = new THREE.SphereGeometry(size, 16, 16);
     const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(color) });
     const sphere = new THREE.Mesh(geometry, material);
-    const nameLabel = createNameLabel(name);
+    const portreURL = "/images/" + name.toLowerCase() + ".jpg"; // vagy más logika
+    const nameLabel = createNameLabel(name, portreURL);
 	nameLabel.visible = namesVisible;
     sphere.add(nameLabel);
-    nameLabel.position.set(0, 30, 0); // A gömb fölé helyezzük
+    nameLabel.position.set(0, size + 20, -size); // A gömb fölé helyezzük
 
     sphere.position.set(x, size, z);
   
@@ -482,7 +554,7 @@ let creatingType = null; // "player" vagy "enemy"
     const nameLabel = createNameLabel(name);
 	nameLabel.visible = namesVisible;
     sphere.add(nameLabel);
-    nameLabel.position.set(0, 30, 0); // A gömb fölé helyezzük
+    nameLabel.position.set(0, size + 20, -size); // A gömb fölé helyezzük
 
     sphere.position.set(x, size, z);
   
