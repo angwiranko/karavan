@@ -4,38 +4,47 @@
   <meta charset="UTF-8" />
   <title>Számlálók</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
     body {
-      font-family: 'Inter', sans-serif;
-      margin: 0;
+      font-family: 'Orbitron', sans-serif;
+      background-color: #111;
+      color: #eee;
       padding: 2rem;
-      background-color: #f5f5f5;
-      color: #333;
     }
 
     h1 {
       text-align: center;
       margin-bottom: 2rem;
+      font-weight: 700;
+      color: #fafafa;
+      text-transform: uppercase;
+      letter-spacing: 2px;
     }
 
     .cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
     .card {
-      background: white;
-      border-radius: 8px;
+      background-color: #1e1e1e;
+      border-radius: 10px;
       padding: 1.5rem;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      transition: transform 0.2s;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.2s ease;
     }
 
     .card:hover {
@@ -43,30 +52,44 @@
     }
 
     .card h2 {
-      margin-top: 0;
+      margin-bottom: 1rem;
+      color: #ddd;
+      font-weight: 500;
+      letter-spacing: 1px;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
     }
 
     .btn {
       padding: 0.5rem 1rem;
-      font-size: 1rem;
-      background-color: #222;
-      color: white;
-      border: none;
-      border-radius: 4px;
+      font-size: 1.25rem;
+      background-color: #333;
+      color: #fff;
+      border: 1px solid #666;
+      border-radius: 6px;
       cursor: pointer;
+      transition: background-color 0.2s ease;
     }
 
     .btn:hover {
-      background-color: #444;
+      background-color: #555;
+    }
+
+    .value {
+      font-size: 1.5rem;
+      min-width: 2.5rem;
+      text-align: center;
     }
   </style>
 </head>
 <body>
   <h1>Számlálók</h1>
 
-  <section class="cards" id="counters-container">
-    <!-- Ide kerülnek a számlálók -->
-  </section>
+  <section class="cards" id="counters-container"></section>
 
   <script>
     const container = document.getElementById("counters-container");
@@ -79,10 +102,7 @@
       title.textContent = `Számláló ${i + 1}`;
 
       const controls = document.createElement("div");
-      controls.style.display = "flex";
-      controls.style.alignItems = "center";
-      controls.style.gap = "1rem";
-      controls.style.marginTop = "1rem";
+      controls.className = "controls";
 
       const minus = document.createElement("button");
       minus.textContent = "-";
@@ -90,9 +110,7 @@
 
       const span = document.createElement("span");
       span.textContent = "0";
-      span.style.fontSize = "1.5rem";
-      span.style.minWidth = "2rem";
-      span.style.textAlign = "center";
+      span.className = "value";
 
       const plus = document.createElement("button");
       plus.textContent = "+";
@@ -105,13 +123,8 @@
         span.textContent = parseInt(span.textContent) + 1;
       };
 
-      controls.appendChild(minus);
-      controls.appendChild(span);
-      controls.appendChild(plus);
-
-      card.appendChild(title);
-      card.appendChild(controls);
-
+      controls.append(minus, span, plus);
+      card.append(title, controls);
       container.appendChild(card);
     }
   </script>
