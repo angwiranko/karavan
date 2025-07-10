@@ -52,10 +52,18 @@
     }
 
     .card h2 {
+      margin-bottom: 0.3rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      text-align: center;
+    }
+
+    .card p {
       margin-bottom: 1rem;
-      color: #ddd;
-      font-weight: 500;
-      letter-spacing: 1px;
+      font-size: 0.9rem;
+      color: #aaa;
+      text-align: center;
     }
 
     .controls {
@@ -92,14 +100,26 @@
   <section class="cards" id="counters-container"></section>
 
   <script>
+    const titles = [
+      { title: "Hőmérséklet", subtitle: "Celsius" },
+      { title: "Fordulatszám", subtitle: "RPM" },
+      { title: "Energiafogyasztás", subtitle: "kWh" },
+      { title: "Nyomás", subtitle: "bar" },
+      { title: "Időzítő", subtitle: "Másodperc" },
+      { title: "Pontszám", subtitle: "Játékérték" }
+    ];
+
     const container = document.getElementById("counters-container");
 
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < titles.length; i++) {
       const card = document.createElement("div");
       card.className = "card";
 
       const title = document.createElement("h2");
-      title.textContent = `Számláló ${i + 1}`;
+      title.textContent = titles[i].title;
+
+      const subtitle = document.createElement("p");
+      subtitle.textContent = titles[i].subtitle;
 
       const controls = document.createElement("div");
       controls.className = "controls";
@@ -124,7 +144,8 @@
       };
 
       controls.append(minus, span, plus);
-      card.append(title, controls);
+
+      card.append(title, subtitle, controls);
       container.appendChild(card);
     }
   </script>
