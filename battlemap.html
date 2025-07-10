@@ -987,19 +987,19 @@ fileInput2.onchange = (e) => {
 if (item.type === "cube") {
   obj = new THREE.Mesh(
     new THREE.BoxGeometry(
-      50 * (item.size?.x || 1),
-      100 * (item.size?.y || 1),
-      50 * (item.size?.z || 1)
+      25 * (item.size?.x || 1),
+      50 * (item.size?.y || 1),
+      25 * (item.size?.z || 1)
     ),
     new THREE.MeshStandardMaterial({ color: 0xffffff })
   );
 } else {
   obj = new THREE.Mesh(
     new THREE.CylinderGeometry(
-      20 * (item.size?.x || 1),
-      20 * (item.size?.x || 1),
-      100 * (item.size?.y || 1),
-      16
+      10 * (item.size?.x || 1),
+      10 * (item.size?.x || 1),
+      50 * (item.size?.y || 1),
+      8
     ),
     new THREE.MeshStandardMaterial({ color: 0xffffff })
   );
