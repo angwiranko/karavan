@@ -984,17 +984,26 @@ fileInput2.onchange = (e) => {
 
     data.terrain.forEach(item => {
       let obj;
-      if (item.type === "cube") {
-        obj = new THREE.Mesh(
-          new THREE.BoxGeometry(50, 100, 50),
-          new THREE.MeshStandardMaterial({ color: 0xffffff })
-        );
-      } else {
-        obj = new THREE.Mesh(
-          new THREE.CylinderGeometry(20, 20, 100, 16),
-          new THREE.MeshStandardMaterial({ color: 0xffffff })
-        );
-      }
+if (item.type === "cube") {
+  obj = new THREE.Mesh(
+    new THREE.BoxGeometry(
+      50 * (item.size?.x || 1),
+      100 * (item.size?.y || 1),
+      50 * (item.size?.z || 1)
+    ),
+    new THREE.MeshStandardMaterial({ color: 0xffffff })
+  );
+} else {
+  obj = new THREE.Mesh(
+    new THREE.CylinderGeometry(
+      20 * (item.size?.x || 1),
+      20 * (item.size?.x || 1),
+      100 * (item.size?.y || 1),
+      16
+    ),
+    new THREE.MeshStandardMaterial({ color: 0xffffff })
+  );
+}
       obj.position.set(item.position.x, item.position.y, item.position.z);
      // obj.scale.set(item.size.x, item.size.y, item.size.z);
       terrain.add(obj);
