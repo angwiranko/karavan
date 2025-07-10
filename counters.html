@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Számlálók</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    .counter {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: white;
+      padding: 1rem;
+      margin: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .counter button {
+      font-size: 1.5rem;
+      width: 2.5rem;
+      height: 2.5rem;
+    }
+    .counter span {
+      font-size: 2rem;
+      min-width: 2rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Számlálók</h1>
+
+  <div id="counters-container">
+    <!-- 6 számláló -->
+  </div>
+
+  <script>
+    const container = document.getElementById("counters-container");
+
+    for (let i = 0; i < 6; i++) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "counter";
+
+      const minus = document.createElement("button");
+      minus.textContent = "-";
+
+      const span = document.createElement("span");
+      span.textContent = "0";
+
+      const plus = document.createElement("button");
+      plus.textContent = "+";
+
+      minus.onclick = () => {
+        span.textContent = parseInt(span.textContent) - 1;
+      };
+      plus.onclick = () => {
+        span.textContent = parseInt(span.textContent) + 1;
+      };
+
+      wrapper.appendChild(minus);
+      wrapper.appendChild(span);
+      wrapper.appendChild(plus);
+      container.appendChild(wrapper);
+    }
+  </script>
+</body>
+</html>
