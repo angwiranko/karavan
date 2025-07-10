@@ -1,61 +1,102 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hu">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Számlálók</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: sans-serif;
-      background-color: #f4f4f4;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
       padding: 2rem;
+      background-color: #f5f5f5;
+      color: #333;
     }
-    .counter {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      background: white;
-      padding: 1rem;
-      margin: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    .counter button {
-      font-size: 1.5rem;
-      width: 2.5rem;
-      height: 2.5rem;
-    }
-    .counter span {
-      font-size: 2rem;
-      min-width: 2rem;
+
+    h1 {
       text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .card h2 {
+      margin-top: 0;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      background-color: #222;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background-color: #444;
     }
   </style>
 </head>
 <body>
   <h1>Számlálók</h1>
 
-  <div id="counters-container">
-    <!-- 6 számláló -->
-  </div>
+  <section class="cards" id="counters-container">
+    <!-- Ide kerülnek a számlálók -->
+  </section>
 
   <script>
     const container = document.getElementById("counters-container");
 
     for (let i = 0; i < 6; i++) {
-      const wrapper = document.createElement("div");
-      wrapper.className = "counter";
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const title = document.createElement("h2");
+      title.textContent = `Számláló ${i + 1}`;
+
+      const controls = document.createElement("div");
+      controls.style.display = "flex";
+      controls.style.alignItems = "center";
+      controls.style.gap = "1rem";
+      controls.style.marginTop = "1rem";
 
       const minus = document.createElement("button");
       minus.textContent = "-";
+      minus.className = "btn";
 
       const span = document.createElement("span");
       span.textContent = "0";
+      span.style.fontSize = "1.5rem";
+      span.style.minWidth = "2rem";
+      span.style.textAlign = "center";
 
       const plus = document.createElement("button");
       plus.textContent = "+";
+      plus.className = "btn";
 
       minus.onclick = () => {
         span.textContent = parseInt(span.textContent) - 1;
@@ -64,10 +105,14 @@
         span.textContent = parseInt(span.textContent) + 1;
       };
 
-      wrapper.appendChild(minus);
-      wrapper.appendChild(span);
-      wrapper.appendChild(plus);
-      container.appendChild(wrapper);
+      controls.appendChild(minus);
+      controls.appendChild(span);
+      controls.appendChild(plus);
+
+      card.appendChild(title);
+      card.appendChild(controls);
+
+      container.appendChild(card);
     }
   </script>
 </body>
