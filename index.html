@@ -407,6 +407,7 @@
 		}
 
 	#timerContainer {
+	  width: 350px;
       font-family: "Orbitron", sans-serif;
 	  display: flex;
 	  flex-direction: column;
@@ -618,6 +619,10 @@
     .fade-out {
       animation: fadeOut 0.4s ease-out forwards;
     }
+
+	.hidden {
+	  display: none;		
+	}
 	
   </style>
   <script type="importmap">
@@ -662,11 +667,11 @@
 		<div id="timerButtonrow">
 			  <button id="startPauseButton" class="sci-button">Indít</button>
 			  <button id="resetButton" class="sci-button">Visszaállítás</button>
+			  <button id="musicButton" class="sci-button"><img src="https://img.icons8.com/isometric-line/50/FAB005/musical-notes.png" alt="music"></button>
 		</div>
 		<div id="timerMessage">
 		</div>
-		
-		<div style="display:none;"><iframe style="background: radial-gradient(ellipse at top left, #222 60%, #000 100%) !important; border: 2px solid #666; box-shadow: 0 0 12px #ffaa00; color: #f9eaa3; font-family:"Orbitron"; font-weight: 400;" src="https://suno.com/embed/0e99a6ba-67e9-4a16-916b-6f9be1614085" width="250" height="120"><a href="https://suno.com/song/0e99a6ba-67e9-4a16-916b-6f9be1614085">Listen on Suno</a></iframe></div>
+
 	</div>
     <div id="leftPanel">
  
@@ -788,7 +793,6 @@
     let timerInterval = null;
     let running = false;
 
-    const container = document.getElementById('timerContainer');
     const display = document.getElementById('timerDisplay');
     const startPauseButton = document.getElementById('startPauseButton');
     const resetButton = document.getElementById('resetButton');
@@ -796,7 +800,6 @@
 
     function updateDisplay() {
       if (remaining <= 0) {
-        container.style.display = 'none';
         return;
       }
 
@@ -815,7 +818,6 @@
     function toggleStartPause() {
       if (!running) {
         message.textContent = '';
-        container.style.display = 'block';
         timerInterval = setInterval(() => {
           remaining--;
           updateDisplay();
@@ -842,7 +844,6 @@
       message.textContent = '';
       updateDisplay();
       startPauseButton.textContent = 'Indít';
-      container.style.display = 'block';
     }
 
 	startPauseButton.addEventListener('click', toggleStartPause);
@@ -1820,6 +1821,28 @@ console.log("🧪 Tooltip info:", info);
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
+</script>
+<script>
+	function createSunoPlayer(targetElement, songId) {
+		const iframe = document.createElement('iframe');
+		iframe.style.border = '2px solid #666';
+		iframe.style.boxShadow = '0 0 12px #ffaa00';
+		iframe.src = 'https://suno.com/embed/' + songId;
+		iframe.height = '120';
+		iframe.id = 'sunoIframe';
+		targetElement.appendChild(iframe);
+	}
+
+	document.getElementById("musicButton").addEventListener("click", () => {
+		const sunoIframe = document.getElementById("sunoIframe");
+		if (sunoIframe) {
+			sunoIframe.classList.toggle("hidden");
+			return;
+		}
+
+		const musicContainer = document.getElementById("timerContainer");
+		createSunoPlayer(musicContainer, '0e99a6ba-67e9-4a16-916b-6f9be1614085');
+	});
 </script>
 </body>
 </html>
