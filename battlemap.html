@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@200..800&family=Share+Tech+Mono&display=swap" rel="stylesheet"> 
   <link rel="stylesheet" href="https://use.typekit.net/xmi4cwr.css">
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
   <style>
 
 	
@@ -209,6 +211,28 @@
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
   import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
   import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
+
+  // Toast notification function
+  function showToast(message, type = 'success') {
+    const backgroundColor = type === 'error' 
+      ? 'linear-gradient(to right, #ff4444, #cc0000)'
+      : 'radial-gradient(circle,rgba(32, 97, 43, 1) 60%, rgba(67, 97, 41, 1) 100%)';
+    
+    Toastify({
+      text: message,
+      duration: 1500,
+      gravity: "top",
+      position: "right",
+      backgroundColor: backgroundColor,
+      style: {
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: "14px",
+        borderRadius: "8px",
+        border: "2px solid #666",
+        boxShadow: "0 0 12px " + (type === 'error' ? '#ff4444' : '#ffaa00')
+      }
+    }).showToast();
+  };
 
   // Scene, Camera, Renderer
 
@@ -522,6 +546,27 @@ let creatingType = null; // "player" vagy "enemy"
 
   return sprite;
 }
+
+  // Helper function to check if a character should be on top of a building
+  function getCorrectYPosition(x, z, size) {
+    // Create a temporary raycaster to check for buildings at this position
+    const tempRaycaster = new THREE.Raycaster();
+    const origin = new THREE.Vector3(x, 200, z); // Start from above
+    const direction = new THREE.Vector3(0, -1, 0); // Point downward
+    tempRaycaster.set(origin, direction);
+    
+    // Check for intersections with terrain (buildings)
+    const intersects = tempRaycaster.intersectObjects(terrain.children, true);
+    const bigBlockHit = intersects.find(hit => hit.object.userData?.type === "bigBlock");
+    
+    if (bigBlockHit) {
+      // Character should be on top of the building
+      return bigBlockHit.point.y + size;
+    } else {
+      // Character should be on the ground
+      return size;
+    }
+  }
   
   // Függvény karakter és enemyk létrehozására
   function createPlayer(x, z, color = 0x0000ff, name = "Player", size = 20) {
@@ -534,7 +579,9 @@ let creatingType = null; // "player" vagy "enemy"
     sphere.add(nameLabel);
     nameLabel.position.set(0, size + 20, -size); // A gömb fölé helyezzük
 
-    sphere.position.set(x, size, z);
+    // Use correct Y position based on terrain
+    const correctY = getCorrectYPosition(x, z, size);
+    sphere.position.set(x, correctY, z);
   
     sphere.userData = {
       type: "player",
@@ -556,7 +603,9 @@ let creatingType = null; // "player" vagy "enemy"
     sphere.add(nameLabel);
     nameLabel.position.set(0, size + 20, -size); // A gömb fölé helyezzük
 
-    sphere.position.set(x, size, z);
+    // Use correct Y position based on terrain
+    const correctY = getCorrectYPosition(x, z, size);
+    sphere.position.set(x, correctY, z);
   
     sphere.userData = {
       type: "Enemy",
@@ -579,6 +628,24 @@ let creatingType = null; // "player" vagy "enemy"
   createEnemy(150, 550, 0xff0000, "Enemy4");
   createEnemy(50, 550, 0xff0000, "Enemy5");
   
+  // Seeded Random Number Generator
+  let globalSeed = Math.floor(Math.random() * 1000000); // Generate initial seed
+  
+  function seededRandom(seed) {
+    let x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  }
+  
+  let randomCounter = 0;
+  function nextRandom() {
+    return seededRandom(globalSeed + randomCounter++);
+  }
+  
+  function setSeed(seed) {
+    globalSeed = seed;
+    randomCounter = 0;
+  }
+  
  // TORZÍTó
   function distortGeometry(geometry, amount = 1) {
     const positionAttribute = geometry.attributes.position;
@@ -588,204 +655,213 @@ let creatingType = null; // "player" vagy "enemy"
       const z = positionAttribute.getZ(i);
   
       // Véletlenszerűen elmozdítjuk a vertexeket
-      positionAttribute.setX(i, x + (Math.random() - 0.9) * amount);
-      positionAttribute.setY(i, y + (Math.random() - 0.9) * amount);
-      positionAttribute.setZ(i, z + (Math.random() - 0.9) * amount);
+      positionAttribute.setX(i, x + (nextRandom() - 0.9) * amount);
+      positionAttribute.setY(i, y + (nextRandom() - 0.9) * amount);
+      positionAttribute.setZ(i, z + (nextRandom() - 0.9) * amount);
     }
     positionAttribute.needsUpdate = true;
     geometry.computeVertexNormals();
   }
 
-  // random szobák
-  const gridSize = 10;
-  const cellSize = 100;
-  
-  const occupied = new Array(gridSize).fill(0).map(() => new Array(gridSize).fill(false));
-  const occupiedBigBlocks = new Array(gridSize).fill(0).map(() => new Array(gridSize).fill(false));
+  // Terrain generation function
+  function generateTerrain() {
+    // Clear existing terrain
+    terrain.clear();
+    
+    // Reset random counter for consistent generation
+    randomCounter = 0;
+    
+    // random szobák
+    const gridSize = 10;
+    const cellSize = 100;
+    
+    const occupied = new Array(gridSize).fill(0).map(() => new Array(gridSize).fill(false));
+    const occupiedBigBlocks = new Array(gridSize).fill(0).map(() => new Array(gridSize).fill(false));
 
 
-  for (let gx = 0; gx < gridSize; gx++) {
-    for (let gz = 0; gz < gridSize; gz++) {
-      const cellType = Math.random();
-      if (cellType < 0.15) { // pl. 15% eséllyel bigBlock
-        occupiedBigBlocks[gx][gz] = true;
+    for (let gx = 0; gx < gridSize; gx++) {
+      for (let gz = 0; gz < gridSize; gz++) {
+        const cellType = nextRandom();
+        if (cellType < 0.15) { // pl. 15% eséllyel bigBlock
+          occupiedBigBlocks[gx][gz] = true;
+        }
+      }
+    }
+
+
+    for (let gx = 0; gx < gridSize; gx++) {
+      for (let gz = 0; gz < gridSize; gz++) {
+        if (occupied[gx][gz]) continue; // Ha már foglalt, átugorjuk
+    
+        const cellType = nextRandom();
+    
+        const centerX = gx * cellSize - 500 + cellSize / 2;
+        const centerZ = gz * cellSize - 500 + cellSize / 2;
+    
+        if (cellType < 0.05 && gx < gridSize - 1 && gz < gridSize - 1) {
+          // Nagy szoba: 2x2 terület
+          occupied[gx][gz] = true;
+          occupied[gx+1][gz] = true;
+          occupied[gx][gz+1] = true;
+          occupied[gx+1][gz+1] = true;
+    
+          // A szoba középpontja
+          const roomCenterX = centerX + cellSize / 2;
+          const roomCenterZ = centerZ + cellSize / 2;
+    
+          // 6 oszlop egy négyzetben, nagyobb távolságra
+          for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const x = roomCenterX + Math.cos(angle) * 50;
+            const z = roomCenterZ + Math.sin(angle) * 50;
+    
+            const column = new THREE.Mesh(
+              new THREE.CylinderGeometry(10, 10, 80, 8),
+              new THREE.MeshStandardMaterial({ color: 0xffffff })
+            );
+            column.position.set(x, 40, z);
+            terrain.add(column);
+          }
+      
+        } else if (cellType < 0.1) {
+          // ÚJ! Nagy blokk, 1x1 cellás, masszív akadály
+      
+      function createBlockFence(blockX, blockY, blockZ, blockWidth, blockDepth, gx, gz) {
+            const fenceMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const fenceSpacing = 25;
+            const fenceHeightBase = -20;
+        
+            // Irányok: észak (-z), dél (+z), nyugat (-x), kelet (+x)
+        
+            // Ha NINCS szomszéd felfelé (észak, gz-1)
+            if (!(gz > 0 && occupiedBigBlocks[gx][gz - 1])) {
+              for (let i = -blockWidth / 2 + 10; i <= blockWidth / 2 - 10; i += fenceSpacing) {
+                const height = fenceHeightBase + nextRandom() * 30;
+                const block = new THREE.Mesh(
+                  new THREE.BoxGeometry(10, height, 10),
+                  fenceMaterial
+                );
+                block.position.set(blockX + i, blockY + height / 2, blockZ - blockDepth / 2 + 5);
+                terrain.add(block);
+              }
+            }
+        
+            // Ha NINCS szomszéd lefelé (dél, gz+1)
+            if (!(gz < gridSize - 1 && occupiedBigBlocks[gx][gz + 1])) {
+              for (let i = -blockWidth / 2 + 10; i <= blockWidth / 2 - 10; i += fenceSpacing) {
+                const height = fenceHeightBase + nextRandom() * 30;
+                const block = new THREE.Mesh(
+                  new THREE.BoxGeometry(10, height, 10),
+                  fenceMaterial
+                );
+                block.position.set(blockX + i, blockY + height / 2, blockZ + blockDepth / 2 - 5);
+                terrain.add(block);
+              }
+            }
+        
+            // Ha NINCS szomszéd balra (nyugat, gx-1)
+            if (!(gx > 0 && occupiedBigBlocks[gx - 1][gz])) {
+              for (let i = -blockDepth / 2 + 10; i <= blockDepth / 2 - 10; i += fenceSpacing) {
+                const height = fenceHeightBase + nextRandom() * 30;
+                const block = new THREE.Mesh(
+                  new THREE.BoxGeometry(10, height, 10),
+                  fenceMaterial
+                );
+                block.position.set(blockX - blockWidth / 2 + 5, blockY + height / 2, blockZ + i);
+                terrain.add(block);
+              }
+            }
+        
+            // Ha NINCS szomszéd jobbra (kelet, gx+1)
+            if (!(gx < gridSize - 1 && occupiedBigBlocks[gx + 1][gz])) {
+              for (let i = -blockDepth / 2 + 10; i <= blockDepth / 2 - 10; i += fenceSpacing) {
+                const height = fenceHeightBase + nextRandom() * 30;
+                const block = new THREE.Mesh(
+                  new THREE.BoxGeometry(10, height, 10),
+                  fenceMaterial
+                );
+                block.position.set(blockX + blockWidth / 2 - 5, blockY + height / 2, blockZ + i);
+                terrain.add(block);
+              }
+            }
+          }
+      for (let gx2 = 0; gx2 < gridSize; gx2++) {
+        for (let gz2 = 0; gz2 < gridSize; gz2++) {
+          if (occupiedBigBlocks[gx2][gz2]) {
+          const centerX2 = gx2 * cellSize - 500 + cellSize / 2;
+          const centerZ2 = gz2 * cellSize - 500 + cellSize / 2;
+          
+          const bigBlock = new THREE.Mesh(
+            new THREE.BoxGeometry(100, 100, 100, 10, 10, 10),
+            new THREE.MeshStandardMaterial({ color: 0xffffff })
+          );
+
+          // Új torzítás hívás:
+          //if (nextRandom() < 0.7) {
+          //  distortGeometry(bigBlock.geometry, 1); // 70% eséllyel torzítjuk, 6 egység elmozdulással
+          //}
+          
+          bigBlock.position.set(centerX2, 50, centerZ2);
+          bigBlock.userData = { type: "bigBlock" };
+          
+          // Korlát létrehozása
+          createBlockFence(bigBlock.position.x, bigBlock.position.y + 50, bigBlock.position.z, 100, 100, gx2, gz2);
+          
+          // --- ÚJ: random kivágott lyukak generálása ---
+          for (let i = 0; i < Math.floor(nextRandom() * 4) + 2; i++) { // 2-5 "lyuk"
+            const hole = new THREE.Mesh(
+            new THREE.BoxGeometry(
+              nextRandom() * 20 + 10, // szélesség 10-30
+              nextRandom() * 20 + 10, // magasság
+              nextRandom() * 20 + 10  // mélység
+            ),
+            new THREE.MeshStandardMaterial({ color: 0x888888 }) // Sötétszürke "lyuk" anyag
+            );
+          
+            hole.position.set(
+            bigBlock.position.x + (nextRandom() - 0.5) * 90, // Kb. a blokk belsejében random
+            bigBlock.position.y + (nextRandom() - 0.5) * 90,
+            bigBlock.position.z + (nextRandom() - 0.5) * 90
+            );
+          
+            terrain.add(hole);
+          }
+          
+          terrain.add(bigBlock);
+            }
+        }
+      }
+        
+        } else if (cellType < 0.5) {
+          // Folyosó generálása
+          const isHorizontal = nextRandom() < 0.5; // 50% eséllyel vízszintes vagy függőleges
+        
+          for (let i = -2; i <= 2; i++) {
+            const height = nextRandom() * 30 + 10; // random magasság
+        const block = new THREE.Mesh(
+              new THREE.BoxGeometry(20, height, 20),
+              new THREE.MeshStandardMaterial({ color: 0xffffff })
+            );
+        
+            if (isHorizontal) {
+              // Vízszintes folyosó (kelet-nyugat)
+              block.position.set(centerX + i * 20, height / 2, centerZ - cellSize/2 + 10); 
+            } else {
+              // Függőleges folyosó (észak-dél)
+              block.position.set(centerX - cellSize/2 + 10, height / 2, centerZ + i * 20);
+            }
+        
+            terrain.add(block);
+          }
+        } else {
+          // Üres cella
+        }
       }
     }
   }
 
-
-  for (let gx = 0; gx < gridSize; gx++) {
-    for (let gz = 0; gz < gridSize; gz++) {
-      if (occupied[gx][gz]) continue; // Ha már foglalt, átugorjuk
-  
-      const cellType = Math.random();
-  
-      const centerX = gx * cellSize - 500 + cellSize / 2;
-      const centerZ = gz * cellSize - 500 + cellSize / 2;
-  
-      if (cellType < 0.05 && gx < gridSize - 1 && gz < gridSize - 1) {
-        // Nagy szoba: 2x2 terület
-        occupied[gx][gz] = true;
-        occupied[gx+1][gz] = true;
-        occupied[gx][gz+1] = true;
-        occupied[gx+1][gz+1] = true;
-  
-        // A szoba középpontja
-        const roomCenterX = centerX + cellSize / 2;
-        const roomCenterZ = centerZ + cellSize / 2;
-  
-        // 6 oszlop egy négyzetben, nagyobb távolságra
-        for (let i = 0; i < 6; i++) {
-          const angle = (i / 6) * Math.PI * 2;
-          const x = roomCenterX + Math.cos(angle) * 50;
-          const z = roomCenterZ + Math.sin(angle) * 50;
-  
-          const column = new THREE.Mesh(
-            new THREE.CylinderGeometry(10, 10, 80, 8),
-            new THREE.MeshStandardMaterial({ color: 0xffffff })
-          );
-          column.position.set(x, 40, z);
-          terrain.add(column);
-        }
-		
-      } else if (cellType < 0.1) {
-        // ÚJ! Nagy blokk, 1x1 cellás, masszív akadály
-		
-		function createBlockFence(blockX, blockY, blockZ, blockWidth, blockDepth, gx, gz) {
-        const fenceMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
-        const fenceSpacing = 25;
-        const fenceHeightBase = -20;
-      
-        // Irányok: észak (-z), dél (+z), nyugat (-x), kelet (+x)
-      
-        // Ha NINCS szomszéd felfelé (észak, gz-1)
-        if (!(gz > 0 && occupiedBigBlocks[gx][gz - 1])) {
-          for (let i = -blockWidth / 2 + 10; i <= blockWidth / 2 - 10; i += fenceSpacing) {
-            const height = fenceHeightBase + Math.random() * 30;
-            const block = new THREE.Mesh(
-              new THREE.BoxGeometry(10, height, 10),
-              fenceMaterial
-            );
-            block.position.set(blockX + i, blockY + height / 2, blockZ - blockDepth / 2 + 5);
-            terrain.add(block);
-          }
-        }
-      
-        // Ha NINCS szomszéd lefelé (dél, gz+1)
-        if (!(gz < gridSize - 1 && occupiedBigBlocks[gx][gz + 1])) {
-          for (let i = -blockWidth / 2 + 10; i <= blockWidth / 2 - 10; i += fenceSpacing) {
-            const height = fenceHeightBase + Math.random() * 30;
-            const block = new THREE.Mesh(
-              new THREE.BoxGeometry(10, height, 10),
-              fenceMaterial
-            );
-            block.position.set(blockX + i, blockY + height / 2, blockZ + blockDepth / 2 - 5);
-            terrain.add(block);
-          }
-        }
-      
-        // Ha NINCS szomszéd balra (nyugat, gx-1)
-        if (!(gx > 0 && occupiedBigBlocks[gx - 1][gz])) {
-          for (let i = -blockDepth / 2 + 10; i <= blockDepth / 2 - 10; i += fenceSpacing) {
-            const height = fenceHeightBase + Math.random() * 30;
-            const block = new THREE.Mesh(
-              new THREE.BoxGeometry(10, height, 10),
-              fenceMaterial
-            );
-            block.position.set(blockX - blockWidth / 2 + 5, blockY + height / 2, blockZ + i);
-            terrain.add(block);
-          }
-        }
-      
-        // Ha NINCS szomszéd jobbra (kelet, gx+1)
-        if (!(gx < gridSize - 1 && occupiedBigBlocks[gx + 1][gz])) {
-          for (let i = -blockDepth / 2 + 10; i <= blockDepth / 2 - 10; i += fenceSpacing) {
-            const height = fenceHeightBase + Math.random() * 30;
-            const block = new THREE.Mesh(
-              new THREE.BoxGeometry(10, height, 10),
-              fenceMaterial
-            );
-            block.position.set(blockX + blockWidth / 2 - 5, blockY + height / 2, blockZ + i);
-            terrain.add(block);
-          }
-        }
-      }
-		for (let gx = 0; gx < gridSize; gx++) {
-			for (let gz = 0; gz < gridSize; gz++) {
-				if (occupiedBigBlocks[gx][gz]) {
-				const centerX = gx * cellSize - 500 + cellSize / 2;
-				const centerZ = gz * cellSize - 500 + cellSize / 2;
-				
-				const bigBlock = new THREE.Mesh(
-				  new THREE.BoxGeometry(100, 100, 100, 10, 10, 10),
-				  new THREE.MeshStandardMaterial({ color: 0xffffff })
-				);
-
-				// Új torzítás hívás:
-				//if (Math.random() < 0.7) {
-				//  distortGeometry(bigBlock.geometry, 1); // 70% eséllyel torzítjuk, 6 egység elmozdulással
-				//}
-				
-				bigBlock.position.set(centerX, 50, centerZ);
-				bigBlock.userData = { type: "bigBlock" };
-				
-				// Jelöljük, hogy ide bigBlock került
-				occupiedBigBlocks[gx][gz] = true;
-
-				// Korlát létrehozása
-				createBlockFence(bigBlock.position.x, bigBlock.position.y + 50, bigBlock.position.z, 100, 100, gx, gz);
-				
-				// --- ÚJ: random kivágott lyukak generálása ---
-				for (let i = 0; i < Math.floor(Math.random() * 4) + 2; i++) { // 2-5 "lyuk"
-				  const hole = new THREE.Mesh(
-					new THREE.BoxGeometry(
-					  Math.random() * 20 + 10, // szélesség 10-30
-					  Math.random() * 20 + 10, // magasság
-					  Math.random() * 20 + 10  // mélység
-					),
-					new THREE.MeshStandardMaterial({ color: 0x888888 }) // Sötétszürke "lyuk" anyag
-				  );
-				
-				  hole.position.set(
-					bigBlock.position.x + (Math.random() - 0.5) * 90, // Kb. a blokk belsejében random
-					bigBlock.position.y + (Math.random() - 0.5) * 90,
-					bigBlock.position.z + (Math.random() - 0.5) * 90
-				  );
-				
-				  terrain.add(hole);
-				}
-				
-				terrain.add(bigBlock);
-					}
-		  }
-		}
-	  
-      } else if (cellType < 0.5) {
-        // Folyosó generálása
-        const isHorizontal = Math.random() < 0.5; // 50% eséllyel vízszintes vagy függőleges
-      
-        for (let i = -2; i <= 2; i++) {
-          const height = Math.random() * 30 + 10; // random magasság
-		  const block = new THREE.Mesh(
-            new THREE.BoxGeometry(20, height, 20),
-            new THREE.MeshStandardMaterial({ color: 0xffffff })
-          );
-      
-          if (isHorizontal) {
-            // Vízszintes folyosó (kelet-nyugat)
-            block.position.set(centerX + i * 20, height / 2, centerZ - cellSize/2 + 10); 
-          } else {
-            // Függőleges folyosó (észak-dél)
-            block.position.set(centerX - cellSize/2 + 10, height / 2, centerZ + i * 20);
-          }
-      
-          terrain.add(block);
-        }
-      } else {
-        // Üres cella
-      }
-    }
-  }
+  // Generate initial terrain
+  generateTerrain();
 
   // Mozgás Karakter
   function smoothMove(object, targetX, targetY, targetZ, duration = 500) {
@@ -965,51 +1041,32 @@ fileInput2.onchange = (e) => {
       console.log("✅ JSON beolvasva:", data);
     } catch (err) {
       console.error("❌ JSON parse error:", err);
-      alert("Hibás fájlformátum!");
+      showToast("❌ Hibás fájlformátum!", 'error');
       return;
     }
 
     // Clear régi térkép
     players.clear();
     enemies.clear();
-    terrain.clear();
+    
+    // Set the seed and regenerate terrain
+    if (data.seed !== undefined) {
+      setSeed(data.seed);
+      generateTerrain();
+    }
 
-    data.players.forEach(item => {
-      createPlayer(item.position.x, item.position.z, item.color, item.name, item.size);
+    // Wait a frame to ensure terrain is fully generated before placing characters
+    requestAnimationFrame(() => {
+      data.players.forEach(item => {
+        createPlayer(item.position.x, item.position.z, item.color, item.name, item.size);
+      });
+
+      data.enemies.forEach(item => {
+        createEnemy(item.position.x, item.position.z, item.color, item.name, item.size);
+      });
     });
 
-    data.enemies.forEach(item => {
-      createEnemy(item.position.x, item.position.z, item.color, item.name, item.size);
-    });
-
-    data.terrain.forEach(item => {
-      let obj;
-if (item.type === "cube") {
-  obj = new THREE.Mesh(
-    new THREE.BoxGeometry(
-      25 * (item.size?.x || 1),
-      50 * (item.size?.y || 1),
-      25 * (item.size?.z || 1)
-    ),
-    new THREE.MeshStandardMaterial({ color: 0xffffff })
-  );
-} else {
-  obj = new THREE.Mesh(
-    new THREE.CylinderGeometry(
-      10 * (item.size?.x || 1),
-      10 * (item.size?.x || 1),
-      50 * (item.size?.y || 1),
-      8
-    ),
-    new THREE.MeshStandardMaterial({ color: 0xffffff })
-  );
-}
-      obj.position.set(item.position.x, item.position.y, item.position.z);
-     // obj.scale.set(item.size.x, item.size.y, item.size.z);
-      terrain.add(obj);
-    });
-
-    alert("✅ Betöltés sikeres!");
+    showToast("✅ Betöltés sikeres!");
   };
   reader.readAsText(file);
 };
@@ -1018,9 +1075,9 @@ if (item.type === "cube") {
   
   saveMapBtn.onclick = () => {
     const mapData = {
+      seed: globalSeed, // Save the terrain generation seed
       players: [],
-      enemies: [],
-      terrain: []
+      enemies: []
     };
   
     players.children.forEach(obj => {
@@ -1049,28 +1106,16 @@ if (item.type === "cube") {
       });
     });
   
-    terrain.children.forEach(obj => {
-      const type = (obj.geometry.type === "BoxGeometry") ? "cube" : "cylinder";
-      mapData.terrain.push({
-        type,
-        position: {
-          x: obj.position.x,
-          y: obj.position.y,
-          z: obj.position.z
-        },
-        size: {
-          x: obj.scale.x,
-          y: obj.scale.y,
-          z: obj.scale.z
-        }
-      });
-    });
-  
+    // Generate filename with current date
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA'); // Canadian format is YYYY-MM-DD
+    const filename = `map ${formatter.format(now)}.json`;
+
     const blob = new Blob([JSON.stringify(mapData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "map.json"; // --> itt a fájlnév
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
   };
