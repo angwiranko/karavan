@@ -262,6 +262,7 @@
   const mouse = new THREE.Vector2();
   let selectedPlayer = null;
   let originalMaterial = null;
+  let hoverIndicator = null; // For the holographic hover effect
 	
     // Gombok
   const addPlayerBtn = document.getElementById('addPlayer');
@@ -547,7 +548,7 @@ let creatingType = null; // "player" vagy "enemy"
   return sprite;
 }
 
-  // Helper function to check if a character should be on top of a building
+  // Helper function to check if a character should be on top of a building and avoid walls
   function getCorrectYPosition(x, z, size) {
     // Create a temporary raycaster to check for buildings at this position
     const tempRaycaster = new THREE.Raycaster();
@@ -567,6 +568,240 @@ let creatingType = null; // "player" vagy "enemy"
       return size;
     }
   }
+
+  // Optimized collision detection with caching and smoothing
+  let lastValidPosition = null;
+  let positionCache = new Map();
+  const CACHE_GRID_SIZE = 10; // Grid size for caching positions
+  
+  function getCacheKey(x, z) {
+    const gridX = Math.floor(x / CACHE_GRID_SIZE);
+    const gridZ = Math.floor(z / CACHE_GRID_SIZE);
+    return `${gridX},${gridZ}`;
+  }
+
+  // Helper function to check if a position is valid (not clipping into walls)
+  function isValidPosition(x, z, size) {
+    // Check cache first for performance
+    const cacheKey = getCacheKey(x, z);
+    if (positionCache.has(cacheKey)) {
+      return positionCache.get(cacheKey);
+    }
+    
+    // Check for collisions with terrain objects at character level
+    const tempRaycaster = new THREE.Raycaster();
+    const characterHeight = size; // Character's center height
+    
+    // Reduced number of directions for better performance
+    const checkDirections = [
+      new THREE.Vector3(1, 0, 0),   // Right
+      new THREE.Vector3(-1, 0, 0),  // Left
+      new THREE.Vector3(0, 0, 1),   // Forward
+      new THREE.Vector3(0, 0, -1),  // Backward
+    ];
+    
+    let isValid = true;
+    
+    for (const direction of checkDirections) {
+      const origin = new THREE.Vector3(x, characterHeight, z);
+      tempRaycaster.set(origin, direction);
+      
+      // Check intersections within character's radius + small buffer
+      const intersects = tempRaycaster.intersectObjects(terrain.children, true);
+      
+      for (const hit of intersects) {
+        // If we hit something within the character's radius + buffer
+        if (hit.distance < size + 5) { // 5 unit buffer
+          // Skip if it's a bigBlock that the character should be on top of
+          if (hit.object.userData?.type === "bigBlock") {
+            // Check if character is actually on top of this block
+            const blockTop = hit.object.position.y + 50; // bigBlock height/2 = 50
+            const characterY = getCorrectYPosition(x, z, size);
+            if (characterY > blockTop + size - 10) {
+              continue; // Character is on top, this is OK
+            }
+          }
+          isValid = false;
+          break;
+        }
+      }
+      if (!isValid) break;
+    }
+    
+    // Cache the result
+    positionCache.set(cacheKey, isValid);
+    return isValid;
+  }
+
+  // Find nearest valid position if current position is invalid - optimized version
+  function findNearestValidPosition(targetX, targetZ, size) {
+    // If the target position is already valid, use it
+    if (isValidPosition(targetX, targetZ, size)) {
+      lastValidPosition = { x: targetX, z: targetZ };
+      return lastValidPosition;
+    }
+    
+    // If we have a recent valid position nearby, prefer smoother transitions
+    if (lastValidPosition) {
+      const distance = Math.sqrt(
+        Math.pow(targetX - lastValidPosition.x, 2) + 
+        Math.pow(targetZ - lastValidPosition.z, 2)
+      );
+      
+      // If the target is close to the last valid position, try interpolation first
+      if (distance < 30) {
+        for (let t = 0.1; t <= 1.0; t += 0.1) {
+          const interpX = lastValidPosition.x + (targetX - lastValidPosition.x) * t;
+          const interpZ = lastValidPosition.z + (targetZ - lastValidPosition.z) * t;
+          
+          if (isValidPosition(interpX, interpZ, size)) {
+            lastValidPosition = { x: interpX, z: interpZ };
+            return lastValidPosition;
+          }
+        }
+      }
+    }
+    
+    // Search in expanding circles for a valid position with reduced search frequency
+    const searchRadius = 10; // Increased initial radius
+    const maxRadius = 50;
+    const angleSteps = 6; // Reduced angle steps for performance
+    
+    for (let radius = searchRadius; radius <= maxRadius; radius += 10) {
+      for (let i = 0; i < angleSteps; i++) {
+        const angle = (i / angleSteps) * Math.PI * 2;
+        const testX = targetX + Math.cos(angle) * radius;
+        const testZ = targetZ + Math.sin(angle) * radius;
+        
+        if (isValidPosition(testX, testZ, size)) {
+          lastValidPosition = { x: testX, z: testZ };
+          return lastValidPosition;
+        }
+      }
+    }
+    
+    // If no valid position found, return last valid or original
+    return lastValidPosition || { x: targetX, z: targetZ };
+  }
+
+  // Create holographic hover indicator with character size
+  function createHoverIndicator(size = 20) {
+    // Create a glowing ring geometry based on character size
+    const innerRadius = size * 0.75;
+    const outerRadius = size * 1.25;
+    const ringGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 32);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.6,
+      side: THREE.DoubleSide
+    });
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.rotation.x = -Math.PI / 2; // Lay flat on ground
+    
+    // Create a central glow disc based on character size
+    const discRadius = size * 0.6;
+    const discGeometry = new THREE.CircleGeometry(discRadius, 32);
+    const discMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.3
+    });
+    const disc = new THREE.Mesh(discGeometry, discMaterial);
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.y = 0.1; // Slightly above the ring
+    
+    // Create upward beam effect based on character size
+    const beamRadius = size * 0.4;
+    const beamHeight = size * 2;
+    const beamGeometry = new THREE.CylinderGeometry(beamRadius, beamRadius, beamHeight, 8, 1, true);
+    const beamMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.2,
+      side: THREE.DoubleSide
+    });
+    const beam = new THREE.Mesh(beamGeometry, beamMaterial);
+    beam.position.y = beamHeight / 2; // Position center of cylinder
+    
+    // Group all elements
+    const indicator = new THREE.Group();
+    indicator.add(ring);
+    indicator.add(disc);
+    indicator.add(beam);
+    indicator.visible = false;
+    
+    // Add pulsing animation data and size info
+    indicator.userData = {
+      time: 0,
+      size,
+      originalRingOpacity: ringMaterial.opacity,
+      originalDiscOpacity: discMaterial.opacity,
+      originalBeamOpacity: beamMaterial.opacity
+    };
+    
+    scene.add(indicator);
+    return indicator;
+  }
+
+  // Update hover indicator animation with smooth position transitions
+  function updateHoverIndicator() {
+    if (!hoverIndicator || !hoverIndicator.visible) return;
+    
+    hoverIndicator.userData.time += 0.05;
+    const pulseValue = Math.sin(hoverIndicator.userData.time) * 0.3 + 0.7; // Pulse between 0.4 and 1.0
+    
+    // Update opacities for pulsing effect
+    hoverIndicator.children[0].material.opacity = hoverIndicator.userData.originalRingOpacity * pulseValue;
+    hoverIndicator.children[1].material.opacity = hoverIndicator.userData.originalDiscOpacity * pulseValue;
+    hoverIndicator.children[2].material.opacity = hoverIndicator.userData.originalBeamOpacity * pulseValue;
+    
+    // Rotate the beam slowly
+    hoverIndicator.children[2].rotation.y += 0.02;
+    
+    // Smooth position interpolation if target position exists
+    if (hoverIndicator.userData.targetPosition) {
+      const current = hoverIndicator.position;
+      const target = hoverIndicator.userData.targetPosition;
+      const lerpFactor = 0.15; // Smooth interpolation factor
+      
+      current.lerp(target, lerpFactor);
+      
+      // Clear target when close enough
+      if (current.distanceTo(target) < 1) {
+        hoverIndicator.userData.targetPosition = null;
+      }
+    }
+  }
+
+  // Function to show hover indicator at position with smooth movement and correct size
+  function showHoverIndicator(x, y, z, size = 20) {
+    // Create new indicator if needed or if size changed
+    if (!hoverIndicator || (hoverIndicator.userData.size !== size)) {
+      if (hoverIndicator) {
+        scene.remove(hoverIndicator);
+      }
+      hoverIndicator = createHoverIndicator(size);
+    }
+    
+    const targetPosition = new THREE.Vector3(x, y, z);
+    
+    if (!hoverIndicator.visible) {
+      // First time showing - set position immediately
+      hoverIndicator.position.copy(targetPosition);
+      hoverIndicator.visible = true;
+    } else {
+      // Set target for smooth transition
+      hoverIndicator.userData.targetPosition = targetPosition;
+    }
+  }
+
+  // Function to hide hover indicator
+  function hideHoverIndicator() {
+    if (hoverIndicator) {
+      hoverIndicator.visible = false;
+    }
+  }
   
   // Függvény karakter és enemyk létrehozására
   function createPlayer(x, z, color = 0x0000ff, name = "Player", size = 20) {
@@ -579,9 +814,10 @@ let creatingType = null; // "player" vagy "enemy"
     sphere.add(nameLabel);
     nameLabel.position.set(0, size + 20, -size); // A gömb fölé helyezzük
 
-    // Use correct Y position based on terrain
-    const correctY = getCorrectYPosition(x, z, size);
-    sphere.position.set(x, correctY, z);
+    // Find a valid position that doesn't clip into walls
+    const validPosition = findNearestValidPosition(x, z, size);
+    const correctY = getCorrectYPosition(validPosition.x, validPosition.z, size);
+    sphere.position.set(validPosition.x, correctY, validPosition.z);
   
     sphere.userData = {
       type: "player",
@@ -603,9 +839,10 @@ let creatingType = null; // "player" vagy "enemy"
     sphere.add(nameLabel);
     nameLabel.position.set(0, size + 20, -size); // A gömb fölé helyezzük
 
-    // Use correct Y position based on terrain
-    const correctY = getCorrectYPosition(x, z, size);
-    sphere.position.set(x, correctY, z);
+    // Find a valid position that doesn't clip into walls
+    const validPosition = findNearestValidPosition(x, z, size);
+    const correctY = getCorrectYPosition(validPosition.x, validPosition.z, size);
+    sphere.position.set(validPosition.x, correctY, validPosition.z);
   
     sphere.userData = {
       type: "Enemy",
@@ -667,6 +904,10 @@ let creatingType = null; // "player" vagy "enemy"
   function generateTerrain() {
     // Clear existing terrain
     terrain.clear();
+    
+    // Clear position cache when terrain changes
+    positionCache.clear();
+    lastValidPosition = null;
     
     // Reset random counter for consistent generation
     randomCounter = 0;
@@ -896,64 +1137,36 @@ let creatingType = null; // "player" vagy "enemy"
           // Ha karaktert mozgatunk
           const terrainIntersects = raycaster.intersectObjects(terrain.children, true);
           const planeIntersects = raycaster.intersectObject(plane, true);
-		  const boxIntersects = raycaster.intersectObject(box, true);
+		      const boxIntersects = raycaster.intersectObject(box, true);
           const size = selectedPlayer.userData.size || 20; // ha nincs size, default 20
-		  const hitBigBlock = terrainIntersects.find(obj => obj.object.userData?.type === "bigBlock");
   
-          if (hitBigBlock) {
-              // Nagy blokkra tesszük
-              const x = hitBigBlock.point.x;
-              const z = hitBigBlock.point.z;
-              const y = hitBigBlock.point.y + size;
-  
-              smoothMove(selectedPlayer, x, y, z, 500);
-              updateInfoPanel(null);
-  
-          } else if (planeIntersects.length > 0) {
-              // Ha a plane-re kattintottunk
-              //const point = planeIntersects[0].point;
-  
-              const x = planeIntersects[0].point.x;
-              const z = planeIntersects[0].point.z;
-			  const y = planeIntersects[0].point.y + size;
-			  
-              //const offsetX = point.x + (gridSize * cellSize) / 2;
-              //const offsetZ = point.z + (gridSize * cellSize) / 2;
-  
-              //const gridX = Math.floor(offsetX / cellSize);
-              //const gridZ = Math.floor(offsetZ / cellSize);
-  
-              //const snappedX = (gridX * cellSize) - (gridSize * cellSize) / 2 + cellSize / 2;
-              //const snappedZ = (gridZ * cellSize) - (gridSize * cellSize) / 2 + cellSize / 2;
-  
-              smoothMove(selectedPlayer, x, y, z, 500);
-              updateInfoPanel(null);
-  
+          let targetX, targetZ;
           
-		  
-		  } else if (boxIntersects.length > 0) {
-              // Ha a box-ra kattintottunk
-              //const point = planeIntersects[0].point;
-  
-              const x = boxIntersects[0].point.x;
-              const z = boxIntersects[0].point.z;
-              const y = boxIntersects[0].point.y + size;
-			  
-              //const offsetX = point.x + (gridSize * cellSize) / 2;
-              //const offsetZ = point.z + (gridSize * cellSize) / 2;
-  
-              //const gridX = Math.floor(offsetX / cellSize);
-              //const gridZ = Math.floor(offsetZ / cellSize);
-  
-              //const snappedX = (gridX * cellSize) - (gridSize * cellSize) / 2 + cellSize / 2;
-              //const snappedZ = (gridZ * cellSize) - (gridSize * cellSize) / 2 + cellSize / 2;
-  
-              smoothMove(selectedPlayer, x, y, z, 500);
+          if (terrainIntersects.length > 0) {
+              // If we hit terrain (including buildings), use that position
+              targetX = terrainIntersects[0].point.x;
+              targetZ = terrainIntersects[0].point.z;
+          } else if (planeIntersects.length > 0) {
+              // If we hit the ground plane
+              targetX = planeIntersects[0].point.x;
+              targetZ = planeIntersects[0].point.z;
+          } else if (boxIntersects.length > 0) {
+              // If we hit the box
+              targetX = boxIntersects[0].point.x;
+              targetZ = boxIntersects[0].point.z;
+          }
+          
+          // Always use getCorrectYPosition to ensure proper positioning
+          if (targetX !== undefined && targetZ !== undefined) {
+              // Find a valid position that doesn't clip into walls
+              const validPosition = findNearestValidPosition(targetX, targetZ, size);
+              const targetY = getCorrectYPosition(validPosition.x, validPosition.z, size);
+              smoothMove(selectedPlayer, validPosition.x, targetY, validPosition.z, 500);
               updateInfoPanel(null);
-  
           } 
 		  
-          // Mindig engedjük el a karaktert, akár volt találat, akár nem
+          // Hide hover indicator and release character
+          hideHoverIndicator();
           selectedPlayer.material = originalMaterial;
           selectedPlayer = null;
           originalMaterial = null;
@@ -962,7 +1175,7 @@ let creatingType = null; // "player" vagy "enemy"
           // Ha karaktert választunk ki
           const intersects = raycaster.intersectObjects([...players.children, ...enemies.children], true);
 		  
-		  // Szűrés, hogy a Sprite-okat ignoráljuk:
+		      // Szűrés, hogy a Sprite-okat ignoráljuk:
           const validIntersects = intersects.filter(i => !i.object.userData.isNameLabel);
           
           if (validIntersects.length > 0) {
@@ -970,6 +1183,7 @@ let creatingType = null; // "player" vagy "enemy"
           
               if (selectedPlayer && originalMaterial) {
                   selectedPlayer.material = originalMaterial;
+                  hideHoverIndicator();
               }
           
               selectedPlayer = intersectedObject;
@@ -988,13 +1202,61 @@ let creatingType = null; // "player" vagy "enemy"
           } else {
               if (selectedPlayer && originalMaterial) {
                   selectedPlayer.material = originalMaterial;
+                  hideHoverIndicator();
               }
               selectedPlayer = null;
               originalMaterial = null;
               updateInfoPanel(null);
           }
-		  
+      }
+  });
 
+  // Add mouse move event listener for hover indicator with throttling
+  let lastMouseMoveTime = 0;
+  const MOUSE_MOVE_THROTTLE = 50; // Throttle to 20fps for smoother performance
+  
+  renderer.domElement.addEventListener('mousemove', (event) => {
+      const now = performance.now();
+      if (now - lastMouseMoveTime < MOUSE_MOVE_THROTTLE) {
+          return; // Skip this update to reduce jank
+      }
+      lastMouseMoveTime = now;
+      
+      if (!selectedPlayer) {
+          hideHoverIndicator();
+          return;
+      }
+
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+
+      const terrainIntersects = raycaster.intersectObjects(terrain.children, true);
+      const planeIntersects = raycaster.intersectObject(plane, true);
+      const boxIntersects = raycaster.intersectObject(box, true);
+      const size = selectedPlayer.userData.size || 20;
+
+      let targetX, targetZ;
+
+      if (terrainIntersects.length > 0) {
+          targetX = terrainIntersects[0].point.x;
+          targetZ = terrainIntersects[0].point.z;
+      } else if (planeIntersects.length > 0) {
+          targetX = planeIntersects[0].point.x;
+          targetZ = planeIntersects[0].point.z;
+      } else if (boxIntersects.length > 0) {
+          targetX = boxIntersects[0].point.x;
+          targetZ = boxIntersects[0].point.z;
+      }
+
+      if (targetX !== undefined && targetZ !== undefined) {
+          // Find the valid position and show hover indicator with character size
+          const validPosition = findNearestValidPosition(targetX, targetZ, size);
+          const targetY = getCorrectYPosition(validPosition.x, validPosition.z, size);
+          showHoverIndicator(validPosition.x, targetY - size + 2, validPosition.z, size); // Use character size
+      } else {
+          hideHoverIndicator();
       }
   });
 
@@ -1003,6 +1265,7 @@ let creatingType = null; // "player" vagy "enemy"
   function animate() {
     requestAnimationFrame(animate);
 	controls.update();
+    updateHoverIndicator(); // Update the holographic hover effect
     renderer.render(scene, camera);
   }
     
