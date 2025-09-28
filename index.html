@@ -899,7 +899,7 @@
   scene.background = 0;
 
   const loader = new GLTFLoader();
-  //loader.setMeshoptDecoder(MeshoptDecoder);
+  loader.setMeshoptDecoder(MeshoptDecoder);
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
   loader.setDRACOLoader(dracoLoader);
