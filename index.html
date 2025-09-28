@@ -771,6 +771,7 @@
 <script type="module">
   import * as THREE from 'three';
   import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+  import { DRACOLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js';
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
   import { MeshoptDecoder } from 'https://unpkg.com/three@0.160.0/examples/jsm/libs/meshopt_decoder.module.js';
 
@@ -898,7 +899,10 @@
   scene.background = 0;
 
   const loader = new GLTFLoader();
-  loader.setMeshoptDecoder(MeshoptDecoder);
+  //loader.setMeshoptDecoder(MeshoptDecoder);
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+  loader.setDRACOLoader(dracoLoader);
 
   function loadModel(filename) {
     loader.load(filename, (gltf) => {
