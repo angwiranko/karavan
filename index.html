@@ -859,7 +859,7 @@
   let model = null;
   let rotate = true;
   let currentModel = 'model12.glb';
-  let alternateModel = 'model13.glb';
+  let alternateModel = 'model14.glb';
   let scene, camera, renderer, controls;
   let selectedObject = null;
   let previousSelection = null;
@@ -1263,7 +1263,7 @@ console.log("🧪 Tooltip info:", info);
   document.getElementById('toggleAllTooltips').addEventListener('click', toggleAllTooltips);
 
   document.getElementById('switchModel').addEventListener('click', () => {
-    currentModel = currentModel === 'model12.glb' ? 'model13.glb' : 'model12.glb';
+    currentModel = currentModel === 'model12.glb' ? 'model14.glb' : 'model12.glb';
     loadModel(currentModel);
   });
   
