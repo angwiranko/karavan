@@ -859,8 +859,16 @@
   let data = [];
   let model = null;
   let rotate = true;
-  let currentModel = 'model12.glb';
-  let alternateModel = 'model14.glb';
+  const availableModels = [
+    'model10.glb',
+    'model11.glb',
+    'model12.glb',
+    'model13.glb',
+    'model14.glb'
+  ];
+
+  let currentModelIndex = Math.max(0, availableModels.indexOf('model12.glb'));
+  let currentModel = availableModels[currentModelIndex];
   let scene, camera, renderer, controls;
   let selectedObject = null;
   let previousSelection = null;
@@ -1267,7 +1275,8 @@ console.log("🧪 Tooltip info:", info);
   document.getElementById('toggleAllTooltips').addEventListener('click', toggleAllTooltips);
 
   document.getElementById('switchModel').addEventListener('click', () => {
-    currentModel = currentModel === 'model12.glb' ? 'model14.glb' : 'model12.glb';
+    currentModelIndex = (currentModelIndex + 1) % availableModels.length;
+    currentModel = availableModels[currentModelIndex];
     loadModel(currentModel);
   });
   
