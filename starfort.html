@@ -1,0 +1,1178 @@
+
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stellar Hálózat - Helyszíntérkép</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0b0f;
+      --panel: #15151b;
+      --panel-alt: #1c1c23;
+      --border: #3b3b45;
+      --accent: #ffcc33;
+      --accent-soft: rgba(255, 204, 51, 0.25);
+      --info: #8aa0c9;
+      --insider: #ff9933;
+      --danger: #ff5555;
+      --text-primary: #f5f5f5;
+      --text-secondary: #b7b7c5;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Orbitron', sans-serif;
+      background: radial-gradient(circle at top, rgba(22, 22, 34, 0.85), rgba(5, 5, 9, 0.95)), url('images/alap.png') center/cover fixed;
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: clamp(16px, 3vw, 32px);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .title-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 16px;
+    }
+
+    h1 {
+      font-size: clamp(1.75rem, 2.5vw, 2.5rem);
+      margin: 0;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0 0 12px rgba(255, 204, 51, 0.35);
+    }
+
+    .subtitle {
+      font-size: clamp(1.1rem, 1.6vw, 1.35rem);
+      color: var(--accent);
+      margin: 0;
+    }
+
+    .location-selector {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .location-selector label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      letter-spacing: 1px;
+    }
+
+    select {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: inherit;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .alert-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: linear-gradient(90deg, rgba(255, 85, 85, 0.18), rgba(255, 204, 51, 0.12));
+      border: 1px solid rgba(255, 85, 85, 0.35);
+      border-radius: 10px;
+      box-shadow: 0 0 18px rgba(255, 85, 85, 0.25);
+    }
+
+    .alert-label {
+      font-size: 0.95rem;
+      letter-spacing: 1.5px;
+    }
+
+    .alert-levels {
+      display: flex;
+      gap: 10px;
+    }
+
+    .alert-die {
+      width: 38px;
+      height: 38px;
+      border-radius: 6px;
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      color: var(--text-secondary);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
+
+    .alert-die.active {
+      background: radial-gradient(circle at center, rgba(255, 204, 51, 0.35), rgba(255, 153, 51, 0.45));
+      border-color: rgba(255, 204, 51, 0.75);
+      color: #201600;
+      text-shadow: 0 0 6px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 0 12px rgba(255, 153, 51, 0.65);
+    }
+
+    main {
+      display: grid;
+      gap: 20px;
+    }
+
+    .sector-card {
+      background: linear-gradient(160deg, rgba(33, 33, 44, 0.85), rgba(15, 15, 22, 0.92));
+      border: 1px solid rgba(255, 204, 51, 0.18);
+      border-radius: 12px;
+      padding: clamp(16px, 2vw, 24px);
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .sector-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255, 204, 51, 0.25);
+      padding-bottom: 10px;
+    }
+
+    .sector-title {
+      font-size: clamp(1.2rem, 1.8vw, 1.5rem);
+      margin: 0;
+      letter-spacing: 1px;
+    }
+
+    .sector-content {
+      display: grid;
+      grid-template-columns: minmax(120px, 160px) 1fr;
+      gap: clamp(16px, 2.5vw, 32px);
+    }
+
+    .asset-track {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .asset-track h3 {
+      font-size: 0.8rem;
+      letter-spacing: 1.2px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .asset-dice {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .asset-die {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: var(--panel-alt);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
+
+    .asset-die.active {
+      background: radial-gradient(circle at center, rgba(255, 204, 51, 0.6), rgba(255, 153, 51, 0.5));
+      border-color: rgba(255, 204, 51, 0.85);
+      box-shadow: 0 0 12px rgba(255, 204, 51, 0.45);
+    }
+
+    .asset-die.spent {
+      background: radial-gradient(circle at center, rgba(255, 85, 85, 0.55), rgba(120, 20, 20, 0.65));
+      border-color: rgba(255, 85, 85, 0.85);
+      box-shadow: 0 0 14px rgba(255, 85, 85, 0.5);
+    }
+
+    .categories {
+      display: grid;
+      gap: 16px;
+    }
+
+    .category-card {
+      background: rgba(15, 15, 22, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .category-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .category-header h3 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 1px;
+    }
+
+    .category-columns {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .column-title {
+      font-size: 0.75rem;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .entry-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 34px;
+    }
+
+    .entry-chip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      user-select: none;
+    }
+
+    .entry-chip.info {
+      background: rgba(138, 160, 201, 0.12);
+      border: 1px solid rgba(138, 160, 201, 0.35);
+      color: var(--info);
+      box-shadow: 0 0 10px rgba(138, 160, 201, 0.1);
+    }
+
+    .entry-chip.insider {
+      background: rgba(255, 153, 51, 0.12);
+      border: 1px solid rgba(255, 153, 51, 0.6);
+      color: var(--insider);
+      box-shadow: 0 0 12px rgba(255, 153, 51, 0.2);
+    }
+
+    .entry-chip:hover {
+      transform: translateY(-2px);
+    }
+
+    .entry-remove {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0, 0, 0, 0.3);
+      color: var(--text-secondary);
+      font-size: 0.7rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .entry-remove:hover {
+      background: rgba(255, 85, 85, 0.35);
+      color: #fff;
+    }
+
+    .category-add {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .category-add input[type="text"] {
+      flex: 1 1 200px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: var(--text-primary);
+      font-family: inherit;
+      letter-spacing: 0.6px;
+    }
+
+    .category-add button {
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 204, 51, 0.4);
+      background: rgba(255, 204, 51, 0.15);
+      color: var(--accent);
+      font-family: inherit;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+    .category-add button:hover {
+      background: rgba(255, 204, 51, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .empty-message {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      opacity: 0.7;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: rgba(255, 85, 85, 0.92);
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 8px;
+      letter-spacing: 0.6px;
+      font-size: 0.85rem;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+      opacity: 0;
+      transform: translateY(16px);
+      transition: all 0.25s ease;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 900px) {
+      .sector-content {
+        grid-template-columns: 1fr;
+      }
+
+      .asset-track {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .asset-dice {
+        flex-direction: row;
+      }
+
+      .asset-die {
+        width: 34px;
+        height: 34px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title-row">
+      <div>
+        <h1 id="locationTitle">Tartaros Starfort</h1>
+        <p id="locationSubtitle" class="subtitle">Khthonic Gate</p>
+      </div>
+      <div class="location-selector">
+        <label for="locationSelect">Válassz helyszínt:</label>
+        <select id="locationSelect"></select>
+      </div>
+    </div>
+    <div class="alert-bar">
+      <span class="alert-label">RIADÓ SZINT</span>
+      <div id="alertLevels" class="alert-levels"></div>
+    </div>
+  </header>
+
+  <main id="sectorContainer"></main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const STORAGE_KEY = 'starfort-hub-state-v1';
+    // Ha szeretnéd Google Sheet-ből betölteni az adatokat, add meg itt a gviz URL-t.
+    // Példa formátum: https://docs.google.com/spreadsheets/d/<ID>/gviz/tq?gid=<GID>&tqx=out:json
+    const SHEET_URL = '';
+
+    const fallbackState = {
+      locations: [
+        {
+          id: 'tartaros-starfort',
+          name: 'Tartaros Starfort',
+          subtitle: 'Khthonic Gate',
+          alertLevel: 0,
+          sectors: [
+            {
+              id: 'porta-stygia',
+              name: 'Porta Stygia kikötő',
+              assetSlots: ['available', 'inactive', 'inactive'],
+              categories: [
+                {
+                  id: 'visions',
+                  name: 'Bizarr víziók',
+                  items: [
+                    createItem('Suttogó ködfátylak a dokkok felett'),
+                    createItem('Warp-zárlat az ötös dokkban')
+                  ]
+                },
+                {
+                  id: 'figures',
+                  name: 'Kulcsfigurák',
+                  items: [
+                    createItem('Boyd admirális'),
+                    createItem('Sigma-7 Logi-Magos')
+                  ]
+                },
+                {
+                  id: 'locations',
+                  name: 'Kulcspontok és helyszínek',
+                  items: [
+                    createItem('Viharharang kilövő állás'),
+                    createItem('Stygian Transit Kapu')
+                  ]
+                },
+                {
+                  id: 'assets',
+                  name: 'Eszközök és zsákmány',
+                  items: [
+                    createItem('Fantom-flottilla kódkulcsok')
+                  ]
+                },
+                {
+                  id: 'threats',
+                  name: 'Fenyegetések és komplikációk',
+                  items: [
+                    createItem('Korrumpált kikötőmester'),
+                    createItem('Karbantartási szabotázs nyomai')
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'lethe-cathedral',
+              name: 'Léthé Katedrális negyed',
+              assetSlots: ['inactive', 'inactive', 'inactive'],
+              categories: [
+                {
+                  id: 'visions',
+                  name: 'Bizarr víziók',
+                  items: [
+                    createItem('Fekete gyertyák, amelyek visszaszámolnak'),
+                    createItem('Liturgikus visszhang a víztározóból')
+                  ]
+                },
+                {
+                  id: 'figures',
+                  name: 'Kulcsfigurák',
+                  items: [
+                    createItem('Szerafita Kórusmester'),
+                    createItem('Inkvizítor Arcturus')
+                  ]
+                },
+                {
+                  id: 'locations',
+                  name: 'Kulcspontok és helyszínek',
+                  items: [
+                    createItem('Az Elfeledett Reliquiárium'),
+                    createItem('Álom-kolostor cellái')
+                  ]
+                },
+                {
+                  id: 'assets',
+                  name: 'Eszközök és zsákmány',
+                  items: [
+                    createItem('Pszalmus-kódex töredékei')
+                  ]
+                },
+                {
+                  id: 'threats',
+                  name: 'Fenyegetések és komplikációk',
+                  items: [
+                    createItem('Gnosztikus fertőzés gyanúja'),
+                    createItem('Szentségtörő szertartás előkészületei')
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'acheron-arsenal',
+              name: 'Acheron Arsenal Stellarmium',
+              assetSlots: ['inactive', 'inactive', 'inactive'],
+              categories: [
+                {
+                  id: 'visions',
+                  name: 'Bizarr víziók',
+                  items: [
+                    createItem('Megszállott gépszellemek manifesztációi')
+                  ]
+                },
+                {
+                  id: 'figures',
+                  name: 'Kulcsfigurák',
+                  items: [
+                    createItem('Barzilai űrkommendáns'),
+                    createItem('A-9R Servitor-központi AI')
+                  ]
+                },
+                {
+                  id: 'locations',
+                  name: 'Kulcspontok és helyszínek',
+                  items: [
+                    createItem('Plazma-arsenal hangárcella'),
+                    createItem('Cerberus fegyverraktár')
+                  ]
+                },
+                {
+                  id: 'assets',
+                  name: 'Eszközök és zsákmány',
+                  items: [
+                    createItem('Óriás kalibercsövek hozzáférése'),
+                    createItem('Álcázott ellátmány konvoj')
+                  ]
+                },
+                {
+                  id: 'threats',
+                  name: 'Fenyegetések és komplikációk',
+                  items: [
+                    createItem('Szervitor meghibásodási hullám'),
+                    createItem('Titkos fegyverkísérlet aktiválása')
+                  ]
+                }
+              ]
+            },
+            {
+              id: 'forge-feglethon',
+              name: 'Forge Feglethon',
+              assetSlots: ['inactive', 'inactive', 'inactive'],
+              categories: [
+                {
+                  id: 'visions',
+                  name: 'Bizarr víziók',
+                  items: [
+                    createItem('Rozsdavörös hóesés a kohó felett')
+                  ]
+                },
+                {
+                  id: 'figures',
+                  name: 'Kulcsfigurák',
+                  items: [
+                    createItem('Damaeus főkovács'),
+                    createItem('Xanthe Omnissiah papnő')
+                  ]
+                },
+                {
+                  id: 'locations',
+                  name: 'Kulcspontok és helyszínek',
+                  items: [
+                    createItem('Titán gerinckohó'),
+                    createItem('Null-reaktor kamrák')
+                  ]
+                },
+                {
+                  id: 'assets',
+                  name: 'Eszközök és zsákmány',
+                  items: [
+                    createItem('Arkhánium ötvözet minták')
+                  ]
+                },
+                {
+                  id: 'threats',
+                  name: 'Fenyegetések és komplikációk',
+                  items: [
+                    createItem('Mechanikus láz tomboló kohó munkások között'),
+                    createItem('Warp-törés a hűtőspirálokban')
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    };
+
+    let state = cloneState(fallbackState);
+    let currentLocationId = state.locations[0].id;
+
+    const locationSelect = document.getElementById('locationSelect');
+    const sectorContainer = document.getElementById('sectorContainer');
+    const locationTitle = document.getElementById('locationTitle');
+    const locationSubtitle = document.getElementById('locationSubtitle');
+    const alertLevelsContainer = document.getElementById('alertLevels');
+    const toast = document.getElementById('toast');
+
+    function cloneState(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    function createItem(label, status = 'info') {
+      return {
+        id: cryptoRandomId(),
+        label,
+        status
+      };
+    }
+
+    function cryptoRandomId() {
+      return 'itm-' + Math.random().toString(16).slice(2, 10);
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(showToast.timeoutId);
+      showToast.timeoutId = setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+
+    function slugify(value) {
+      return value
+        .toString()
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '');
+    }
+
+    function ensureItemIds(targetState) {
+      targetState.locations.forEach(location => {
+        location.sectors.forEach(sector => {
+          sector.categories.forEach(category => {
+            category.items.forEach(item => {
+              if (!item.id) {
+                item.id = cryptoRandomId();
+              }
+            });
+          });
+          if (!Array.isArray(sector.assetSlots)) {
+            sector.assetSlots = ['inactive', 'inactive', 'inactive'];
+          } else if (sector.assetSlots.length < 3) {
+            sector.assetSlots = [...sector.assetSlots, ...Array(3 - sector.assetSlots.length).fill('inactive')];
+          }
+        });
+      });
+    }
+
+    function countInsiders(sector) {
+      return sector.categories.reduce((total, category) => (
+        total + category.items.filter(item => item.status === 'insider').length
+      ), 0);
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function loadSavedState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        ensureItemIds(parsed);
+        return parsed;
+      } catch (error) {
+        console.warn('Nem sikerült betölteni a mentett állapotot', error);
+        return null;
+      }
+    }
+
+    async function loadFromSheet() {
+      if (!SHEET_URL) return null;
+      try {
+        const res = await fetch(SHEET_URL);
+        const text = await res.text();
+        const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\((.*)\);/)[1]);
+        const table = json.table;
+        const headers = table.cols.map(col => slugify(col.label));
+        const rows = table.rows
+          .map(row => row.c.map(cell => (cell ? cell.v : '')))
+          .map(values => Object.fromEntries(values.map((value, index) => [headers[index], value])));
+
+        const sheetState = { locations: [] };
+        const locationMap = new Map();
+
+        rows.forEach(entry => {
+          const locationName = entry.location || entry.helyszin || entry.location_name;
+          const sectorName = entry.sektor || entry.sector || entry.negyed;
+          const categoryName = entry.kategoria || entry.category;
+          const itemLabel = entry.tartalom || entry.item || entry.nev;
+          if (!locationName || !sectorName || !categoryName || !itemLabel) {
+            return;
+          }
+
+          const locationId = slugify(entry.location_id || locationName);
+          const sectorId = slugify(entry.sector_id || sectorName);
+          const categoryId = slugify(entry.category_id || categoryName);
+          const itemStatus = (entry.statusz || entry.status || 'info').toLowerCase() === 'insider' ? 'insider' : 'info';
+
+          if (!locationMap.has(locationId)) {
+            const location = {
+              id: locationId,
+              name: entry.location_title || locationName,
+              subtitle: entry.location_subtitle || '',
+              alertLevel: Number(entry.riado || entry.alert || 0) || 0,
+              sectors: []
+            };
+            locationMap.set(locationId, location);
+            sheetState.locations.push(location);
+          }
+
+          const location = locationMap.get(locationId);
+          let sector = location.sectors.find(sec => sec.id === sectorId);
+          if (!sector) {
+            sector = {
+              id: sectorId,
+              name: sectorName,
+              order: Number(entry.sector_sorrend || entry.sector_order || 0) || 0,
+              assetSlots: Array(3).fill('inactive'),
+              categories: []
+            };
+            location.sectors.push(sector);
+          }
+
+          let category = sector.categories.find(cat => cat.id === categoryId);
+          if (!category) {
+            category = {
+              id: categoryId,
+              name: categoryName,
+              order: Number(entry.category_sorrend || entry.category_order || 0) || 0,
+              items: []
+            };
+            sector.categories.push(category);
+          }
+
+          category.items.push({
+            id: cryptoRandomId(),
+            label: itemLabel,
+            status: itemStatus
+          });
+        });
+
+        sheetState.locations.forEach(location => {
+          location.sectors.sort((a, b) => a.order - b.order);
+          location.sectors.forEach(sector => {
+            sector.categories.sort((a, b) => a.order - b.order);
+          });
+        });
+
+        ensureItemIds(sheetState);
+        return sheetState.locations.length ? sheetState : null;
+      } catch (error) {
+        console.warn('Nem sikerült betölteni a Google Sheet adatokat', error);
+        return null;
+      }
+    }
+
+    function mergeBaseIntoStored(stored, base) {
+      const result = cloneState(stored);
+      const locationIndex = new Map(result.locations.map(loc => [loc.id, loc]));
+
+      base.locations.forEach(baseLocation => {
+        let targetLocation = locationIndex.get(baseLocation.id);
+        if (!targetLocation) {
+          result.locations.push(cloneState(baseLocation));
+          locationIndex.set(baseLocation.id, result.locations[result.locations.length - 1]);
+          targetLocation = locationIndex.get(baseLocation.id);
+        } else {
+          targetLocation.name = baseLocation.name;
+          targetLocation.subtitle = baseLocation.subtitle;
+        }
+
+        const sectorIndex = new Map(targetLocation.sectors.map(sector => [sector.id, sector]));
+        baseLocation.sectors.forEach(baseSector => {
+          let targetSector = sectorIndex.get(baseSector.id);
+          if (!targetSector) {
+            targetLocation.sectors.push(cloneState(baseSector));
+            sectorIndex.set(baseSector.id, targetLocation.sectors[targetLocation.sectors.length - 1]);
+            targetSector = sectorIndex.get(baseSector.id);
+          } else {
+            targetSector.name = baseSector.name;
+          }
+
+          const categoryIndex = new Map(targetSector.categories.map(cat => [cat.id, cat]));
+          baseSector.categories.forEach(baseCategory => {
+            let targetCategory = categoryIndex.get(baseCategory.id);
+            if (!targetCategory) {
+              targetSector.categories.push(cloneState(baseCategory));
+              categoryIndex.set(baseCategory.id, targetSector.categories[targetSector.categories.length - 1]);
+              targetCategory = categoryIndex.get(baseCategory.id);
+            } else {
+              targetCategory.name = baseCategory.name;
+              baseCategory.items.forEach(baseItem => {
+                if (!targetCategory.items.some(item => item.label === baseItem.label)) {
+                  targetCategory.items.push(cloneState(baseItem));
+                }
+              });
+            }
+          });
+        });
+      });
+
+      ensureItemIds(result);
+      return result;
+    }
+
+    function populateLocationSelect() {
+      locationSelect.innerHTML = '';
+      state.locations.forEach(location => {
+        const option = document.createElement('option');
+        option.value = location.id;
+        option.textContent = location.subtitle ? `${location.name} — ${location.subtitle}` : location.name;
+        locationSelect.appendChild(option);
+      });
+      locationSelect.value = currentLocationId;
+    }
+
+    function renderAlert(location) {
+      alertLevelsContainer.innerHTML = '';
+      const levels = [1, 2, 3, 4, 5];
+      levels.forEach(level => {
+        const die = document.createElement('div');
+        die.className = 'alert-die';
+        die.textContent = level;
+        die.dataset.level = level;
+        if (location.alertLevel >= level) {
+          die.classList.add('active');
+        }
+        alertLevelsContainer.appendChild(die);
+      });
+    }
+
+    function ensureAssetSlotsState(sector) {
+      if (!Array.isArray(sector.assetSlots) || sector.assetSlots.length !== 3) {
+        sector.assetSlots = Array(3).fill('inactive');
+      }
+      const insiders = countInsiders(sector);
+      sector.assetSlots = sector.assetSlots.map((slot, index) => {
+        if (index < insiders) {
+          return slot === 'spent' ? 'spent' : 'available';
+        }
+        return 'inactive';
+      });
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderLocation(locationId) {
+      const location = state.locations.find(loc => loc.id === locationId);
+      if (!location) return;
+      currentLocationId = location.id;
+      locationTitle.textContent = location.name;
+      locationSubtitle.textContent = location.subtitle || '';
+      renderAlert(location);
+
+      sectorContainer.innerHTML = '';
+      location.sectors.forEach((sector, sectorIndex) => {
+        ensureAssetSlotsState(sector);
+        const card = document.createElement('section');
+        card.className = 'sector-card';
+
+        const header = document.createElement('div');
+        header.className = 'sector-header';
+        const title = document.createElement('h2');
+        title.className = 'sector-title';
+        title.textContent = sector.name;
+        header.appendChild(title);
+        card.appendChild(header);
+
+        const content = document.createElement('div');
+        content.className = 'sector-content';
+
+        const assetTrack = document.createElement('div');
+        assetTrack.className = 'asset-track';
+        const assetLabel = document.createElement('h3');
+        assetLabel.textContent = 'INSIDER SLOTOK';
+        assetTrack.appendChild(assetLabel);
+        const diceColumn = document.createElement('div');
+        diceColumn.className = 'asset-dice';
+
+        sector.assetSlots.forEach((slot, slotIndex) => {
+          const die = document.createElement('div');
+          die.className = 'asset-die';
+          die.dataset.sectorIndex = sectorIndex;
+          die.dataset.slotIndex = slotIndex;
+          if (slot !== 'inactive') {
+            die.classList.add('active');
+          }
+          if (slot === 'spent') {
+            die.classList.add('spent');
+          }
+          diceColumn.appendChild(die);
+        });
+        assetTrack.appendChild(diceColumn);
+        content.appendChild(assetTrack);
+
+        const categoriesContainer = document.createElement('div');
+        categoriesContainer.className = 'categories';
+
+        sector.categories.forEach((category, categoryIndex) => {
+          const categoryCard = document.createElement('div');
+          categoryCard.className = 'category-card';
+
+          const categoryHeader = document.createElement('div');
+          categoryHeader.className = 'category-header';
+          const categoryTitle = document.createElement('h3');
+          categoryTitle.textContent = category.name;
+          categoryHeader.appendChild(categoryTitle);
+          categoryCard.appendChild(categoryHeader);
+
+          const columns = document.createElement('div');
+          columns.className = 'category-columns';
+
+          const infoColumn = document.createElement('div');
+          const infoTitle = document.createElement('div');
+          infoTitle.className = 'column-title';
+          infoTitle.textContent = 'INFO';
+          const infoList = document.createElement('div');
+          infoList.className = 'entry-list';
+
+          const insiderColumn = document.createElement('div');
+          const insiderTitle = document.createElement('div');
+          insiderTitle.className = 'column-title';
+          insiderTitle.textContent = 'INSIDER';
+          const insiderList = document.createElement('div');
+          insiderList.className = 'entry-list';
+
+          category.items.forEach(item => {
+            const chip = document.createElement('div');
+            chip.className = `entry-chip ${item.status}`;
+            chip.dataset.locationId = location.id;
+            chip.dataset.sectorId = sector.id;
+            chip.dataset.categoryId = category.id;
+            chip.dataset.itemId = item.id;
+            chip.innerHTML = `
+              <span class="entry-label">${escapeHtml(item.label)}</span>
+              <button class="entry-remove" title="Eltávolítás" aria-label="Eltávolítás">×</button>
+            `;
+            if (item.status === 'insider') {
+              insiderList.appendChild(chip);
+            } else {
+              infoList.appendChild(chip);
+            }
+          });
+
+          if (!infoList.children.length) {
+            const empty = document.createElement('div');
+            empty.className = 'empty-message';
+            empty.textContent = 'Nincs felvéve információ';
+            infoList.appendChild(empty);
+          }
+
+          if (!insiderList.children.length) {
+            const empty = document.createElement('div');
+            empty.className = 'empty-message';
+            empty.textContent = 'Nincs aktív insider';
+            insiderList.appendChild(empty);
+          }
+
+          infoColumn.appendChild(infoTitle);
+          infoColumn.appendChild(infoList);
+          insiderColumn.appendChild(insiderTitle);
+          insiderColumn.appendChild(insiderList);
+
+          columns.appendChild(infoColumn);
+          columns.appendChild(insiderColumn);
+          categoryCard.appendChild(columns);
+
+          const form = document.createElement('form');
+          form.className = 'category-add';
+          form.dataset.locationId = location.id;
+          form.dataset.sectorId = sector.id;
+          form.dataset.categoryId = category.id;
+          form.innerHTML = `
+            <input type="text" placeholder="Új bejegyzés hozzáadása..." maxlength="160" required />
+            <button type="submit">+ Hozzáad</button>
+          `;
+          categoryCard.appendChild(form);
+
+          categoriesContainer.appendChild(categoryCard);
+        });
+
+        content.appendChild(categoriesContainer);
+        card.appendChild(content);
+        sectorContainer.appendChild(card);
+      });
+    }
+
+    function findCategory(locationId, sectorId, categoryId) {
+      const location = state.locations.find(loc => loc.id === locationId);
+      if (!location) return null;
+      const sector = location.sectors.find(sec => sec.id === sectorId);
+      if (!sector) return null;
+      const category = sector.categories.find(cat => cat.id === categoryId);
+      if (!category) return null;
+      return { location, sector, category };
+    }
+
+    function toggleItemStatus(locationId, sectorId, categoryId, itemId) {
+      const found = findCategory(locationId, sectorId, categoryId);
+      if (!found) return;
+      const { sector, category } = found;
+      const item = category.items.find(entry => entry.id === itemId);
+      if (!item) return;
+
+      if (item.status === 'info') {
+        const insiders = countInsiders(sector);
+        if (insiders >= 3) {
+          showToast('Maximálisan 3 insider lehet szektoronként.');
+          return;
+        }
+        item.status = 'insider';
+      } else {
+        item.status = 'info';
+      }
+      ensureAssetSlotsState(sector);
+      saveState();
+      renderLocation(currentLocationId);
+    }
+
+    function removeItem(locationId, sectorId, categoryId, itemId) {
+      const found = findCategory(locationId, sectorId, categoryId);
+      if (!found) return;
+      const { sector, category } = found;
+      const index = category.items.findIndex(entry => entry.id === itemId);
+      if (index === -1) return;
+      category.items.splice(index, 1);
+      ensureAssetSlotsState(sector);
+      saveState();
+      renderLocation(currentLocationId);
+    }
+
+    function addItem(locationId, sectorId, categoryId, label) {
+      if (!label.trim()) return;
+      const found = findCategory(locationId, sectorId, categoryId);
+      if (!found) return;
+      const { category } = found;
+      category.items.push(createItem(label.trim()));
+      saveState();
+      renderLocation(currentLocationId);
+    }
+
+    function toggleAssetSlot(sectorIndex, slotIndex) {
+      const location = state.locations.find(loc => loc.id === currentLocationId);
+      if (!location) return;
+      const sector = location.sectors[sectorIndex];
+      if (!sector) return;
+      const insiders = countInsiders(sector);
+      if (slotIndex >= insiders) {
+        showToast('Előbb jelölj insider státuszt az információk között.');
+        return;
+      }
+      sector.assetSlots[slotIndex] = sector.assetSlots[slotIndex] === 'spent' ? 'available' : 'spent';
+      saveState();
+      renderLocation(currentLocationId);
+    }
+
+    alertLevelsContainer.addEventListener('click', event => {
+      const die = event.target.closest('.alert-die');
+      if (!die) return;
+      const location = state.locations.find(loc => loc.id === currentLocationId);
+      if (!location) return;
+      const level = Number(die.dataset.level) || 0;
+      location.alertLevel = location.alertLevel === level ? 0 : level;
+      saveState();
+      renderAlert(location);
+    });
+
+    sectorContainer.addEventListener('click', event => {
+      const removeBtn = event.target.closest('.entry-remove');
+      if (removeBtn) {
+        const chip = removeBtn.closest('.entry-chip');
+        if (!chip) return;
+        removeItem(chip.dataset.locationId, chip.dataset.sectorId, chip.dataset.categoryId, chip.dataset.itemId);
+        event.stopPropagation();
+        return;
+      }
+
+      const chip = event.target.closest('.entry-chip');
+      if (chip) {
+        toggleItemStatus(chip.dataset.locationId, chip.dataset.sectorId, chip.dataset.categoryId, chip.dataset.itemId);
+        return;
+      }
+
+      const assetDie = event.target.closest('.asset-die');
+      if (assetDie) {
+        toggleAssetSlot(Number(assetDie.dataset.sectorIndex), Number(assetDie.dataset.slotIndex));
+      }
+    });
+
+    sectorContainer.addEventListener('submit', event => {
+      const form = event.target.closest('.category-add');
+      if (!form) return;
+      event.preventDefault();
+      const input = form.querySelector('input[type="text"]');
+      if (!input) return;
+      addItem(form.dataset.locationId, form.dataset.sectorId, form.dataset.categoryId, input.value);
+      input.value = '';
+      input.focus();
+    });
+
+    locationSelect.addEventListener('change', event => {
+      renderLocation(event.target.value);
+      saveState();
+    });
+
+    (async function init() {
+      const sheetState = await loadFromSheet();
+      const savedState = loadSavedState();
+
+      if (sheetState && savedState) {
+        state = mergeBaseIntoStored(savedState, sheetState);
+      } else if (sheetState) {
+        state = sheetState;
+      } else if (savedState) {
+        state = savedState;
+      } else {
+        state = cloneState(fallbackState);
+      }
+
+      ensureItemIds(state);
+      currentLocationId = state.locations[0]?.id || 'tartaros-starfort';
+      populateLocationSelect();
+      renderLocation(currentLocationId);
+    })();
+  </script>
+</body>
+</html>
