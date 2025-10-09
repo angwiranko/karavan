@@ -137,6 +137,14 @@
     main {
       display: grid;
       gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      align-items: start;
+    }
+
+    @media (min-width: 1500px) {
+      main {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
     }
 
     .sector-card {
@@ -444,42 +452,51 @@
               assetSlots: ['available', 'inactive', 'inactive'],
               categories: [
                 {
-                  id: 'visions',
-                  name: 'Bizarr víziók',
+                  id: 'security-keys',
+                  name: 'Biztonsági kódkulcsok:',
                   items: [
-                    createItem('Suttogó ködfátylak a dokkok felett'),
-                    createItem('Warp-zárlat az ötös dokkban')
+                    createItem('Stygia-dokk transzponder mátrix'),
+                    createItem('Delta-Helix kapunyitó kód')
                   ]
                 },
                 {
-                  id: 'figures',
-                  name: 'Kulcsfigurák',
+                  id: 'key-figures',
+                  name: 'Kulcsfigurák:',
                   items: [
                     createItem('Boyd admirális'),
                     createItem('Sigma-7 Logi-Magos')
                   ]
                 },
                 {
-                  id: 'locations',
-                  name: 'Kulcspontok és helyszínek',
+                  id: 'key-locations',
+                  name: 'Kulcs helyszínek, helyszín kulcsok:',
                   items: [
                     createItem('Viharharang kilövő állás'),
                     createItem('Stygian Transit Kapu')
                   ]
                 },
                 {
-                  id: 'assets',
-                  name: 'Eszközök és zsákmány',
+                  id: 'no-time-for',
+                  name: 'Amire nincs idejük:',
                   items: [
-                    createItem('Fantom-flottilla kódkulcsok')
+                    createItem('Fantom-flottilla utántöltése'),
+                    createItem('Szervitor karbantartási ciklus')
                   ]
                 },
                 {
-                  id: 'threats',
-                  name: 'Fenyegetések és komplikációk',
+                  id: 'hide-from',
+                  name: 'Amit nem akarnak hogy kiderüljön:',
                   items: [
                     createItem('Korrumpált kikötőmester'),
-                    createItem('Karbantartási szabotázs nyomai')
+                    createItem('Warp-zárlat az ötös dokkban')
+                  ]
+                },
+                {
+                  id: 'greatest-treasure',
+                  name: 'A legnagyobb kincsük:',
+                  items: [
+                    createItem('Fantom-flottilla kódkulcsok'),
+                    createItem('Rejtett Navigátor menedék')
                   ]
                 }
               ]
@@ -490,42 +507,51 @@
               assetSlots: ['inactive', 'inactive', 'inactive'],
               categories: [
                 {
-                  id: 'visions',
-                  name: 'Bizarr víziók',
+                  id: 'security-keys',
+                  name: 'Biztonsági kódkulcsok:',
                   items: [
-                    createItem('Fekete gyertyák, amelyek visszaszámolnak'),
-                    createItem('Liturgikus visszhang a víztározóból')
+                    createItem('Katedrális biztonsági liturgia-kulcsok'),
+                    createItem('Reliquiárium cryptex hozzáférés')
                   ]
                 },
                 {
-                  id: 'figures',
-                  name: 'Kulcsfigurák',
+                  id: 'key-figures',
+                  name: 'Kulcsfigurák:',
                   items: [
                     createItem('Szerafita Kórusmester'),
                     createItem('Inkvizítor Arcturus')
                   ]
                 },
                 {
-                  id: 'locations',
-                  name: 'Kulcspontok és helyszínek',
+                  id: 'key-locations',
+                  name: 'Kulcs helyszínek, helyszín kulcsok:',
                   items: [
                     createItem('Az Elfeledett Reliquiárium'),
                     createItem('Álom-kolostor cellái')
                   ]
                 },
                 {
-                  id: 'assets',
-                  name: 'Eszközök és zsákmány',
+                  id: 'no-time-for',
+                  name: 'Amire nincs idejük:',
                   items: [
-                    createItem('Pszalmus-kódex töredékei')
+                    createItem('Bűnbánó zarándokok auditja'),
+                    createItem('Szentségtörő ikon tisztítása')
                   ]
                 },
                 {
-                  id: 'threats',
-                  name: 'Fenyegetések és komplikációk',
+                  id: 'hide-from',
+                  name: 'Amit nem akarnak hogy kiderüljön:',
                   items: [
                     createItem('Gnosztikus fertőzés gyanúja'),
-                    createItem('Szentségtörő szertartás előkészületei')
+                    createItem('Liturgikus visszhang a víztározóból')
+                  ]
+                },
+                {
+                  id: 'greatest-treasure',
+                  name: 'A legnagyobb kincsük:',
+                  items: [
+                    createItem('Pszalmus-kódex töredékei'),
+                    createItem('Fekete gyertyák visszaszámoló készlete')
                   ]
                 }
               ]
@@ -536,42 +562,51 @@
               assetSlots: ['inactive', 'inactive', 'inactive'],
               categories: [
                 {
-                  id: 'visions',
-                  name: 'Bizarr víziók',
+                  id: 'security-keys',
+                  name: 'Biztonsági kódkulcsok:',
                   items: [
-                    createItem('Megszállott gépszellemek manifesztációi')
+                    createItem('Arsenal redoubt kapukód'),
+                    createItem('Acheron orbitális átvitel token')
                   ]
                 },
                 {
-                  id: 'figures',
-                  name: 'Kulcsfigurák',
+                  id: 'key-figures',
+                  name: 'Kulcsfigurák:',
                   items: [
                     createItem('Barzilai űrkommendáns'),
                     createItem('A-9R Servitor-központi AI')
                   ]
                 },
                 {
-                  id: 'locations',
-                  name: 'Kulcspontok és helyszínek',
+                  id: 'key-locations',
+                  name: 'Kulcs helyszínek, helyszín kulcsok:',
                   items: [
                     createItem('Plazma-arsenal hangárcella'),
                     createItem('Cerberus fegyverraktár')
                   ]
                 },
                 {
-                  id: 'assets',
-                  name: 'Eszközök és zsákmány',
+                  id: 'no-time-for',
+                  name: 'Amire nincs idejük:',
                   items: [
-                    createItem('Óriás kalibercsövek hozzáférése'),
-                    createItem('Álcázott ellátmány konvoj')
+                    createItem('Lőszerszortírozás a 7-es szektorban'),
+                    createItem('Stellarmium pajzs kalibrálása')
                   ]
                 },
                 {
-                  id: 'threats',
-                  name: 'Fenyegetések és komplikációk',
+                  id: 'hide-from',
+                  name: 'Amit nem akarnak hogy kiderüljön:',
                   items: [
                     createItem('Szervitor meghibásodási hullám'),
                     createItem('Titkos fegyverkísérlet aktiválása')
+                  ]
+                },
+                {
+                  id: 'greatest-treasure',
+                  name: 'A legnagyobb kincsük:',
+                  items: [
+                    createItem('Óriás kalibercsövek hozzáférése'),
+                    createItem('Álcázott ellátmány konvoj')
                   ]
                 }
               ]
@@ -582,41 +617,51 @@
               assetSlots: ['inactive', 'inactive', 'inactive'],
               categories: [
                 {
-                  id: 'visions',
-                  name: 'Bizarr víziók',
+                  id: 'security-keys',
+                  name: 'Biztonsági kódkulcsok:',
                   items: [
-                    createItem('Rozsdavörös hóesés a kohó felett')
+                    createItem('Kohó reaktor zsilip kódjai'),
+                    createItem('Omnissiah pecsétkulcs készlet')
                   ]
                 },
                 {
-                  id: 'figures',
-                  name: 'Kulcsfigurák',
+                  id: 'key-figures',
+                  name: 'Kulcsfigurák:',
                   items: [
                     createItem('Damaeus főkovács'),
                     createItem('Xanthe Omnissiah papnő')
                   ]
                 },
                 {
-                  id: 'locations',
-                  name: 'Kulcspontok és helyszínek',
+                  id: 'key-locations',
+                  name: 'Kulcs helyszínek, helyszín kulcsok:',
                   items: [
                     createItem('Titán gerinckohó'),
                     createItem('Null-reaktor kamrák')
                   ]
                 },
                 {
-                  id: 'assets',
-                  name: 'Eszközök és zsákmány',
+                  id: 'no-time-for',
+                  name: 'Amire nincs idejük:',
                   items: [
-                    createItem('Arkhánium ötvözet minták')
+                    createItem('Kohó gerincek hűtése'),
+                    createItem('Mechanikus láz kezelése')
                   ]
                 },
                 {
-                  id: 'threats',
-                  name: 'Fenyegetések és komplikációk',
+                  id: 'hide-from',
+                  name: 'Amit nem akarnak hogy kiderüljön:',
                   items: [
                     createItem('Mechanikus láz tomboló kohó munkások között'),
                     createItem('Warp-törés a hűtőspirálokban')
+                  ]
+                },
+                {
+                  id: 'greatest-treasure',
+                  name: 'A legnagyobb kincsük:',
+                  items: [
+                    createItem('Arkhánium ötvözet minták'),
+                    createItem('Ősi gyártási tervtár')
                   ]
                 }
               ]
@@ -860,7 +905,7 @@
 
     function renderAlert(location) {
       alertLevelsContainer.innerHTML = '';
-      const levels = [1, 2, 3, 4, 5];
+      const levels = Array.from({ length: 6 }, (_, index) => index + 1);
       levels.forEach(level => {
         const die = document.createElement('div');
         die.className = 'alert-die';
