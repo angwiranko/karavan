@@ -740,7 +740,9 @@
     }
 
     function saveState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      // Disabled - using Google Sheets only
+      // localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      console.log('💾 State save disabled - using Google Sheets only');
     }
 
     function loadSavedState() {
@@ -759,17 +761,22 @@
     async function loadFromSheet() {
       if (!SHEET_URL) return null;
       try {
+        console.log('🔄 Fetching from Google Sheets:', SHEET_URL);
         // CSV export URL formátum: https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/export?format=csv&gid=SHEET_GID
         const res = await fetch(SHEET_URL);
         const text = await res.text();
+        console.log('📄 Raw CSV data:', text.substring(0, 200) + '...');
         
         // CSV parsing
         const lines = text.trim().split('\n');
+        console.log('📊 CSV lines count:', lines.length);
         const headers = lines[0].split(',').map(header => slugify(header.replace(/"/g, '')));
+        console.log('📋 Headers found:', headers);
         const rows = lines.slice(1).map(line => {
           const values = line.split(',').map(value => value.replace(/"/g, ''));
           return Object.fromEntries(values.map((value, index) => [headers[index], value]));
         });
+        console.log('🔢 Data rows count:', rows.length);
 
         const sheetState = { locations: [] };
         const locationMap = new Map();
@@ -839,9 +846,10 @@
         });
 
         ensureItemIds(sheetState);
+        console.log('✅ Sheet state created with', sheetState.locations.length, 'locations');
         return sheetState.locations.length ? sheetState : null;
       } catch (error) {
-        console.warn('Nem sikerült betölteni a Google Sheet adatokat', error);
+        console.error('❌ Failed to load Google Sheet data:', error);
         return null;
       }
     }
@@ -1202,17 +1210,27 @@
       saveState();
     });
 
+    // 🛠️ DEBUG: Uncomment this line to force using ONLY Google Sheets data (ignores localStorage)
+    // localStorage.removeItem(STORAGE_KEY);
+
     (async function init() {
       const sheetState = await loadFromSheet();
-      const savedState = loadSavedState();
+      // Ignore localStorage - only use Google Sheets!
 
-      if (sheetState && savedState) {
-        state = mergeBaseIntoStored(savedState, sheetState);
-      } else if (sheetState) {
+      console.log('🔄 Init state check:');
+      console.log('📊 Sheet state exists:', !!sheetState);
+
+      if (sheetState) {
+        console.log('� Using sheet state (Google Sheets takes priority)');
         state = sheetState;
       } else if (savedState) {
+        console.log('� Using saved state (no sheet data available)');
+        state = savedState;
+      } else if (savedState) {
+        console.log('💾 Using saved state only');
         state = savedState;
       } else {
+        console.log('🔧 Using fallback state');
         state = cloneState(fallbackState);
       }
 
