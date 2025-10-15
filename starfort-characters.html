@@ -264,7 +264,7 @@
           const character = {
             name: imageName,
             path: imagePath,
-            displayName: imageName // Eredeti fájlnév megjelenítése
+            displayName: imageName.replace(/\.(png|jpg|jpeg|gif|webp)$/i, '') // Kiterjesztés eltávolítása
           };
           
           const card = createCharacterCard(character);
