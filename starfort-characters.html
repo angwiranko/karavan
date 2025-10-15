@@ -228,30 +228,23 @@
   </div>
 
   <script>
-    // Common image extensions to look for
-    const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-    
-    // Common character image naming patterns
-    const characterPatterns = [
-      // Numbers
-      ...Array.from({length: 50}, (_, i) => `character${i + 1}`),
-      ...Array.from({length: 50}, (_, i) => `portrait${i + 1}`),
-      ...Array.from({length: 50}, (_, i) => `npc${i + 1}`),
-      ...Array.from({length: 50}, (_, i) => `char${i + 1}`),
-      // Common names
-      'admiral', 'captain', 'commander', 'sergeant', 'soldier', 'pilot', 'engineer',
-      'mechanic', 'medic', 'navigator', 'gunner', 'scout', 'officer', 'crew',
-      'marine', 'guard', 'specialist', 'operative', 'agent', 'mercenary',
-      'tech', 'hacker', 'priest', 'inquisitor', 'psyker', 'servitor'
+    // EGYSZERŰ LISTA - Pontos fájlnevek az images/starfort/ mappából:
+    const characterImages = [
+      'Klaris.png',
+      'ezekiel.png',
+      'forgeguard.png',
+      'hadad.png',
+      'hypnos.png',
+      'lorn.png',
+      'lzr.png',
+      'marrow.png',
+      'morpheus.png',
+      'szobrok.png',
+      'thanatos.png',
+      'verax.png',
+      'vespera.png',
+      'veyra.png'
     ];
-
-    // Generate possible filenames
-    const characterImages = [];
-    characterPatterns.forEach(pattern => {
-      imageExtensions.forEach(ext => {
-        characterImages.push(`${pattern}.${ext}`);
-      });
-    });
 
     const characterGrid = document.getElementById('characterGrid');
     const loading = document.getElementById('loading');
@@ -262,83 +255,40 @@
       try {
         loading.style.display = 'block';
         
-        const validImages = [];
-        let foundCount = 0;
+        console.log('� Karakterek betöltése:', characterImages);
         
-        console.log('🔍 Scanning for character images in images/starfort/...');
-        
-        // Check which images actually exist (limit concurrent requests)
-        for (let i = 0; i < characterImages.length; i += 10) {
-          const batch = characterImages.slice(i, i + 10);
-          const promises = batch.map(async (imageName) => {
-            const imagePath = `images/starfort/${imageName}`;
-            try {
-              const response = await fetch(imagePath, { method: 'HEAD' });
-              if (response.ok) {
-                foundCount++;
-                console.log(`✅ Found: ${imageName}`);
-                return {
-                  name: imageName,
-                  path: imagePath,
-                  displayName: formatName(imageName)
-                };
-              }
-            } catch (e) {
-              // Image doesn't exist, skip it silently
-            }
-            return null;
-          });
+        // EGYSZERŰ MEGOLDÁS - nincs validáció, csak megjelenítés
+        characterImages.forEach(imageName => {
+          const imagePath = `images/starfort/${imageName}`;
+          const character = {
+            name: imageName,
+            path: imagePath,
+            displayName: imageName // Eredeti fájlnév megjelenítése
+          };
           
-          const results = await Promise.all(promises);
-          results.forEach(result => {
-            if (result) validImages.push(result);
-          });
-          
-          // Update loading message with progress
-          loading.textContent = `Karakterek keresése... (${foundCount} találat)`;
-        }
-
-        loading.style.display = 'none';
-
-        console.log(`🎯 Total found: ${validImages.length} character images`);
-
-        if (validImages.length === 0) {
-          error.innerHTML = `
-            <strong>Nem találhatók karakterek az images/starfort/ mappában.</strong><br><br>
-            Helyezz el képeket az alábbi helyre:<br>
-            <code>images/starfort/character1.jpg</code><br>
-            <code>images/starfort/portrait1.png</code><br>
-            <code>images/starfort/npc1.jpg</code><br><br>
-            Támogatott formátumok: jpg, jpeg, png, gif, webp
-          `;
-          error.style.display = 'block';
-          return;
-        }
-
-        // Sort images by name for better organization
-        validImages.sort((a, b) => a.name.localeCompare(b.name));
-
-        // Create character cards
-        validImages.forEach(character => {
           const card = createCharacterCard(character);
           characterGrid.appendChild(card);
         });
+        
+        loading.style.display = 'none';
+        
+        if (characterImages.length === 0) {
+          error.innerHTML = `
+            <strong>Nincs kép megadva!</strong><br><br>
+            Add meg a pontos fájlneveket a <code>characterImages</code> tömbben:<br>
+            Például: <code>'karakter1.png', 'admiral.png', 'kep.jpg'</code>
+          `;
+          error.style.display = 'block';
+        }
 
       } catch (err) {
         loading.style.display = 'none';
-        error.textContent = 'Hiba történt a karakterek betöltése során: ' + err.message;
+        error.textContent = 'Hiba történt: ' + err.message;
         error.style.display = 'block';
       }
     }
 
-    function formatName(filename) {
-      // Convert filename to display name
-      // Remove extension and format nicely
-      return filename
-        .replace(/\.(jpg|jpeg|png|gif|webp)$/i, '')
-        .replace(/[-_]/g, ' ')
-        .replace(/\b\w/g, l => l.toUpperCase());
-    }
+    // formatName funkció már nem szükséges - eredeti fájlneveket használjuk
 
     function createCharacterCard(character) {
       const card = document.createElement('div');
