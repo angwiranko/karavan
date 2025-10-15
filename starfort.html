@@ -176,7 +176,7 @@
 
     .sector-content {
       display: grid;
-      grid-template-columns: minmax(120px, 160px) 1fr;
+      grid-template-columns: minmax(48px, 48px) 1fr;
       gap: clamp(16px, 2.5vw, 32px);
     }
 
@@ -558,7 +558,7 @@
             },
             {
               id: 'acheron-arsenal',
-              name: 'Acheron Arsenal Stellarmium',
+              name: 'Acheron Arsenal',
               assetSlots: ['inactive', 'inactive', 'inactive'],
               categories: [
                 {
@@ -1068,7 +1068,7 @@
           form.dataset.categoryId = category.id;
           form.innerHTML = `
             <input type="text" placeholder="Új bejegyzés hozzáadása..." maxlength="160" required />
-            <button type="submit">+ Hozzáad</button>
+            <button type="submit">+</button>
           `;
           categoryCard.appendChild(form);
 
