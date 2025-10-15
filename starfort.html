@@ -434,9 +434,9 @@
 
   <script>
     const STORAGE_KEY = 'starfort-hub-state-v1';
-    // Ha szeretnéd Google Sheet-ből betölteni az adatokat, add meg itt a gviz URL-t.
-    // Példa formátum: https://docs.google.com/spreadsheets/d/<ID>/gviz/tq?gid=<GID>&tqx=out:json
-    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/[SPREADSHEET_ID]/gviz/tq?gid=[SHEET_GID]&tqx=out:json';
+    // Google Sheets CSV export URL - cseréld ki a SPREADSHEET_ID-t és SHEET_GID-t
+    // Formátum: https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/export?format=csv&gid=SHEET_GID
+    const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1HS2z9dVFxzIzQCb3Ix2e7fDNlU_unGRhQncjLFmzrN0/export?format=csv&gid=1140814065';
 
     const fallbackState = {
       locations: [
@@ -759,14 +759,17 @@
     async function loadFromSheet() {
       if (!SHEET_URL) return null;
       try {
+        // CSV export URL formátum: https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/export?format=csv&gid=SHEET_GID
         const res = await fetch(SHEET_URL);
         const text = await res.text();
-        const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\((.*)\);/)[1]);
-        const table = json.table;
-        const headers = table.cols.map(col => slugify(col.label));
-        const rows = table.rows
-          .map(row => row.c.map(cell => (cell ? cell.v : '')))
-          .map(values => Object.fromEntries(values.map((value, index) => [headers[index], value])));
+        
+        // CSV parsing
+        const lines = text.trim().split('\n');
+        const headers = lines[0].split(',').map(header => slugify(header.replace(/"/g, '')));
+        const rows = lines.slice(1).map(line => {
+          const values = line.split(',').map(value => value.replace(/"/g, ''));
+          return Object.fromEntries(values.map((value, index) => [headers[index], value]));
+        });
 
         const sheetState = { locations: [] };
         const locationMap = new Map();
