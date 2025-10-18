@@ -442,6 +442,15 @@
     // Google Sheets CSV export URL - használd ugyanazt a dokumentumot, de új sheet tab-ot
     // Cseréld ki az ÚJ_GID-t a "Starfort" tab gid-jével
     const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1HS2z9dVFxzIzQCb3Ix2e7fDNlU_unGRhQncjLFmzrN0/export?format=csv&gid=1140814065';
+    // Ha szeretnéd szerkeszteni a Google Sheet-et a felületről, add meg a Google Apps Script Web App URL-jét.
+    // Útmutató:
+    //  1. Készíts egy új Apps Script projektet ugyanahhoz a táblázathoz.
+    //  2. Másold be a projekt "apps-script/starfort_webhook.gs" fájljának tartalmát.
+    //  3. Deploy -> New deployment -> Web app, állítsd "Anyone with the link" elérésre.
+    //  4. A kapott URL-t illeszd be a SHEET_API_URL értékébe.
+    // A teljes, kész webhook kódot keresd a projekt "apps-script/starfort_webhook.gs" fájljában.
+    // Másold be azt az Apps Script szerkesztőbe, majd állítsd be benne a munkalap nevét és a jogosultságokat.
+    const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbyW5WknYBYEFrq76g0MaqRXnDdxRxQDdbbY8Qb__tZyO_C07eho4w4oihdx5kOF8nbI7w/exec';
 
     const fallbackState = {
       locations: [
@@ -678,6 +687,7 @@
 
     let state = cloneState(fallbackState);
     let currentLocationId = state.locations[0].id;
+    const savedState = loadSavedState();
 
     const locationSelect = document.getElementById('locationSelect');
     const sectorContainer = document.getElementById('sectorContainer');
@@ -690,9 +700,9 @@
       return JSON.parse(JSON.stringify(obj));
     }
 
-    function createItem(label, status = 'info') {
+    function createItem(label, status = 'info', id = cryptoRandomId()) {
       return {
-        id: cryptoRandomId(),
+        id,
         label,
         status
       };
@@ -738,6 +748,74 @@
       });
     }
 
+    async function syncWithSheet(action, payload = {}, { silent = false } = {}) {
+      if (!SHEET_API_URL) {
+        console.info(`ℹ️ Sheet API URL nincs beállítva, kihagyva a(z) "${action}" szinkront.`);
+        return { skipped: true };
+      }
+
+      try {
+        const response = await fetch(SHEET_API_URL, {
+          method: 'POST',
+          redirect: 'follow',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify({
+            action,
+            ...payload
+          })
+        });
+
+        const rawText = await response.text();
+        let data = null;
+        try {
+          data = rawText ? JSON.parse(rawText) : null;
+        } catch (error) {
+          console.warn('Nem JSON választ kaptunk a Google Apps Script-től:', rawText);
+        }
+
+        if (!response.ok || (data && data.success === false)) {
+          const message = data?.message || `Sheet API hiba (${response.status})`;
+          throw new Error(message);
+        }
+
+        if (!silent) {
+          showToast('Mentve a Google Sheet-be.');
+        }
+
+        return data || { success: true };
+      } catch (error) {
+        console.error(`❌ Sheet szinkron hiba (${action}):`, error);
+        if (!silent) {
+          showToast('Nem sikerült szinkronizálni a Google Sheet-tel.');
+        }
+        throw error;
+      }
+    }
+
+    async function reloadStateFromSheet({ silent = false } = {}) {
+      const latest = await loadFromSheet();
+      if (!latest) {
+        if (!silent) {
+          showToast('Nem sikerült frissíteni a Google Sheet adatait.');
+        }
+        return false;
+      }
+
+      ensureItemIds(latest);
+      const previousLocationId = currentLocationId;
+      state = latest;
+      const fallbackLocation = state.locations.find(loc => loc.id === previousLocationId) || state.locations[0];
+      currentLocationId = fallbackLocation ? fallbackLocation.id : previousLocationId;
+      populateLocationSelect();
+      renderLocation(currentLocationId);
+      if (!silent) {
+        showToast('Adatok frissítve a Google Sheet-ből.');
+      }
+      return true;
+    }
+
     function countInsiders(sector) {
       return sector.categories.reduce((total, category) => (
         total + category.items.filter(item => item.status === 'insider').length
@@ -775,11 +853,34 @@
         // CSV parsing
         const lines = text.trim().split('\n');
         console.log('📊 CSV lines count:', lines.length);
-        const headers = lines[0].split(',').map(header => slugify(header.replace(/"/g, '')));
+
+        const normalizeHeader = (header) => {
+          if (!header) return '';
+          return header
+            .toString()
+            .trim()
+            .toLowerCase()
+            .replace(/"/g, '')
+            .replace(/[\s\-]+/g, '_')
+            .replace(/__+/g, '_')
+            .replace(/[^a-z0-9_]/g, '')
+            .replace(/^_+|_+$/g, '');
+        };
+
+        const rawHeaders = lines[0].split(',');
+        const headers = rawHeaders.map(normalizeHeader);
         console.log('📋 Headers found:', headers);
+
         const rows = lines.slice(1).map(line => {
           const values = line.split(',').map(value => value.replace(/"/g, ''));
-          return Object.fromEntries(values.map((value, index) => [headers[index], value]));
+          return values.reduce((acc, value, index) => {
+            const key = headers[index];
+            if (!key) {
+              return acc;
+            }
+            acc[key] = value;
+            return acc;
+          }, {});
         });
         console.log('🔢 Data rows count:', rows.length);
 
@@ -787,18 +888,18 @@
         const locationMap = new Map();
 
         rows.forEach(entry => {
-          const locationName = entry.location || entry.helyszin || entry.location_name;
-          const sectorName = entry.sektor || entry.sector || entry.negyed;
-          const categoryName = entry.kategoria || entry.category;
-          const itemLabel = entry.tartalom || entry.item || entry.nev;
+          const locationName = entry.location || entry.helyszin || entry.location_name || entry.locationname;
+          const sectorName = entry.sektor || entry.sector || entry.negyed || entry.sector_name || entry.sectorname;
+          const categoryName = entry.kategoria || entry.category || entry.category_name || entry.categoryname;
+          const itemLabel = entry.tartalom || entry.item || entry.nev || entry.label;
           if (!locationName || !sectorName || !categoryName || !itemLabel) {
             return;
           }
 
-          const locationId = slugify(entry.location_id || locationName);
-          const sectorId = slugify(entry.sector_id || sectorName);
-          const categoryId = slugify(entry.category_id || categoryName);
-          const itemStatus = (entry.statusz || entry.status || 'info').toLowerCase() === 'insider' ? 'insider' : 'info';
+          const locationId = slugify(entry.location_id || entry.locationid || locationName);
+          const sectorId = slugify(entry.sector_id || entry.sectorid || sectorName);
+          const categoryId = slugify(entry.category_id || entry.categoryid || categoryName);
+          const itemStatus = (entry.statusz || entry.status || entry.state || 'info').toLowerCase() === 'insider' ? 'insider' : 'info';
 
           if (!locationMap.has(locationId)) {
             const location = {
@@ -836,8 +937,9 @@
             sector.categories.push(category);
           }
 
+          const itemId = entry.item_id || entry.itemid || entry.id || entry.unique_id;
           category.items.push({
-            id: cryptoRandomId(),
+            id: itemId || cryptoRandomId(),
             label: itemLabel,
             status: itemStatus
           });
@@ -1107,13 +1209,38 @@
       return { location, sector, category };
     }
 
-    function toggleItemStatus(locationId, sectorId, categoryId, itemId) {
+    function buildSheetContext(location, sector, category) {
+      const toNumberOrEmpty = value => {
+        if (value === undefined || value === null || value === '') {
+          return '';
+        }
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric : '';
+      };
+
+      return {
+        locationId: location.id,
+        locationName: location.name,
+        locationTitle: location.name,
+        locationSubtitle: location.subtitle || '',
+        alertLevel: toNumberOrEmpty(location.alertLevel),
+        sectorId: sector.id,
+        sectorName: sector.name,
+        sectorOrder: toNumberOrEmpty(sector.order),
+        categoryId: category.id,
+        categoryName: category.name,
+        categoryOrder: toNumberOrEmpty(category.order)
+      };
+    }
+
+    async function toggleItemStatus(locationId, sectorId, categoryId, itemId) {
       const found = findCategory(locationId, sectorId, categoryId);
       if (!found) return;
-      const { sector, category } = found;
+      const { location, sector, category } = found;
       const item = category.items.find(entry => entry.id === itemId);
       if (!item) return;
 
+      const previousStatus = item.status;
       if (item.status === 'info') {
         const insiders = countInsiders(sector);
         if (insiders >= 3) {
@@ -1125,30 +1252,100 @@
         item.status = 'info';
       }
       ensureAssetSlotsState(sector);
-      saveState();
       renderLocation(currentLocationId);
+
+      const context = buildSheetContext(location, sector, category);
+
+      try {
+        const result = await syncWithSheet('update-status', {
+          ...context,
+          itemId,
+          status: item.status,
+          label: item.label
+        }, { silent: true });
+
+        if (result?.skipped) {
+          showToast('Státusz módosítva (Sheet API nincs beállítva).');
+        } else {
+          showToast('Státusz mentve a Google Sheet-be.');
+        }
+      } catch (error) {
+        item.status = previousStatus;
+        ensureAssetSlotsState(sector);
+        renderLocation(currentLocationId);
+        await reloadStateFromSheet({ silent: true });
+        showToast('Hiba történt, visszaállítottuk az állapotot.');
+      }
     }
 
-    function removeItem(locationId, sectorId, categoryId, itemId) {
+    async function removeItem(locationId, sectorId, categoryId, itemId) {
       const found = findCategory(locationId, sectorId, categoryId);
       if (!found) return;
-      const { sector, category } = found;
+      const { location, sector, category } = found;
+      const context = buildSheetContext(location, sector, category);
       const index = category.items.findIndex(entry => entry.id === itemId);
       if (index === -1) return;
-      category.items.splice(index, 1);
+      const [removed] = category.items.splice(index, 1);
       ensureAssetSlotsState(sector);
-      saveState();
       renderLocation(currentLocationId);
+
+      try {
+        const result = await syncWithSheet('remove-item', {
+          ...context,
+          itemId,
+          label: removed?.label || '',
+          status: removed?.status || ''
+        }, { silent: true });
+
+        if (result?.skipped) {
+          showToast('Elem eltávolítva (Sheet API nincs beállítva).');
+        } else {
+          showToast('Elem törölve a Google Sheet-ben is.');
+        }
+      } catch (error) {
+        if (removed) {
+          category.items.splice(index, 0, removed);
+          ensureAssetSlotsState(sector);
+          renderLocation(currentLocationId);
+        }
+        await reloadStateFromSheet({ silent: true });
+        showToast('Nem sikerült törölni, az adatokat visszaállítottuk.');
+      }
     }
 
-    function addItem(locationId, sectorId, categoryId, label) {
+    async function addItem(locationId, sectorId, categoryId, label) {
       if (!label.trim()) return;
       const found = findCategory(locationId, sectorId, categoryId);
       if (!found) return;
-      const { category } = found;
-      category.items.push(createItem(label.trim()));
-      saveState();
+      const { location, sector, category } = found;
+      const newItem = createItem(label.trim());
+      category.items.push(newItem);
       renderLocation(currentLocationId);
+
+      const context = buildSheetContext(location, sector, category);
+
+      try {
+        const result = await syncWithSheet('add-item', {
+          ...context,
+          itemId: newItem.id,
+          label: newItem.label,
+          status: newItem.status
+        }, { silent: true });
+
+        if (result?.skipped) {
+          showToast('Új bejegyzés hozzáadva (Sheet API nincs beállítva).');
+        } else {
+          showToast('Új bejegyzés mentve a Google Sheet-be.');
+        }
+      } catch (error) {
+        const index = category.items.findIndex(item => item.id === newItem.id);
+        if (index !== -1) {
+          category.items.splice(index, 1);
+        }
+        renderLocation(currentLocationId);
+        await reloadStateFromSheet({ silent: true });
+        showToast('Nem sikerült hozzáadni, próbáld újra később.');
+      }
     }
 
     function toggleAssetSlot(sectorIndex, slotIndex) {
@@ -1177,19 +1374,19 @@
       renderAlert(location);
     });
 
-    sectorContainer.addEventListener('click', event => {
+    sectorContainer.addEventListener('click', async event => {
       const removeBtn = event.target.closest('.entry-remove');
       if (removeBtn) {
         const chip = removeBtn.closest('.entry-chip');
         if (!chip) return;
-        removeItem(chip.dataset.locationId, chip.dataset.sectorId, chip.dataset.categoryId, chip.dataset.itemId);
+        await removeItem(chip.dataset.locationId, chip.dataset.sectorId, chip.dataset.categoryId, chip.dataset.itemId);
         event.stopPropagation();
         return;
       }
 
       const chip = event.target.closest('.entry-chip');
       if (chip) {
-        toggleItemStatus(chip.dataset.locationId, chip.dataset.sectorId, chip.dataset.categoryId, chip.dataset.itemId);
+        await toggleItemStatus(chip.dataset.locationId, chip.dataset.sectorId, chip.dataset.categoryId, chip.dataset.itemId);
         return;
       }
 
@@ -1199,13 +1396,13 @@
       }
     });
 
-    sectorContainer.addEventListener('submit', event => {
+    sectorContainer.addEventListener('submit', async event => {
       const form = event.target.closest('.category-add');
       if (!form) return;
       event.preventDefault();
       const input = form.querySelector('input[type="text"]');
       if (!input) return;
-      addItem(form.dataset.locationId, form.dataset.sectorId, form.dataset.categoryId, input.value);
+      await addItem(form.dataset.locationId, form.dataset.sectorId, form.dataset.categoryId, input.value);
       input.value = '';
       input.focus();
     });
