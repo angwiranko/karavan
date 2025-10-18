@@ -852,11 +852,34 @@
         // CSV parsing
         const lines = text.trim().split('\n');
         console.log('📊 CSV lines count:', lines.length);
-        const headers = lines[0].split(',').map(header => slugify(header.replace(/"/g, '')));
+
+        const normalizeHeader = (header) => {
+          if (!header) return '';
+          return header
+            .toString()
+            .trim()
+            .toLowerCase()
+            .replace(/"/g, '')
+            .replace(/[\s\-]+/g, '_')
+            .replace(/__+/g, '_')
+            .replace(/[^a-z0-9_]/g, '')
+            .replace(/^_+|_+$/g, '');
+        };
+
+        const rawHeaders = lines[0].split(',');
+        const headers = rawHeaders.map(normalizeHeader);
         console.log('📋 Headers found:', headers);
+
         const rows = lines.slice(1).map(line => {
           const values = line.split(',').map(value => value.replace(/"/g, ''));
-          return Object.fromEntries(values.map((value, index) => [headers[index], value]));
+          return values.reduce((acc, value, index) => {
+            const key = headers[index];
+            if (!key) {
+              return acc;
+            }
+            acc[key] = value;
+            return acc;
+          }, {});
         });
         console.log('🔢 Data rows count:', rows.length);
 
@@ -864,18 +887,18 @@
         const locationMap = new Map();
 
         rows.forEach(entry => {
-          const locationName = entry.location || entry.helyszin || entry.location_name;
-          const sectorName = entry.sektor || entry.sector || entry.negyed;
-          const categoryName = entry.kategoria || entry.category;
-          const itemLabel = entry.tartalom || entry.item || entry.nev;
+          const locationName = entry.location || entry.helyszin || entry.location_name || entry.locationname;
+          const sectorName = entry.sektor || entry.sector || entry.negyed || entry.sector_name || entry.sectorname;
+          const categoryName = entry.kategoria || entry.category || entry.category_name || entry.categoryname;
+          const itemLabel = entry.tartalom || entry.item || entry.nev || entry.label;
           if (!locationName || !sectorName || !categoryName || !itemLabel) {
             return;
           }
 
-          const locationId = slugify(entry.location_id || locationName);
-          const sectorId = slugify(entry.sector_id || sectorName);
-          const categoryId = slugify(entry.category_id || categoryName);
-          const itemStatus = (entry.statusz || entry.status || 'info').toLowerCase() === 'insider' ? 'insider' : 'info';
+          const locationId = slugify(entry.location_id || entry.locationid || locationName);
+          const sectorId = slugify(entry.sector_id || entry.sectorid || sectorName);
+          const categoryId = slugify(entry.category_id || entry.categoryid || categoryName);
+          const itemStatus = (entry.statusz || entry.status || entry.state || 'info').toLowerCase() === 'insider' ? 'insider' : 'info';
 
           if (!locationMap.has(locationId)) {
             const location = {
