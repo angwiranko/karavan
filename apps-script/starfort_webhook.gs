@@ -60,6 +60,14 @@ function doPost(e) {
   }
 }
 
+function doGet() {
+  return jsonResponse({ success: true, message: 'Starfort webhook aktív.' });
+}
+
+function doOptions() {
+  return jsonResponse({ success: true });
+}
+
 function parseRequest(e) {
   if (!e || !e.postData || !e.postData.contents) {
     throw new Error('Üres kérés érkezett a webhookra.');
@@ -252,6 +260,12 @@ function normalizeKey(value) {
 }
 
 function jsonResponse(payload) {
-  return ContentService.createTextOutput(JSON.stringify(payload))
+  const response = ContentService.createTextOutput(JSON.stringify(payload))
     .setMimeType(ContentService.MimeType.JSON);
+
+  response.setHeader('Access-Control-Allow-Origin', '*');
+  response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  return response;
 }
