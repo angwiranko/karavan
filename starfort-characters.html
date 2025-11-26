@@ -46,6 +46,43 @@
       text-shadow: 0 0 12px rgba(255, 204, 51, 0.35);
     }
 
+    .location-selector {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+
+    .location-btn {
+      padding: 10px 24px;
+      background: linear-gradient(145deg, #1a1a1a, #2b2b2b);
+      color: var(--text-secondary);
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .location-btn:hover {
+      background: #333;
+      color: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(255, 204, 51, 0.2);
+    }
+
+    .location-btn.active {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+      box-shadow: 0 0 16px rgba(255, 204, 51, 0.4);
+      font-weight: 700;
+    }
+
     .back-button {
       display: inline-flex;
       align-items: center;
@@ -210,6 +247,10 @@
       ← Vissza a Starfort-hoz
     </a>
     <h1>Starfort Karakterek</h1>
+    <div class="location-selector">
+      <button class="location-btn active" data-location="starfort">Starfort</button>
+      <button class="location-btn" data-location="starfort2">Starfort 2</button>
+    </div>
   </header>
 
   <main>
@@ -229,23 +270,30 @@
   </div>
 
   <script>
-    // EGYSZERŰ LISTA - Pontos fájlnevek az images/starfort/ mappából:
-    const characterImages = [
-      'Klaris.png',
-      'ezekiel.png',
-      'forgeguard.png',
-      'hadad.png',
-      'hypnos.png',
-      'lorn.png',
-      'lzr.png',
-      'marrow.png',
-      'morpheus.png',
-      'szobrok.png',
-      'thanatos.png',
-      'verax.png',
-      'vespera.png',
-      'veyra.png'
-    ];
+    // Helyszínenkénti képlisták
+    const locationImages = {
+      starfort: [
+        'Klaris.png',
+        'ezekiel.png',
+        'forgeguard.png',
+        'hadad.png',
+        'hypnos.png',
+        'lorn.png',
+        'lzr.png',
+        'marrow.png',
+        'morpheus.png',
+        'szobrok.png',
+        'thanatos.png',
+        'verax.png',
+        'vespera.png',
+        'veyra.png'
+      ],
+      starfort2: [
+        // Add ide a starfort2 mappában lévő képek neveit
+      ]
+    };
+
+    let currentLocation = 'starfort';
 
     const characterGrid = document.getElementById('characterGrid');
     const loading = document.getElementById('loading');
@@ -255,12 +303,15 @@
     async function loadCharacters() {
       try {
         loading.style.display = 'block';
+        characterGrid.innerHTML = ''; // Töröljük az előző képeket
+        error.style.display = 'none';
         
-        console.log('� Karakterek betöltése:', characterImages);
+        const characterImages = locationImages[currentLocation];
+        console.log(`📂 Karakterek betöltése (${currentLocation}):`, characterImages);
         
         // EGYSZERŰ MEGOLDÁS - nincs validáció, csak megjelenítés
         characterImages.forEach(imageName => {
-          const imagePath = `images/starfort/${imageName}`;
+          const imagePath = `images/${currentLocation}/${imageName}`;
           const character = {
             name: imageName,
             path: imagePath,
@@ -276,8 +327,7 @@
         if (characterImages.length === 0) {
           error.innerHTML = `
             <strong>Nincs kép megadva!</strong><br><br>
-            Add meg a pontos fájlneveket a <code>characterImages</code> tömbben:<br>
-            Például: <code>'karakter1.png', 'admiral.png', 'kep.jpg'</code>
+            Add meg a pontos fájlneveket a <code>locationImages['${currentLocation}']</code> tömbben.
           `;
           error.style.display = 'block';
         }
@@ -332,6 +382,19 @@
       if (e.key === 'Escape' && modal.style.display === 'block') {
         closeModal();
       }
+    });
+
+    // Helyszínválasztó gombok kezelése
+    document.querySelectorAll('.location-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Aktív gomb frissítése
+        document.querySelectorAll('.location-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Helyszín váltás
+        currentLocation = btn.dataset.location;
+        loadCharacters();
+      });
     });
 
     // Initialize
