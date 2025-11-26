@@ -289,7 +289,31 @@
         'veyra.png'
       ],
       starfort2: [
-        // Add ide a starfort2 mappában lévő képek neveit
+        'Anullora.png',
+        'Anullorum.png',
+        'Arcas.png',
+        'Artemis.png',
+        'Callisto.png',
+        'Celest.png',
+        'CivMort.png',
+        'Codicarius.png',
+        'Curator.png',
+        'DebitusMoira.png',
+        'FullMin414.png',
+        'GustatorSapio.png',
+        'Ionera.png',
+        'Iris.png',
+        'Metron.png',
+        'Persephona.png',
+        'Pryda.png',
+        'Quantarius.png',
+        'Resonata.png',
+        'Rhadamant.png',
+        'Roppa.png',
+        'Tharpedon.png',
+        'Thuring.png',
+        'TychonHarmonicus.png',
+        'Voidmonger.png'
       ]
     };
 
@@ -311,7 +335,8 @@
         
         // EGYSZERŰ MEGOLDÁS - nincs validáció, csak megjelenítés
         characterImages.forEach(imageName => {
-          const imagePath = `images/${currentLocation}/${imageName}`;
+          const folderName = currentLocation === 'starfort2' ? 'startfort2' : currentLocation;
+          const imagePath = `images/${folderName}/${imageName}`;
           const character = {
             name: imageName,
             path: imagePath,
