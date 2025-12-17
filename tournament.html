@@ -199,6 +199,30 @@
     </div>
     <br>
     <label>Méret: <input type="number" id="charSize" class="nametag" value="20"></label><br><br>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+      <div>
+        <label>Sebesség: <input type="number" id="shipSpeed" class="nametag" value="100" min="0"></label>
+      </div>
+      <div>
+        <label>Pajzs: <input type="number" id="shipShield" class="nametag" value="3" min="0" max="5"></label>
+      </div>
+      <div>
+        <label>Közeli: <input type="number" id="shipShortRange" class="nametag" value="50" min="0"></label>
+      </div>
+      <div>
+        <label>Távolsági: <input type="number" id="shipLongRange" class="nametag" value="120" min="0"></label>
+      </div>
+      <div>
+        <label>Előrefelé: <input type="number" id="shipFront" class="nametag" value="1" min="0" max="5"></label>
+      </div>
+      <div>
+        <label>Oldalt: <input type="number" id="shipSide" class="nametag" value="1" min="0" max="5"></label>
+      </div>
+      <div>
+        <label>Hátrafelé: <input type="number" id="shipRear" class="nametag" value="1" min="0" max="5"></label>
+      </div>
+    </div>
+    <br>
     <div style="display: flex; flex-direction:row; gap:8px">
       <button id="confirmAdd" class="sci-button">➕ Létrehozás</button>
       <button id="cancelAdd" class="sci-button">❌ Mégse</button>
@@ -316,6 +340,15 @@
   const confirmAddBtn = document.getElementById('confirmAdd');
   const cancelAddBtn = document.getElementById('cancelAdd');
   
+  // Ship attributes
+  const shipSpeedInput = document.getElementById('shipSpeed');
+  const shipShieldInput = document.getElementById('shipShield');
+  const shipShortRangeInput = document.getElementById('shipShortRange');
+  const shipLongRangeInput = document.getElementById('shipLongRange');
+  const shipFrontInput = document.getElementById('shipFront');
+  const shipSideInput = document.getElementById('shipSide');
+  const shipRearInput = document.getElementById('shipRear');
+  
   let selectedColor = "#00ffff";
 
   const colorButtons = document.querySelectorAll('.color-button');
@@ -352,7 +385,7 @@
     const portraitCanvas = document.getElementById('infoPortraitCanvas');
     const ctx = portraitCanvas.getContext('2d');
     const img = new Image();
-    img.src = "/images/" + (name?.toLowerCase() || "vulturii1") + ".jpg";
+    img.src = "/images/" + (name?.toLowerCase() || "spaceship") + ".jpg";
     
     img.onload = () => {
       ctx.clearRect(0, 0, 128, 128);
@@ -405,11 +438,20 @@
     const name = charNameInput.value;
     const color = selectedColor;
     const size = parseFloat(charSizeInput.value);
+    const attributes = {
+      speed: parseFloat(shipSpeedInput.value),
+      shield: parseFloat(shipShieldInput.value),
+      shortRange: parseFloat(shipShortRangeInput.value),
+      longRange: parseFloat(shipLongRangeInput.value),
+      front: parseFloat(shipFrontInput.value),
+      side: parseFloat(shipSideInput.value),
+      rear: parseFloat(shipRearInput.value)
+    };
   
     if (creatingType === "player") {
-      createPlayer(0, 0, color, name, size);
+      createPlayer(0, 0, color, name, size, attributes);
     } else if (creatingType === "enemy") {
-      createEnemy(0, 0, color, name, size);
+      createEnemy(0, 0, color, name, size, attributes);
     }
   
     closePopup();
@@ -835,8 +877,171 @@
     }
   }
   
+  // Create visual range indicators for ships
+  function createRangeVisuals(shipObject, attributes, color) {
+    const group = new THREE.Group();
+    group.name = "RangeVisuals";
+    
+    // Speed range - dashed outer circle (farthest point ship can travel)
+    if (attributes.speed > 0) {
+      const speedGeometry = createDashedCircle(attributes.speed, 32);
+      const speedMaterial = new THREE.LineBasicMaterial({
+        color: 0x4488ff,
+        transparent: true,
+        opacity: 0.4,
+        linewidth: 1
+      });
+      const speedCircle = new THREE.Line(speedGeometry, speedMaterial);
+      speedCircle.rotation.x = -Math.PI / 2;
+      speedCircle.position.y = 0.5;
+      group.add(speedCircle);
+    }
+    
+    // Short range circle - closer range for close combat
+    if (attributes.shortRange > 0) {
+      const shortGeometry = createSolidCircle(attributes.shortRange, 32);
+      const shortMaterial = new THREE.LineBasicMaterial({
+        color: 0xff8800,
+        transparent: true,
+        opacity: 0.6,
+        linewidth: 2
+      });
+      const shortCircle = new THREE.Line(shortGeometry, shortMaterial);
+      shortCircle.rotation.x = -Math.PI / 2;
+      shortCircle.position.y = 0.3;
+      group.add(shortCircle);
+    }
+    
+    // Shield - ring very close to ship, shiny/pulsing based on value
+    if (attributes.shield > 0) {
+      const shieldRingGeometry = createSolidCircle(attributes.size * 1.5, 32);
+      const shieldOpacity = attributes.shield >= 3 ? 0.8 : (attributes.shield >= 2 ? 0.5 : 0.2);
+      const shieldColor = attributes.shield >= 3 ? 0x00ff88 : (attributes.shield >= 2 ? 0xffff00 : 0xff8888);
+      
+      const shieldMaterial = new THREE.LineBasicMaterial({
+        color: shieldColor,
+        transparent: true,
+        opacity: shieldOpacity,
+        linewidth: 2
+      });
+      const shieldRing = new THREE.Line(shieldRingGeometry, shieldMaterial);
+      shieldRing.rotation.x = -Math.PI / 2;
+      shieldRing.position.y = 0.1;
+      shieldRing.userData = {
+        isShield: true,
+        shieldValue: attributes.shield
+      };
+      group.add(shieldRing);
+    }
+    
+    // Long range - arcs in 4 directions (front, left, right, rear)
+    if (attributes.longRange > 0) {
+      const arcRadius = attributes.longRange;
+      const arcSegments = 16;
+      
+      // Front (0 degrees)
+      if (attributes.front > 0) {
+        const frontArc = createArc(arcRadius, -Math.PI / 4, Math.PI / 4, arcSegments, 0x00ffff);
+        frontArc.position.y = 0.2;
+        group.add(frontArc);
+      }
+      
+      // Left side (90 degrees)
+      if (attributes.side > 0) {
+        const leftArc = createArc(arcRadius, Math.PI / 4, (3 * Math.PI) / 4, arcSegments, 0xff00ff);
+        leftArc.position.y = 0.2;
+        group.add(leftArc);
+      }
+      
+      // Right side (270 degrees)
+      if (attributes.side > 0) {
+        const rightArc = createArc(arcRadius, -3 * Math.PI / 4, -Math.PI / 4, arcSegments, 0xffff00);
+        rightArc.position.y = 0.2;
+        group.add(rightArc);
+      }
+      
+      // Rear (180 degrees)
+      if (attributes.rear > 0) {
+        const rearArc = createArc(arcRadius, 3 * Math.PI / 4, 5 * Math.PI / 4, arcSegments, 0xff6600);
+        rearArc.position.y = 0.2;
+        group.add(rearArc);
+      }
+    }
+    
+    return group;
+  }
+  
+  // Helper: Create a solid circle (line geometry)
+  function createSolidCircle(radius, segments) {
+    const points = [];
+    for (let i = 0; i <= segments; i++) {
+      const angle = (i / segments) * Math.PI * 2;
+      points.push(new THREE.Vector3(
+        Math.cos(angle) * radius,
+        0,
+        Math.sin(angle) * radius
+      ));
+    }
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    return geometry;
+  }
+  
+  // Helper: Create a dashed circle
+  function createDashedCircle(radius, segments) {
+    const points = [];
+    const dashLength = segments / 8; // 8 dashes
+    for (let i = 0; i <= segments; i++) {
+      if (Math.floor((i / dashLength) % 2) === 0) {
+        const angle = (i / segments) * Math.PI * 2;
+        points.push(new THREE.Vector3(
+          Math.cos(angle) * radius,
+          0,
+          Math.sin(angle) * radius
+        ));
+      }
+    }
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    return geometry;
+  }
+  
+  // Helper: Create an arc
+  function createArc(radius, startAngle, endAngle, segments, color) {
+    const points = [];
+    const angleStep = (endAngle - startAngle) / segments;
+    for (let i = 0; i <= segments; i++) {
+      const angle = startAngle + angleStep * i;
+      points.push(new THREE.Vector3(
+        Math.cos(angle) * radius,
+        0,
+        Math.sin(angle) * radius
+      ));
+    }
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: 0.7,
+      linewidth: 2
+    });
+    const line = new THREE.Line(geometry, material);
+    line.rotation.x = -Math.PI / 2;
+    return line;
+  }
+  
   // Create player ship
-  async function createPlayer(x, z, color = 0x0000ff, name = "Player", size = 20) {
+  async function createPlayer(x, z, color = 0x0000ff, name = "Player", size = 20, attributes = {}) {
+    // Set default attributes
+    const attrs = {
+      speed: attributes.speed || 100,
+      shield: attributes.shield || 3,
+      shortRange: attributes.shortRange || 50,
+      longRange: attributes.longRange || 120,
+      front: attributes.front || 1,
+      side: attributes.side || 1,
+      rear: attributes.rear || 1,
+      size: size
+    };
+
     let shipObject;
     const model = await loadShipModel();
     
@@ -887,6 +1092,10 @@
     shipObject.add(nameLabel);
     nameLabel.position.set(0, size + 20, 0);
 
+    // Create range visuals
+    const rangeVisuals = createRangeVisuals(shipObject, attrs, color);
+    shipObject.add(rangeVisuals);
+
     const validPosition = findNearestValidPosition(x, z, size);
     const correctY = getCorrectYPosition(validPosition.x, validPosition.z, size);
     shipObject.position.set(validPosition.x, correctY, validPosition.z);
@@ -894,14 +1103,27 @@
     shipObject.userData = {
       type: "player",
       name,
-      size
+      size,
+      ...attrs
     };
 
     players.add(shipObject);
   }
   
   // Create enemy ship
-  async function createEnemy(x, z, color = 0xff0000, name = "Enemy", size = 20) {
+  async function createEnemy(x, z, color = 0xff0000, name = "Enemy", size = 20, attributes = {}) {
+    // Set default attributes
+    const attrs = {
+      speed: attributes.speed || 100,
+      shield: attributes.shield || 3,
+      shortRange: attributes.shortRange || 50,
+      longRange: attributes.longRange || 120,
+      front: attributes.front || 1,
+      side: attributes.side || 1,
+      rear: attributes.rear || 1,
+      size: size
+    };
+
     let shipObject;
     const model = await loadShipModel();
     
@@ -952,6 +1174,10 @@
     shipObject.add(nameLabel);
     nameLabel.position.set(0, size + 20, 0);
 
+    // Create range visuals
+    const rangeVisuals = createRangeVisuals(shipObject, attrs, color);
+    shipObject.add(rangeVisuals);
+
     const validPosition = findNearestValidPosition(x, z, size);
     const correctY = getCorrectYPosition(validPosition.x, validPosition.z, size);
     shipObject.position.set(validPosition.x, correctY, validPosition.z);
@@ -959,7 +1185,8 @@
     shipObject.userData = {
       type: "Enemy",
       name,
-      size
+      size,
+      ...attrs
     };
       
     enemies.add(shipObject);
