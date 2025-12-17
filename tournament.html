@@ -773,93 +773,58 @@
     return lastValidPosition || { x: targetX, z: targetZ };
   }
 
-  // Hover indicator - sci-fi styled
+  // Hover indicator
   function createHoverIndicator(size = 20) {
-    const indicator = new THREE.Group();
-    indicator.visible = false;
-    
-    // Outer glow ring
-    const glowGeometry = new THREE.RingGeometry(size * 0.7, size * 1.3, 64);
-    const glowMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ffff,
-      transparent: true,
-      opacity: 0.8,
-      side: THREE.DoubleSide
-    });
-    const glowRing = new THREE.Mesh(glowGeometry, glowMaterial);
-    glowRing.position.y = 0.02;
-    indicator.add(glowRing);
-    
-    // Inner pulsing ring
-    const innerGeometry = new THREE.RingGeometry(size * 0.4, size * 0.5, 64);
-    const innerMaterial = new THREE.MeshBasicMaterial({
+    const innerRadius = size * 0.75;
+    const outerRadius = size * 1.25;
+    const ringGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 32);
+    const ringMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ffff,
       transparent: true,
       opacity: 0.6,
       side: THREE.DoubleSide
     });
-    const innerRing = new THREE.Mesh(innerGeometry, innerMaterial);
-    innerRing.position.y = 0.03;
-    indicator.add(innerRing);
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.rotation.x = -Math.PI / 2;
     
-    // Center bright disc
-    const discGeometry = new THREE.CircleGeometry(size * 0.3, 64);
+    const discRadius = size * 0.6;
+    const discGeometry = new THREE.CircleGeometry(discRadius, 32);
     const discMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ffff,
       transparent: true,
-      opacity: 0.5
+      opacity: 0.3
     });
     const disc = new THREE.Mesh(discGeometry, discMaterial);
-    disc.position.y = 0.04;
-    indicator.add(disc);
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.y = 0.1;
     
-    // Rotating beam (expanded cylinder)
-    const beamGeometry = new THREE.CylinderGeometry(size * 0.25, size * 0.25, size, 16, 1, true);
+    const beamRadius = size * 0.4;
+    const beamHeight = size * 2;
+    const beamGeometry = new THREE.CylinderGeometry(beamRadius, beamRadius, beamHeight, 8, 1, true);
     const beamMaterial = new THREE.MeshBasicMaterial({
       color: 0x00ffff,
       transparent: true,
-      opacity: 0.15,
+      opacity: 0.2,
       side: THREE.DoubleSide
     });
     const beam = new THREE.Mesh(beamGeometry, beamMaterial);
-    beam.position.y = size / 2;
+    beam.position.y = beamHeight / 2;
+    
+    const indicator = new THREE.Group();
+    indicator.add(ring);
+    indicator.add(disc);
     indicator.add(beam);
-    
-    // Horizontal scan lines
-    const scanGeometry = new THREE.BufferGeometry();
-    const scanPoints = [];
-    const scanCount = 8;
-    for (let i = 0; i < scanCount; i++) {
-      const angle = (i / scanCount) * Math.PI * 2;
-      const radius = size * 0.9;
-      scanPoints.push(new THREE.Vector3(
-        Math.cos(angle - Math.PI / scanCount) * radius,
-        0.02,
-        Math.sin(angle - Math.PI / scanCount) * radius
-      ));
-      scanPoints.push(new THREE.Vector3(
-        Math.cos(angle + Math.PI / scanCount) * radius,
-        0.02,
-        Math.sin(angle + Math.PI / scanCount) * radius
-      ));
-    }
-    scanGeometry.setFromPoints(scanPoints);
-    const scanMaterial = new THREE.LineBasicMaterial({
-      color: 0x00ffff,
-      transparent: true,
-      opacity: 0.4,
-      linewidth: 1
-    });
-    const scanLines = new THREE.LineSegments(scanGeometry, scanMaterial);
-    indicator.add(scanLines);
-    
-    scene.add(indicator);
+    indicator.visible = false;
     
     indicator.userData = {
       time: 0,
-      size
+      size,
+      originalRingOpacity: ringMaterial.opacity,
+      originalDiscOpacity: discMaterial.opacity,
+      originalBeamOpacity: beamMaterial.opacity
     };
     
+    scene.add(indicator);
     return indicator;
   }
 
@@ -867,27 +832,13 @@
     if (!hoverIndicator || !hoverIndicator.visible) return;
     
     hoverIndicator.userData.time += 0.05;
-    const time = hoverIndicator.userData.time;
+    const pulseValue = Math.sin(hoverIndicator.userData.time) * 0.3 + 0.7;
     
-    // Pulsing effect
-    const pulseValue = Math.sin(time * 1.5) * 0.3 + 0.7;
-    hoverIndicator.children[0].material.opacity = 0.8 * pulseValue;
-    hoverIndicator.children[1].material.opacity = 0.6 * pulseValue;
-    hoverIndicator.children[2].material.opacity = 0.5 * pulseValue;
-    hoverIndicator.children[3].material.opacity = 0.15 * pulseValue;
-    hoverIndicator.children[4].material.opacity = 0.4 * pulseValue;
+    hoverIndicator.children[0].material.opacity = hoverIndicator.userData.originalRingOpacity * pulseValue;
+    hoverIndicator.children[1].material.opacity = hoverIndicator.userData.originalDiscOpacity * pulseValue;
+    hoverIndicator.children[2].material.opacity = hoverIndicator.userData.originalBeamOpacity * pulseValue;
     
-    // Rotating beam
-    hoverIndicator.children[3].rotation.y += 0.03;
-    
-    // Scale breathing effect
-    const scaleBreath = Math.sin(time * 0.8) * 0.1 + 1;
-    hoverIndicator.children[0].scale.set(scaleBreath, 1, scaleBreath);
-    hoverIndicator.children[1].scale.set(scaleBreath * 0.8, 1, scaleBreath * 0.8);
-    hoverIndicator.children[2].scale.set(scaleBreath * 0.6, 1, scaleBreath * 0.6);
-    
-    // Rotating scan lines
-    hoverIndicator.children[4].rotation.z += 0.04;
+    hoverIndicator.children[2].rotation.y += 0.02;
     
     if (hoverIndicator.userData.targetPosition) {
       const current = hoverIndicator.position;
@@ -930,6 +881,7 @@
   function createRangeVisuals(shipObject, attributes, color) {
     const group = new THREE.Group();
     group.name = "RangeVisuals";
+    group.userData = { time: 0, animatingChildren: [] };
     
     // Scale factors to fit ranges within visible board
     const speedScale = 0.4;
@@ -949,76 +901,178 @@
       group.add(speedCircle);
     }
     
-    // Short range circle - closer range for close combat
+    // Short range - pulsing plate (filled disc with pulse effect)
     if (attributes.shortRange > 0) {
-      const shortGeometry = createSolidCircle(attributes.shortRange * rangeScale, 32);
-      const shortMaterial = new THREE.LineBasicMaterial({
+      const shortRadius = attributes.shortRange * rangeScale;
+      const shortGeometry = new THREE.CircleGeometry(shortRadius, 32);
+      const shortMaterial = new THREE.MeshBasicMaterial({
         color: 0xff8800,
         transparent: true,
-        opacity: 0.6,
-        linewidth: 2
+        opacity: 0.2,
+        side: THREE.DoubleSide
       });
-      const shortCircle = new THREE.Line(shortGeometry, shortMaterial);
-      shortCircle.position.y = 0.01;
-      group.add(shortCircle);
-    }
-    
-    // Shield - ring very close to ship, shiny/pulsing based on value
-    if (attributes.shield > 0) {
-      const shieldRingGeometry = createSolidCircle(attributes.size * 0.6, 32);
-      const shieldOpacity = attributes.shield >= 3 ? 0.8 : (attributes.shield >= 2 ? 0.5 : 0.2);
-      const shieldColor = attributes.shield >= 3 ? 0x00ff88 : (attributes.shield >= 2 ? 0xffff00 : 0xff8888);
-      
-      const shieldMaterial = new THREE.LineBasicMaterial({
-        color: shieldColor,
-        transparent: true,
-        opacity: shieldOpacity,
-        linewidth: 2
-      });
-      const shieldRing = new THREE.Line(shieldRingGeometry, shieldMaterial);
-      shieldRing.position.y = 0.01;
-      shieldRing.userData = {
-        isShield: true,
-        shieldValue: attributes.shield
+      const shortPlate = new THREE.Mesh(shortGeometry, shortMaterial);
+      shortPlate.position.y = 0.02;
+      shortPlate.userData = {
+        isPulsingPlate: true,
+        baseOpacity: 0.2,
+        baseScale: 1
       };
-      group.add(shieldRing);
+      group.add(shortPlate);
+      group.userData.animatingChildren.push(shortPlate);
     }
     
-    // Long range - arcs in 4 directions (front, left, right, rear)
+    // Shield - vertical wall-like columns with fading lights
+    if (attributes.shield > 0) {
+      const shieldColor = attributes.shield >= 3 ? 0x00ff88 : (attributes.shield >= 2 ? 0xffff00 : 0xff8888);
+      const shieldRadius = attributes.size * 0.6;
+      
+      // Create vertical light columns around the shield perimeter
+      const columnCount = 8;
+      for (let i = 0; i < columnCount; i++) {
+        const angle = (i / columnCount) * Math.PI * 2;
+        const x = Math.cos(angle) * shieldRadius;
+        const z = Math.sin(angle) * shieldRadius;
+        
+        const beamGeometry = new THREE.CylinderGeometry(2, 2, 30, 4);
+        const beamMaterial = new THREE.MeshBasicMaterial({
+          color: shieldColor,
+          transparent: true,
+          opacity: 0.3
+        });
+        const beam = new THREE.Mesh(beamGeometry, beamMaterial);
+        beam.position.set(x, 15, z);
+        beam.userData = {
+          isShieldBeam: true,
+          baseOpacity: 0.3,
+          columnIndex: i,
+          totalColumns: columnCount
+        };
+        group.add(beam);
+        group.userData.animatingChildren.push(beam);
+      }
+    }
+    
+    // Long range - WiFi-like signal strength bars
     if (attributes.longRange > 0) {
-      const arcRadius = attributes.longRange * rangeScale;
-      const arcSegments = 16;
+      const baseRadius = attributes.longRange * rangeScale;
+      const barCount = 3;
       
-      // Front (0 degrees)
-      if (attributes.front > 0) {
-        const frontArc = createArc(arcRadius, -Math.PI / 4, Math.PI / 4, arcSegments, 0x00ffff);
-        frontArc.position.y = 0.01;
-        group.add(frontArc);
-      }
-      
-      // Left side (90 degrees)
-      if (attributes.side > 0) {
-        const leftArc = createArc(arcRadius, Math.PI / 4, (3 * Math.PI) / 4, arcSegments, 0xff00ff);
-        leftArc.position.y = 0.01;
-        group.add(leftArc);
-      }
-      
-      // Right side (270 degrees)
-      if (attributes.side > 0) {
-        const rightArc = createArc(arcRadius, -3 * Math.PI / 4, -Math.PI / 4, arcSegments, 0xffff00);
-        rightArc.position.y = 0.01;
-        group.add(rightArc);
-      }
-      
-      // Rear (180 degrees)
-      if (attributes.rear > 0) {
-        const rearArc = createArc(arcRadius, 3 * Math.PI / 4, 5 * Math.PI / 4, arcSegments, 0xff6600);
-        rearArc.position.y = 0.01;
-        group.add(rearArc);
+      // Create stacked arcs like WiFi strength indicator
+      for (let bar = 0; bar < barCount; bar++) {
+        const barRadius = baseRadius * (0.6 + (bar * 0.2));
+        const arcRadius = barRadius;
+        const arcSegments = 16;
+        
+        // Front bar
+        if (attributes.front > 0) {
+          const frontArc = createArc(arcRadius, -Math.PI / 4, Math.PI / 4, arcSegments, 0x00ffff);
+          frontArc.position.y = 0.01;
+          frontArc.userData = {
+            isWifiBar: true,
+            barIndex: bar,
+            totalBars: barCount,
+            baseOpacity: 0.3 + (bar * 0.25)
+          };
+          group.add(frontArc);
+          group.userData.animatingChildren.push(frontArc);
+        }
+        
+        // Left bar
+        if (attributes.side > 0) {
+          const leftArc = createArc(arcRadius, Math.PI / 4, (3 * Math.PI) / 4, arcSegments, 0xff00ff);
+          leftArc.position.y = 0.01;
+          leftArc.userData = {
+            isWifiBar: true,
+            barIndex: bar,
+            totalBars: barCount,
+            baseOpacity: 0.3 + (bar * 0.25)
+          };
+          group.add(leftArc);
+          group.userData.animatingChildren.push(leftArc);
+        }
+        
+        // Right bar
+        if (attributes.side > 0) {
+          const rightArc = createArc(arcRadius, -3 * Math.PI / 4, -Math.PI / 4, arcSegments, 0xffff00);
+          rightArc.position.y = 0.01;
+          rightArc.userData = {
+            isWifiBar: true,
+            barIndex: bar,
+            totalBars: barCount,
+            baseOpacity: 0.3 + (bar * 0.25)
+          };
+          group.add(rightArc);
+          group.userData.animatingChildren.push(rightArc);
+        }
+        
+        // Rear bar
+        if (attributes.rear > 0) {
+          const rearArc = createArc(arcRadius, 3 * Math.PI / 4, 5 * Math.PI / 4, arcSegments, 0xff6600);
+          rearArc.position.y = 0.01;
+          rearArc.userData = {
+            isWifiBar: true,
+            barIndex: bar,
+            totalBars: barCount,
+            baseOpacity: 0.3 + (bar * 0.25)
+          };
+          group.add(rearArc);
+          group.userData.animatingChildren.push(rearArc);
+        }
       }
     }
     
     return group;
+  }
+  
+  // Animate range visuals
+  function updateRangeVisuals() {
+    const time = Date.now() * 0.001;
+    
+    players.forEach(ship => {
+      const rangeGroup = ship.getObjectByName("RangeVisuals");
+      if (!rangeGroup || !rangeGroup.userData.animatingChildren) return;
+      
+      rangeGroup.userData.animatingChildren.forEach(child => {
+        if (child.userData.isPulsingPlate) {
+          // Pulsing plate animation
+          const pulse = Math.sin(time * 2) * 0.3 + 0.7;
+          child.material.opacity = child.userData.baseOpacity * pulse;
+          child.scale.set(pulse, 1, pulse);
+        } else if (child.userData.isShieldBeam) {
+          // Fading light columns
+          const delay = child.userData.columnIndex * 0.15;
+          const flicker = Math.sin(time * 3 + delay) * 0.5 + 0.5;
+          child.material.opacity = child.userData.baseOpacity * flicker;
+        } else if (child.userData.isWifiBar) {
+          // WiFi bars with wave effect
+          const delay = child.userData.barIndex * 0.2;
+          const wave = Math.sin(time * 2 + delay) * 0.4 + 0.6;
+          child.material.opacity = child.userData.baseOpacity * wave;
+        }
+      });
+    });
+    
+    enemies.forEach(ship => {
+      const rangeGroup = ship.getObjectByName("RangeVisuals");
+      if (!rangeGroup || !rangeGroup.userData.animatingChildren) return;
+      
+      rangeGroup.userData.animatingChildren.forEach(child => {
+        if (child.userData.isPulsingPlate) {
+          const pulse = Math.sin(time * 2) * 0.3 + 0.7;
+          child.material.opacity = child.userData.baseOpacity * pulse;
+          child.scale.set(pulse, 1, pulse);
+        } else if (child.userData.isShieldBeam) {
+          const delay = child.userData.columnIndex * 0.15;
+          const flicker = Math.sin(time * 3 + delay) * 0.5 + 0.5;
+          child.material.opacity = child.userData.baseOpacity * flicker;
+        } else if (child.userData.isWifiBar) {
+          const delay = child.userData.barIndex * 0.2;
+          const wave = Math.sin(time * 2 + delay) * 0.4 + 0.6;
+          child.material.opacity = child.userData.baseOpacity * wave;
+        }
+      });
+    });
   }
   
   // Helper: Create a solid circle (line geometry) - already in XZ plane
@@ -1549,6 +1603,7 @@
     requestAnimationFrame(animate);
 	controls.update();
     updateHoverIndicator();
+    updateRangeVisuals();
     renderer.render(scene, camera);
   }
     
