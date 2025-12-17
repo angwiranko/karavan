@@ -913,6 +913,7 @@
       });
       const shortPlate = new THREE.Mesh(shortGeometry, shortMaterial);
       shortPlate.position.y = 0.02;
+      shortPlate.rotation.x = -Math.PI / 2;
       shortPlate.userData = {
         isPulsingPlate: true,
         baseOpacity: 0.2,
@@ -922,26 +923,26 @@
       group.userData.animatingChildren.push(shortPlate);
     }
     
-    // Shield - vertical wall-like columns with fading lights
+    // Shield - short vertical columns with fading lights near the model
     if (attributes.shield > 0) {
       const shieldColor = attributes.shield >= 3 ? 0x00ff88 : (attributes.shield >= 2 ? 0xffff00 : 0xff8888);
-      const shieldRadius = attributes.size * 0.6;
+      const shieldRadius = attributes.size * 0.35;
       
-      // Create vertical light columns around the shield perimeter
-      const columnCount = 8;
+      // Create short vertical light columns around the shield perimeter
+      const columnCount = 6;
       for (let i = 0; i < columnCount; i++) {
         const angle = (i / columnCount) * Math.PI * 2;
         const x = Math.cos(angle) * shieldRadius;
         const z = Math.sin(angle) * shieldRadius;
         
-        const beamGeometry = new THREE.CylinderGeometry(2, 2, 30, 4);
+        const beamGeometry = new THREE.CylinderGeometry(1.5, 1.5, 8, 4);
         const beamMaterial = new THREE.MeshBasicMaterial({
           color: shieldColor,
           transparent: true,
           opacity: 0.3
         });
         const beam = new THREE.Mesh(beamGeometry, beamMaterial);
-        beam.position.set(x, 15, z);
+        beam.position.set(x, 4, z);
         beam.userData = {
           isShieldBeam: true,
           baseOpacity: 0.3,
@@ -953,21 +954,22 @@
       }
     }
     
-    // Long range - WiFi-like signal strength bars
+    // Long range - WiFi-like signal strength bars with gaps and thicker lines
     if (attributes.longRange > 0) {
       const baseRadius = attributes.longRange * rangeScale;
       const barCount = 3;
       
-      // Create stacked arcs like WiFi strength indicator
+      // Create stacked arcs like WiFi strength indicator with gaps between directions
       for (let bar = 0; bar < barCount; bar++) {
         const barRadius = baseRadius * (0.6 + (bar * 0.2));
-        const arcRadius = barRadius;
         const arcSegments = 16;
+        const arcAngle = Math.PI / 6; // 30 degree arc with gap
         
         // Front bar
         if (attributes.front > 0) {
-          const frontArc = createArc(arcRadius, -Math.PI / 4, Math.PI / 4, arcSegments, 0x00ffff);
+          const frontArc = createArc(barRadius, -arcAngle, arcAngle, arcSegments, 0x00ffff);
           frontArc.position.y = 0.01;
+          frontArc.material.linewidth = 3;
           frontArc.userData = {
             isWifiBar: true,
             barIndex: bar,
@@ -980,8 +982,9 @@
         
         // Left bar
         if (attributes.side > 0) {
-          const leftArc = createArc(arcRadius, Math.PI / 4, (3 * Math.PI) / 4, arcSegments, 0xff00ff);
+          const leftArc = createArc(barRadius, Math.PI / 2 - arcAngle, Math.PI / 2 + arcAngle, arcSegments, 0xff00ff);
           leftArc.position.y = 0.01;
+          leftArc.material.linewidth = 3;
           leftArc.userData = {
             isWifiBar: true,
             barIndex: bar,
@@ -994,8 +997,9 @@
         
         // Right bar
         if (attributes.side > 0) {
-          const rightArc = createArc(arcRadius, -3 * Math.PI / 4, -Math.PI / 4, arcSegments, 0xffff00);
+          const rightArc = createArc(barRadius, -Math.PI / 2 - arcAngle, -Math.PI / 2 + arcAngle, arcSegments, 0xffff00);
           rightArc.position.y = 0.01;
+          rightArc.material.linewidth = 3;
           rightArc.userData = {
             isWifiBar: true,
             barIndex: bar,
@@ -1008,8 +1012,9 @@
         
         // Rear bar
         if (attributes.rear > 0) {
-          const rearArc = createArc(arcRadius, 3 * Math.PI / 4, 5 * Math.PI / 4, arcSegments, 0xff6600);
+          const rearArc = createArc(barRadius, Math.PI - arcAngle, Math.PI + arcAngle, arcSegments, 0xff6600);
           rearArc.position.y = 0.01;
+          rearArc.material.linewidth = 3;
           rearArc.userData = {
             isWifiBar: true,
             barIndex: bar,
