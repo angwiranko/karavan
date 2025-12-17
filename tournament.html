@@ -944,7 +944,7 @@
     // Shield - pulsing sphere with soft transparency
     if (attributes.shield > 0) {
       const shieldColor = attributes.shield >= 3 ? 0x00ff88 : (attributes.shield >= 2 ? 0xffff00 : 0xff8888);
-      const shieldRadius = attributes.size * 0.6;
+      const shieldRadius = attributes.size * 0.07;
       
       const sphereGeometry = new THREE.SphereGeometry(shieldRadius, 32, 32);
       const sphereMaterial = new THREE.MeshBasicMaterial({
