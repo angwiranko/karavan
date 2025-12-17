@@ -592,7 +592,7 @@
     
     // WASD for movement
     switch(e.key.toLowerCase()) {
-      case 'w':
+      case 's':
         // Move forward (positive Z direction in world)
         captureState();
         selectedPlayer.position.z += moveDistance;
@@ -600,7 +600,7 @@
         sceneNeedsUpdate = true;
         e.preventDefault();
         break;
-      case 's':
+      case 'w':
         // Move backward (negative Z direction in world)
         captureState();
         selectedPlayer.position.z -= moveDistance;
