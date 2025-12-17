@@ -1696,7 +1696,7 @@
     });
     
     // Central hub - octagonal structure
-    const hubGeometry = new THREE.CylinderGeometry(scale * 0.4, scale * 0.5, scale * 0.3, 8);
+    const hubGeometry = new THREE.CylinderGeometry(scale * 0.5, scale * 0.6, scale * 0.4, 8);
     const hub = new THREE.Mesh(hubGeometry, hullMaterial);
     hub.castShadow = true;
     hub.receiveShadow = true;
@@ -1712,7 +1712,7 @@
       // Tall cone-shaped spire
       const spireGeometry = new THREE.ConeGeometry(scale * 0.1, scale * 0.8, 6);
       const spire = new THREE.Mesh(spireGeometry, gunMaterial);
-      spire.position.set(spireX, scale * 0.5, spireZ);
+      spire.position.set(spireX, scale * 0.6, spireZ);
       spire.castShadow = true;
       spire.receiveShadow = true;
       stationGroup.add(spire);
@@ -1720,29 +1720,53 @@
     
     // Four main arms extending outward
     const armDirections = [
-      { x: 1, z: 0 },   // Right
-      { x: -1, z: 0 },  // Left
-      { x: 0, z: 1 },   // Forward
-      { x: 0, z: -1 }   // Back
+      { x: 1, z: 0, angle: 0 },   // Right
+      { x: -1, z: 0, angle: Math.PI },  // Left
+      { x: 0, z: 1, angle: Math.PI / 2 },   // Forward
+      { x: 0, z: -1, angle: -Math.PI / 2 }   // Back
     ];
     
     armDirections.forEach((dir) => {
-      // Main arm structure
-      const armGeometry = new THREE.BoxGeometry(scale * 0.3, scale * 0.25, scale * 1.2);
+      // Connection ring from hub to arm
+      const connectionGeometry = new THREE.CylinderGeometry(scale * 0.35, scale * 0.35, scale * 0.15, 8);
+      const connection = new THREE.Mesh(connectionGeometry, hullMaterial);
+      connection.position.set(dir.x * scale * 0.35, 0, dir.z * scale * 0.35);
+      connection.castShadow = true;
+      connection.receiveShadow = true;
+      stationGroup.add(connection);
+      
+      // Main arm structure - larger and more integrated
+      const armGeometry = new THREE.BoxGeometry(scale * 0.4, scale * 0.3, scale * 1.3);
       const arm = new THREE.Mesh(armGeometry, hullMaterial);
-      arm.position.set(dir.x * scale * 0.7, 0, dir.z * scale * 0.7);
+      arm.position.set(dir.x * scale * 0.75, 0, dir.z * scale * 0.75);
       arm.castShadow = true;
       arm.receiveShadow = true;
       stationGroup.add(arm);
       
-      // Gun batteries along the arm (rectangular protrusions)
-      for (let i = 0; i < 4; i++) {
-        const gunBatteryGeometry = new THREE.BoxGeometry(scale * 0.2, scale * 0.15, scale * 0.2);
-        const gunBattery = new THREE.Mesh(gunBatteryGeometry, turretMaterial);
-        gunBattery.position.set(
-          dir.x * (scale * 0.3 + (i - 1.5) * scale * 0.25),
+      // Support braces connecting arm to center
+      const braceGeometry = new THREE.BoxGeometry(scale * 0.1, scale * 0.2, scale * 0.6);
+      for (let brace = -1; brace <= 1; brace += 2) {
+        const brace1 = new THREE.Mesh(braceGeometry, turretMaterial);
+        brace1.position.set(
+          dir.x * scale * 0.5 + (brace * scale * 0.25),
           scale * 0.15,
-          dir.z * (scale * 0.3 + (i - 1.5) * scale * 0.25)
+          dir.z * scale * 0.5 + (brace * scale * 0.25)
+        );
+        brace1.rotation.y = dir.angle;
+        brace1.castShadow = true;
+        brace1.receiveShadow = true;
+        stationGroup.add(brace1);
+      }
+      
+      // Gun batteries along the arm (rectangular protrusions)
+      for (let i = 0; i < 5; i++) {
+        const gunBatteryGeometry = new THREE.BoxGeometry(scale * 0.25, scale * 0.2, scale * 0.25);
+        const gunBattery = new THREE.Mesh(gunBatteryGeometry, turretMaterial);
+        const offset = (i - 2) * scale * 0.25;
+        gunBattery.position.set(
+          dir.x * (scale * 0.3 + offset * 0.3),
+          scale * 0.2,
+          dir.z * (scale * 0.3 + offset * 0.3)
         );
         gunBattery.castShadow = true;
         gunBattery.receiveShadow = true;
@@ -1751,25 +1775,25 @@
       
       // Large turrets at the end of each arm
       for (let side = -1; side <= 1; side += 2) {
-        const turretGeometry = new THREE.CylinderGeometry(scale * 0.15, scale * 0.15, scale * 0.4, 8);
+        const turretGeometry = new THREE.CylinderGeometry(scale * 0.18, scale * 0.18, scale * 0.5, 8);
         const turret = new THREE.Mesh(turretGeometry, turretMaterial);
         turret.position.set(
-          dir.x * scale * 1.4 + (side * scale * 0.3),
-          scale * 0.2,
-          dir.z * scale * 1.4 + (side * scale * 0.3)
+          dir.x * scale * 1.5 + (side * scale * 0.35),
+          scale * 0.25,
+          dir.z * scale * 1.5 + (side * scale * 0.35)
         );
         turret.castShadow = true;
         turret.receiveShadow = true;
         stationGroup.add(turret);
         
         // Gun barrel on turret
-        const barrelGeometry = new THREE.CylinderGeometry(scale * 0.06, scale * 0.06, scale * 0.6, 8);
+        const barrelGeometry = new THREE.CylinderGeometry(scale * 0.07, scale * 0.07, scale * 0.7, 8);
         const barrel = new THREE.Mesh(barrelGeometry, gunMaterial);
         barrel.rotation.z = Math.PI * 0.3;
         barrel.position.set(
-          dir.x * scale * 1.4 + (side * scale * 0.3),
-          scale * 0.4,
-          dir.z * scale * 1.4 + (side * scale * 0.3)
+          dir.x * scale * 1.5 + (side * scale * 0.35),
+          scale * 0.5,
+          dir.z * scale * 1.5 + (side * scale * 0.35)
         );
         barrel.castShadow = true;
         barrel.receiveShadow = true;
@@ -1777,13 +1801,14 @@
       }
     });
     
-    // Armor plates between arms (curved sections)
+    // Armor plates between arms (curved sections with full connectivity)
     for (let i = 0; i < 4; i++) {
       const angle = (i / 4) * Math.PI * 2 + Math.PI * 0.25;
-      const armorX = Math.cos(angle) * scale * 0.6;
-      const armorZ = Math.sin(angle) * scale * 0.6;
+      const armorX = Math.cos(angle) * scale * 0.7;
+      const armorZ = Math.sin(angle) * scale * 0.7;
       
-      const armorGeometry = new THREE.BoxGeometry(scale * 0.4, scale * 0.2, scale * 0.5);
+      // Main armor plate
+      const armorGeometry = new THREE.BoxGeometry(scale * 0.5, scale * 0.25, scale * 0.6);
       const armor = new THREE.Mesh(armorGeometry, hullMaterial);
       armor.position.set(armorX, 0, armorZ);
       armor.rotation.y = angle;
@@ -1792,10 +1817,10 @@
       stationGroup.add(armor);
       
       // Detail ribs on armor plates
-      for (let j = 0; j < 3; j++) {
-        const ribGeometry = new THREE.BoxGeometry(scale * 0.35, scale * 0.05, scale * 0.08);
+      for (let j = 0; j < 4; j++) {
+        const ribGeometry = new THREE.BoxGeometry(scale * 0.45, scale * 0.06, scale * 0.1);
         const rib = new THREE.Mesh(ribGeometry, turretMaterial);
-        rib.position.set(armorX, (j - 1) * scale * 0.1, armorZ);
+        rib.position.set(armorX, (j - 1.5) * scale * 0.12, armorZ);
         rib.rotation.y = angle;
         rib.castShadow = true;
         rib.receiveShadow = true;
@@ -1803,13 +1828,25 @@
       }
     }
     
-    // Side pods (engine/shield generators)
+    // Side pods (engine/shield generators) - better integrated
     for (let side = -1; side <= 1; side += 2) {
-      for (let dir of [0, 1]) {
-        const podX = side * scale * 0.8;
-        const podZ = (dir - 0.5) * scale * 1.2;
+      for (let dir = 0; dir < 2; dir++) {
+        const podX = side * scale * 0.9;
+        const podZ = (dir - 0.5) * scale * 1.3;
         
-        const podGeometry = new THREE.BoxGeometry(scale * 0.25, scale * 0.3, scale * 0.4);
+        // Pod connection strut
+        const strutGeometry = new THREE.BoxGeometry(scale * 0.15, scale * 0.15, scale * 0.5);
+        const strut = new THREE.Mesh(strutGeometry, turretMaterial);
+        strut.position.set(
+          side * scale * 0.6,
+          -scale * 0.1,
+          (dir - 0.5) * scale * 0.8
+        );
+        strut.castShadow = true;
+        strut.receiveShadow = true;
+        stationGroup.add(strut);
+        
+        const podGeometry = new THREE.BoxGeometry(scale * 0.3, scale * 0.35, scale * 0.45);
         const pod = new THREE.Mesh(podGeometry, hullMaterial);
         pod.position.set(podX, 0, podZ);
         pod.castShadow = true;
@@ -1817,7 +1854,7 @@
         stationGroup.add(pod);
         
         // Reactor glow
-        const glowGeometry = new THREE.SphereGeometry(scale * 0.12, 8, 8);
+        const glowGeometry = new THREE.SphereGeometry(scale * 0.14, 8, 8);
         const glowMaterial = new THREE.MeshStandardMaterial({
           color: 0xff6600,
           metalness: 0.5,
@@ -1833,16 +1870,30 @@
       }
     }
     
+    // Bottom armor plates for stability
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const platX = Math.cos(angle) * scale * 0.55;
+      const platZ = Math.sin(angle) * scale * 0.55;
+      
+      const platGeometry = new THREE.BoxGeometry(scale * 0.3, scale * 0.1, scale * 0.3);
+      const plat = new THREE.Mesh(platGeometry, turretMaterial);
+      plat.position.set(platX, -scale * 0.25, platZ);
+      plat.castShadow = true;
+      plat.receiveShadow = true;
+      stationGroup.add(plat);
+    }
+    
     // Additional turrets scattered around the station
-    const extraTurretCount = 12;
+    const extraTurretCount = 16;
     for (let i = 0; i < extraTurretCount; i++) {
       const angle = (i / extraTurretCount) * Math.PI * 2;
-      const distance = scale * (0.4 + Math.random() * 0.3);
+      const distance = scale * (0.5 + Math.random() * 0.4);
       const turretX = Math.cos(angle) * distance;
       const turretZ = Math.sin(angle) * distance;
-      const turretY = (Math.random() - 0.5) * scale * 0.5;
+      const turretY = (Math.random() - 0.5) * scale * 0.6;
       
-      const smallTurretGeometry = new THREE.CylinderGeometry(scale * 0.08, scale * 0.08, scale * 0.25, 6);
+      const smallTurretGeometry = new THREE.CylinderGeometry(scale * 0.1, scale * 0.1, scale * 0.3, 6);
       const smallTurret = new THREE.Mesh(smallTurretGeometry, turretMaterial);
       smallTurret.position.set(turretX, turretY, turretZ);
       smallTurret.castShadow = true;
