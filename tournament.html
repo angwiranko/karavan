@@ -1401,6 +1401,7 @@
     };
 
     players.add(shipObject);
+    return shipObject;
   }
   
   // Create enemy ship
@@ -1483,6 +1484,7 @@
     };
       
     enemies.add(shipObject);
+    return shipObject;
   }
 
   // Seed-based random
@@ -1848,7 +1850,8 @@
 
       requestAnimationFrame(() => {
         data.players.forEach(item => {
-          const ship = createPlayer(item.position.x, item.position.z, item.color, item.name, item.size, {
+          const colorNum = item.color.startsWith('#') ? parseInt(item.color.slice(1), 16) : item.color;
+          const ship = createPlayer(item.position.x, item.position.z, colorNum, item.name, item.size, {
             speed: item.speed,
             shield: item.shield,
             shortRange: item.shortRange,
@@ -1865,7 +1868,8 @@
         });
 
         data.enemies.forEach(item => {
-          const ship = createEnemy(item.position.x, item.position.z, item.color, item.name, item.size, {
+          const colorNum = item.color.startsWith('#') ? parseInt(item.color.slice(1), 16) : item.color;
+          const ship = createEnemy(item.position.x, item.position.z, colorNum, item.name, item.size, {
             speed: item.speed,
             shield: item.shield,
             shortRange: item.shortRange,
