@@ -968,71 +968,85 @@
       const barCount = 3;
       const arcAngle = Math.PI / 6; // 30 degree arc with gap
       const barColor = 0x00ffff; // Single color for all bars
+      const barThickness = 3; // Thickness of each bar
       
       // Create stacked arcs like WiFi strength indicator with gaps between directions
       for (let bar = 0; bar < barCount; bar++) {
         const barRadius = baseRadius * (0.5 + (bar * 0.25));
+        const barOpacity = 0.2 + (bar * 0.1);
         
         // Front bar
         if (attributes.front > 0) {
-          const frontBar = createArc(barRadius, -arcAngle, arcAngle, 16, barColor);
+          const frontBar = createFlatBarArc(barRadius, -arcAngle, arcAngle, 8, barThickness, barColor);
           frontBar.position.y = 0.02;
-          frontBar.material.opacity = 0.2 + (bar * 0.1);
-          frontBar.material.linewidth = 3;
+          frontBar.traverse(child => {
+            if (child.material) child.material.opacity = barOpacity;
+          });
           frontBar.userData = {
             isWifiBar: true,
             barIndex: bar,
             totalBars: barCount,
-            baseOpacity: 0.2 + (bar * 0.1)
+            baseOpacity: barOpacity,
+            children: []
           };
+          frontBar.children.forEach(child => frontBar.userData.children.push(child));
           group.add(frontBar);
           group.userData.animatingChildren.push(frontBar);
         }
         
         // Left bar
         if (attributes.side > 0) {
-          const leftBar = createArc(barRadius, Math.PI / 2 - arcAngle, Math.PI / 2 + arcAngle, 16, barColor);
+          const leftBar = createFlatBarArc(barRadius, Math.PI / 2 - arcAngle, Math.PI / 2 + arcAngle, 8, barThickness, barColor);
           leftBar.position.y = 0.02;
-          leftBar.material.opacity = 0.2 + (bar * 0.1);
-          leftBar.material.linewidth = 3;
+          leftBar.traverse(child => {
+            if (child.material) child.material.opacity = barOpacity;
+          });
           leftBar.userData = {
             isWifiBar: true,
             barIndex: bar,
             totalBars: barCount,
-            baseOpacity: 0.2 + (bar * 0.1)
+            baseOpacity: barOpacity,
+            children: []
           };
+          leftBar.children.forEach(child => leftBar.userData.children.push(child));
           group.add(leftBar);
           group.userData.animatingChildren.push(leftBar);
         }
         
         // Right bar
         if (attributes.side > 0) {
-          const rightBar = createArc(barRadius, -Math.PI / 2 - arcAngle, -Math.PI / 2 + arcAngle, 16, barColor);
+          const rightBar = createFlatBarArc(barRadius, -Math.PI / 2 - arcAngle, -Math.PI / 2 + arcAngle, 8, barThickness, barColor);
           rightBar.position.y = 0.02;
-          rightBar.material.opacity = 0.2 + (bar * 0.1);
-          rightBar.material.linewidth = 3;
+          rightBar.traverse(child => {
+            if (child.material) child.material.opacity = barOpacity;
+          });
           rightBar.userData = {
             isWifiBar: true,
             barIndex: bar,
             totalBars: barCount,
-            baseOpacity: 0.2 + (bar * 0.1)
+            baseOpacity: barOpacity,
+            children: []
           };
+          rightBar.children.forEach(child => rightBar.userData.children.push(child));
           group.add(rightBar);
           group.userData.animatingChildren.push(rightBar);
         }
         
         // Rear bar
         if (attributes.rear > 0) {
-          const rearBar = createArc(barRadius, Math.PI - arcAngle, Math.PI + arcAngle, 16, barColor);
+          const rearBar = createFlatBarArc(barRadius, Math.PI - arcAngle, Math.PI + arcAngle, 8, barThickness, barColor);
           rearBar.position.y = 0.02;
-          rearBar.material.opacity = 0.2 + (bar * 0.1);
-          rearBar.material.linewidth = 3;
+          rearBar.traverse(child => {
+            if (child.material) child.material.opacity = barOpacity;
+          });
           rearBar.userData = {
             isWifiBar: true,
             barIndex: bar,
             totalBars: barCount,
-            baseOpacity: 0.2 + (bar * 0.1)
+            baseOpacity: barOpacity,
+            children: []
           };
+          rearBar.children.forEach(child => rearBar.userData.children.push(child));
           group.add(rearBar);
           group.userData.animatingChildren.push(rearBar);
         }
@@ -1064,7 +1078,11 @@
           // WiFi bars with wave effect
           const delay = child.userData.barIndex * 0.1;
           const wave = Math.sin(time * 0.6 + delay) * 0.3 + 0.7;
-          child.material.opacity = child.userData.baseOpacity * wave;
+          child.userData.children.forEach(meshChild => {
+            if (meshChild.material) {
+              meshChild.material.opacity = child.userData.baseOpacity * wave;
+            }
+          });
         }
       });
     });
@@ -1084,7 +1102,11 @@
         } else if (child.userData.isWifiBar) {
           const delay = child.userData.barIndex * 0.1;
           const wave = Math.sin(time * 0.6 + delay) * 0.3 + 0.7;
-          child.material.opacity = child.userData.baseOpacity * wave;
+          child.userData.children.forEach(meshChild => {
+            if (meshChild.material) {
+              meshChild.material.opacity = child.userData.baseOpacity * wave;
+            }
+          });
         }
       });
     });
@@ -1152,28 +1174,45 @@
     return line;
   }
   
-  // Helper: Create a thick tube arc (3D bar instead of line)
-  function createTubeArc(radius, startAngle, endAngle, segments, tubeRadius, color) {
-    const points = [];
+  // Helper: Create flat bar arc (mesh rectangles along arc path)
+  function createFlatBarArc(radius, startAngle, endAngle, segments, barThickness, color) {
+    const group = new THREE.Group();
     const angleStep = (endAngle - startAngle) / segments;
-    for (let i = 0; i <= segments; i++) {
-      const angle = startAngle + angleStep * i;
-      points.push(new THREE.Vector3(
-        Math.cos(angle) * radius,
-        0,
-        Math.sin(angle) * radius
-      ));
+    
+    for (let i = 0; i < segments; i++) {
+      const angle1 = startAngle + angleStep * i;
+      const angle2 = startAngle + angleStep * (i + 1);
+      
+      const x1 = Math.cos(angle1) * radius;
+      const z1 = Math.sin(angle1) * radius;
+      const x2 = Math.cos(angle2) * radius;
+      const z2 = Math.sin(angle2) * radius;
+      
+      // Create thin rectangle between the two arc points
+      const segmentLength = Math.sqrt(
+        Math.pow(x2 - x1, 2) + Math.pow(z2 - z1, 2)
+      );
+      
+      const barGeometry = new THREE.PlaneGeometry(segmentLength, barThickness);
+      const barMaterial = new THREE.MeshBasicMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.5,
+        side: THREE.DoubleSide
+      });
+      const bar = new THREE.Mesh(barGeometry, barMaterial);
+      
+      // Position and rotate bar
+      const midX = (x1 + x2) / 2;
+      const midZ = (z1 + z2) / 2;
+      bar.position.set(midX, 0, midZ);
+      bar.rotation.y = angle1 + angleStep / 2;
+      bar.rotation.x = -Math.PI / 2;
+      
+      group.add(bar);
     }
     
-    const curve = new THREE.CatmullRomCurve3(points);
-    const tubeGeometry = new THREE.TubeGeometry(curve, segments, tubeRadius, 6, false);
-    const tubeMaterial = new THREE.MeshBasicMaterial({
-      color: color,
-      transparent: true,
-      opacity: 0.5
-    });
-    const tube = new THREE.Mesh(tubeGeometry, tubeMaterial);
-    return tube;
+    return group;
   }
   
   // Create player ship
