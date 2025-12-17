@@ -1637,7 +1637,7 @@
     // Calculate target heading (angle to face the destination)
     const dx = targetX - startPosition.x;
     const dz = targetZ - startPosition.z;
-    const targetHeading = Math.atan2(dx, dz);
+    const targetHeading = Math.atan2(dx, dz) + Math.PI;
     
     function animate() {
       const elapsed = performance.now() - startTime;
