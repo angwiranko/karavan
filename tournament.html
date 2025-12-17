@@ -431,6 +431,11 @@
   controls.target.set(0, 0, 0);
   controls.update();
   
+  // Trigger render when camera moves
+  controls.addEventListener('change', () => {
+    sceneNeedsUpdate = true;
+  });
+  
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
   let selectedPlayer = null;
@@ -475,6 +480,30 @@
   
   // Keyboard controls
   document.addEventListener('keydown', (e) => {
+    // ESC to deselect
+    if (e.key === 'Escape') {
+      if (selectedPlayer) {
+        if (selectedPlayer.isMesh && originalMaterial) {
+          selectedPlayer.material = originalMaterial;
+        } else if (originalMaterials.length > 0) {
+          let matIdx = 0;
+          selectedPlayer.traverse((node) => {
+            if (node.isMesh && matIdx < originalMaterials.length) {
+              node.material = originalMaterials[matIdx++];
+            }
+          });
+        }
+        hideHoverIndicator();
+        selectedPlayer = null;
+        originalMaterial = null;
+        originalMaterials = [];
+        rotationPanel.classList.remove('active');
+        updateInfoPanel(null);
+        sceneNeedsUpdate = true;
+      }
+      return;
+    }
+    
     if (!selectedPlayer) return;
     switch(e.key) {
       case 'ArrowUp':
