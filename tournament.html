@@ -1919,10 +1919,10 @@
         generateTerrain();
       }
 
-      requestAnimationFrame(() => {
-        data.players.forEach(item => {
+      requestAnimationFrame(async () => {
+        for (const item of data.players) {
           const colorNum = item.color.startsWith('#') ? parseInt(item.color.slice(1), 16) : item.color;
-          const ship = createPlayer(item.position.x, item.position.z, colorNum, item.name, item.size, {
+          const ship = await createPlayer(item.position.x, item.position.z, colorNum, item.name, item.size, {
             speed: item.speed,
             shield: item.shield,
             shortRange: item.shortRange,
@@ -1936,11 +1936,11 @@
             ship.userData.heading = item.heading;
             ship.rotation.y = item.heading;
           }
-        });
+        }
 
-        data.enemies.forEach(item => {
+        for (const item of data.enemies) {
           const colorNum = item.color.startsWith('#') ? parseInt(item.color.slice(1), 16) : item.color;
-          const ship = createEnemy(item.position.x, item.position.z, colorNum, item.name, item.size, {
+          const ship = await createEnemy(item.position.x, item.position.z, colorNum, item.name, item.size, {
             speed: item.speed,
             shield: item.shield,
             shortRange: item.shortRange,
@@ -1954,7 +1954,7 @@
             ship.userData.heading = item.heading;
             ship.rotation.y = item.heading;
           }
-        });
+        }
 
         sceneNeedsUpdate = true;
       });
