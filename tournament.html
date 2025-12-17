@@ -281,6 +281,7 @@
   const mouse = new THREE.Vector2();
   let selectedPlayer = null;
   let originalMaterial = null;
+  let originalMaterials = []; // Store all original materials for complex models
   let hoverIndicator = null;
   
   // Buttons
@@ -841,23 +842,42 @@
     
     if (model) {
       shipObject = model;
-      // Scale the model appropriately
-      const scale = size / 50;
+      
+      // Calculate bounding box to determine scale
+      const bbox = new THREE.Box3().setFromObject(shipObject);
+      const bboxSize = bbox.getSize(new THREE.Vector3());
+      const maxDim = Math.max(bboxSize.x, bboxSize.y, bboxSize.z);
+      
+      // Scale to desired size
+      const scale = (size * 2) / maxDim;
       shipObject.scale.set(scale, scale, scale);
       
-      // Apply color to all meshes in the model
+      // Apply color and material to all meshes
       shipObject.traverse((node) => {
-        if (node.isMesh && node.material) {
-          node.material = node.material.clone();
-          node.material.color.setHex(parseInt(color.replace('#', ''), 16));
+        if (node.isMesh) {
+          // Create new material with proper properties
+          const newMaterial = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(color),
+            metalness: 0.6,
+            roughness: 0.4,
+            emissive: new THREE.Color(color),
+            emissiveIntensity: 0.2
+          });
+          node.material = newMaterial;
+          node.castShadow = true;
+          node.receiveShadow = true;
         }
       });
       
-      console.log('✅ Player ship created with model');
+      console.log('✅ Player ship model applied (scale: ' + scale.toFixed(2) + ')');
     } else {
-      // Fallback to sphere if model loading failed
+      // Fallback to sphere
       const geometry = new THREE.SphereGeometry(size, 16, 16);
-      const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(color) });
+      const material = new THREE.MeshStandardMaterial({ 
+        color: new THREE.Color(color),
+        metalness: 0.6,
+        roughness: 0.4
+      });
       shipObject = new THREE.Mesh(geometry, material);
       console.log('⚠️ Player ship using fallback sphere');
     }
@@ -865,7 +885,7 @@
     const nameLabel = createNameLabel(name);
     nameLabel.visible = namesVisible;
     shipObject.add(nameLabel);
-    nameLabel.position.set(0, size + 20, -size);
+    nameLabel.position.set(0, size + 20, 0);
 
     const validPosition = findNearestValidPosition(x, z, size);
     const correctY = getCorrectYPosition(validPosition.x, validPosition.z, size);
@@ -887,23 +907,42 @@
     
     if (model) {
       shipObject = model;
-      // Scale the model appropriately
-      const scale = size / 50;
+      
+      // Calculate bounding box to determine scale
+      const bbox = new THREE.Box3().setFromObject(shipObject);
+      const bboxSize = bbox.getSize(new THREE.Vector3());
+      const maxDim = Math.max(bboxSize.x, bboxSize.y, bboxSize.z);
+      
+      // Scale to desired size
+      const scale = (size * 2) / maxDim;
       shipObject.scale.set(scale, scale, scale);
       
-      // Apply color to all meshes in the model
+      // Apply color and material to all meshes
       shipObject.traverse((node) => {
-        if (node.isMesh && node.material) {
-          node.material = node.material.clone();
-          node.material.color.setHex(parseInt(color.replace('#', ''), 16));
+        if (node.isMesh) {
+          // Create new material with proper properties
+          const newMaterial = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(color),
+            metalness: 0.6,
+            roughness: 0.4,
+            emissive: new THREE.Color(color),
+            emissiveIntensity: 0.2
+          });
+          node.material = newMaterial;
+          node.castShadow = true;
+          node.receiveShadow = true;
         }
       });
       
-      console.log('✅ Enemy ship created with model');
+      console.log('✅ Enemy ship model applied (scale: ' + scale.toFixed(2) + ')');
     } else {
-      // Fallback to sphere if model loading failed
+      // Fallback to sphere
       const geometry = new THREE.SphereGeometry(size, 16, 16);
-      const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(color) });
+      const material = new THREE.MeshStandardMaterial({ 
+        color: new THREE.Color(color),
+        metalness: 0.6,
+        roughness: 0.4
+      });
       shipObject = new THREE.Mesh(geometry, material);
       console.log('⚠️ Enemy ship using fallback sphere');
     }
@@ -911,7 +950,7 @@
     const nameLabel = createNameLabel(name);
     nameLabel.visible = namesVisible;
     shipObject.add(nameLabel);
-    nameLabel.position.set(0, size + 20, -size);
+    nameLabel.position.set(0, size + 20, 0);
 
     const validPosition = findNearestValidPosition(x, z, size);
     const correctY = getCorrectYPosition(validPosition.x, validPosition.z, size);
@@ -1076,10 +1115,23 @@
               updateInfoPanel(null);
           } 
 		  
+          
           hideHoverIndicator();
-          selectedPlayer.material = originalMaterial;
+          // Restore original materials
+          if (selectedPlayer) {
+            if (selectedPlayer.isMesh && originalMaterial) {
+              selectedPlayer.material = originalMaterial;
+            } else if (originalMaterials.length > 0) {
+              selectedPlayer.traverse((node, idx) => {
+                if (node.isMesh && idx < originalMaterials.length) {
+                  node.material = originalMaterials[idx];
+                }
+              });
+            }
+          }
           selectedPlayer = null;
           originalMaterial = null;
+          originalMaterials = [];
   
       } else {
           const intersects = raycaster.intersectObjects([...players.children, ...enemies.children], true);
@@ -1087,35 +1139,86 @@
           const validIntersects = intersects.filter(i => !i.object.userData.isNameLabel);
           
           if (validIntersects.length > 0) {
-              const intersectedObject = validIntersects[0].object;
+              // Find the actual ship object (parent if needed)
+              let shipObject = validIntersects[0].object;
+              
+              // If we hit a child mesh, find the parent ship
+              while (shipObject && shipObject.userData.type !== "player" && shipObject.userData.type !== "Enemy") {
+                shipObject = shipObject.parent;
+              }
+              
+              if (!shipObject) shipObject = validIntersects[0].object.parent || validIntersects[0].object;
           
-              if (selectedPlayer && originalMaterial) {
+              // Restore previous selection's materials
+              if (selectedPlayer) {
+                if (selectedPlayer.isMesh && originalMaterial) {
                   selectedPlayer.material = originalMaterial;
-                  hideHoverIndicator();
+                } else if (originalMaterials.length > 0) {
+                  let matIdx = 0;
+                  selectedPlayer.traverse((node) => {
+                    if (node.isMesh && matIdx < originalMaterials.length) {
+                      node.material = originalMaterials[matIdx++];
+                    }
+                  });
+                }
+                hideHoverIndicator();
               }
           
-              selectedPlayer = intersectedObject;
-              originalMaterial = selectedPlayer.material;
+              // Save new selection's materials
+              selectedPlayer = shipObject;
+              originalMaterials = [];
+              
+              if (selectedPlayer.isMesh) {
+                originalMaterial = selectedPlayer.material;
+              } else {
+                // For complex models, save all mesh materials
+                selectedPlayer.traverse((node) => {
+                  if (node.isMesh && node.material) {
+                    originalMaterials.push(node.material);
+                  }
+                });
+              }
           
-              if (originalMaterial) {
-                selectedPlayer.material = new THREE.MeshStandardMaterial({
-                    color: 0x00ffff,
-                    emissive: 0x00ffff,
-                    emissiveIntensity: 0.5,
-                    metalness: 0.3,
-                    roughness: 0.5
+              // Apply selection highlight
+              const newMat = new THREE.MeshStandardMaterial({
+                  color: 0x00ffff,
+                  emissive: 0x00ffff,
+                  emissiveIntensity: 0.5,
+                  metalness: 0.3,
+                  roughness: 0.5
+              });
+              
+              if (selectedPlayer.isMesh) {
+                selectedPlayer.material = newMat;
+              } else {
+                // For complex models, apply to all meshes
+                selectedPlayer.traverse((node) => {
+                  if (node.isMesh) {
+                    node.material = newMat.clone();
+                  }
                 });
               }
           
               updateInfoPanel(selectedPlayer);
               console.log('Selected ship:', selectedPlayer);
           } else {
-              if (selectedPlayer && originalMaterial) {
+              // Deselect if clicking on nothing
+              if (selectedPlayer) {
+                if (selectedPlayer.isMesh && originalMaterial) {
                   selectedPlayer.material = originalMaterial;
-                  hideHoverIndicator();
+                } else if (originalMaterials.length > 0) {
+                  let matIdx = 0;
+                  selectedPlayer.traverse((node) => {
+                    if (node.isMesh && matIdx < originalMaterials.length) {
+                      node.material = originalMaterials[matIdx++];
+                    }
+                  });
+                }
+                hideHoverIndicator();
               }
               selectedPlayer = null;
               originalMaterial = null;
+              originalMaterials = [];
               updateInfoPanel(null);
           }
       }
