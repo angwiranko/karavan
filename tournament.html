@@ -1122,9 +1122,10 @@
             if (selectedPlayer.isMesh && originalMaterial) {
               selectedPlayer.material = originalMaterial;
             } else if (originalMaterials.length > 0) {
-              selectedPlayer.traverse((node, idx) => {
-                if (node.isMesh && idx < originalMaterials.length) {
-                  node.material = originalMaterials[idx];
+              let matIdx = 0;
+              selectedPlayer.traverse((node) => {
+                if (node.isMesh && matIdx < originalMaterials.length) {
+                  node.material = originalMaterials[matIdx++];
                 }
               });
             }
@@ -1171,7 +1172,7 @@
               if (selectedPlayer.isMesh) {
                 originalMaterial = selectedPlayer.material;
               } else {
-                // For complex models, save all mesh materials
+                // For complex models, save all mesh materials (as clones to preserve originals)
                 selectedPlayer.traverse((node) => {
                   if (node.isMesh && node.material) {
                     originalMaterials.push(node.material);
