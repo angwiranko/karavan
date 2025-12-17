@@ -290,6 +290,7 @@
     <button id="toggleNames" class="sci-button">👁️ Nevek</button>
 	<button id="addPlayer" class="sci-button">➕ Új Hajó</button>
     <button id="addNPC" class="sci-button">➕ Új Ellenfél</button>
+    <button id="addStation" class="sci-button">🛸 Állomás</button>
     <button id="deleteSelected" class="sci-button">🗑️ Törlés</button>
     <button id="undoMove" class="sci-button">↶ Visszavonás</button>
     <button id="saveMap" class="sci-button">💾 Mentés</button>
@@ -831,6 +832,13 @@
     creatingType = "enemy";
     charNameInput.value = "Ellenfél";
     openPopup();
+  });
+  
+  // Add Space Station
+  document.getElementById('addStation').addEventListener('click', () => {
+    createSpaceStation(0, 0, "Stanice");
+    showToast("🛸 Állomás hozzáadva", 'success');
+    sceneNeedsUpdate = true;
   });
     
   // Delete selected
@@ -1660,6 +1668,152 @@
       
     enemies.add(shipObject);
     return shipObject;
+  }
+
+  function createSpaceStation(x, z, name = "Stanice", scale = 50) {
+    const stationGroup = new THREE.Group();
+    
+    // Main station body - large sphere
+    const bodyGeometry = new THREE.IcosahedronGeometry(scale * 0.7, 4);
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+      color: 0x444444,
+      metalness: 0.8,
+      roughness: 0.3,
+      emissive: 0x1a1a1a
+    });
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    body.castShadow = true;
+    body.receiveShadow = true;
+    stationGroup.add(body);
+    
+    // Ring around the station
+    const ringGeometry = new THREE.TorusGeometry(scale * 0.85, scale * 0.15, 16, 32);
+    const ringMaterial = new THREE.MeshStandardMaterial({
+      color: 0x666666,
+      metalness: 0.7,
+      roughness: 0.4,
+      emissive: 0x333333
+    });
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.rotation.x = Math.PI * 0.3;
+    ring.position.y = scale * 0.1;
+    ring.castShadow = true;
+    ring.receiveShadow = true;
+    stationGroup.add(ring);
+    
+    // Towers around the station
+    const towerCount = 8;
+    for (let i = 0; i < towerCount; i++) {
+      const angle = (i / towerCount) * Math.PI * 2;
+      const towerX = Math.cos(angle) * scale * 0.6;
+      const towerZ = Math.sin(angle) * scale * 0.6;
+      
+      const towerGroup = new THREE.Group();
+      
+      // Tower base
+      const towerGeometry = new THREE.CylinderGeometry(scale * 0.12, scale * 0.15, scale * 0.4, 8);
+      const towerMaterial = new THREE.MeshStandardMaterial({
+        color: 0x555555,
+        metalness: 0.75,
+        roughness: 0.35
+      });
+      const tower = new THREE.Mesh(towerGeometry, towerMaterial);
+      tower.position.y = scale * 0.25;
+      tower.castShadow = true;
+      tower.receiveShadow = true;
+      towerGroup.add(tower);
+      
+      // Docking port (small cube)
+      const portGeometry = new THREE.BoxGeometry(scale * 0.2, scale * 0.2, scale * 0.25);
+      const portMaterial = new THREE.MeshStandardMaterial({
+        color: 0xff6600,
+        metalness: 0.6,
+        roughness: 0.4,
+        emissive: 0x663300
+      });
+      const port = new THREE.Mesh(portGeometry, portMaterial);
+      port.position.y = scale * 0.5;
+      port.position.z = scale * 0.15;
+      port.castShadow = true;
+      port.receiveShadow = true;
+      towerGroup.add(port);
+      
+      towerGroup.position.set(towerX, 0, towerZ);
+      stationGroup.add(towerGroup);
+    }
+    
+    // Antenna spikes
+    const antennaCount = 12;
+    for (let i = 0; i < antennaCount; i++) {
+      const theta = (i / antennaCount) * Math.PI * 2;
+      const phi = Math.random() * Math.PI * 0.5 + Math.PI * 0.25;
+      
+      const antennaX = Math.sin(phi) * Math.cos(theta) * scale * 0.8;
+      const antennaY = Math.cos(phi) * scale * 0.8;
+      const antennaZ = Math.sin(phi) * Math.sin(theta) * scale * 0.8;
+      
+      // Antenna spike
+      const antennaGeometry = new THREE.ConeGeometry(scale * 0.08, scale * 0.5, 8);
+      const antennaMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffff00,
+        metalness: 0.9,
+        roughness: 0.2,
+        emissive: 0x888800
+      });
+      const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
+      antenna.position.set(antennaX, antennaY, antennaZ);
+      
+      // Point antenna outward from station center
+      const direction = new THREE.Vector3(antennaX, antennaY, antennaZ).normalize();
+      antenna.lookAt(direction.x + antenna.position.x, direction.y + antenna.position.y, direction.z + antenna.position.z);
+      
+      antenna.castShadow = true;
+      antenna.receiveShadow = true;
+      stationGroup.add(antenna);
+    }
+    
+    // Solar panels/heat radiators (flat rectangles)
+    const radiatorCount = 6;
+    for (let i = 0; i < radiatorCount; i++) {
+      const angle = (i / radiatorCount) * Math.PI * 2;
+      const radiatorX = Math.cos(angle) * scale;
+      const radiatorZ = Math.sin(angle) * scale;
+      
+      const radiatorGeometry = new THREE.PlaneGeometry(scale * 0.3, scale * 0.6);
+      const radiatorMaterial = new THREE.MeshStandardMaterial({
+        color: 0x0066ff,
+        metalness: 0.8,
+        roughness: 0.3,
+        emissive: 0x003366,
+        side: THREE.DoubleSide
+      });
+      const radiator = new THREE.Mesh(radiatorGeometry, radiatorMaterial);
+      radiator.position.set(radiatorX, scale * 0.3, radiatorZ);
+      radiator.lookAt(0, 0, 0);
+      radiator.castShadow = true;
+      radiator.receiveShadow = true;
+      stationGroup.add(radiator);
+    }
+    
+    // Position and add to scene
+    const validPosition = findNearestValidPosition(x, z, scale * 1.2);
+    const correctY = getCorrectYPosition(validPosition.x, validPosition.z, scale * 1.2) + scale * 0.5;
+    stationGroup.position.set(validPosition.x, correctY, validPosition.z);
+    
+    stationGroup.userData = {
+      type: "station",
+      name: name,
+      size: scale
+    };
+    
+    // Add name label
+    const nameLabel = createNameLabel(name);
+    nameLabel.visible = namesVisible;
+    stationGroup.add(nameLabel);
+    nameLabel.position.set(0, scale + 30, 0);
+    
+    terrain.add(stationGroup);
+    return stationGroup;
   }
 
   // Seed-based random
