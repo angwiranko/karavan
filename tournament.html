@@ -161,6 +161,7 @@
       "imports": {
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
         "three/examples/jsm/loaders/GLTFLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js",
+        "three/examples/jsm/loaders/DRACOLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js",
         "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js",
 		"three/examples/jsm/geometries/TextGeometry.js": "https://unpkg.com/three@0.160.0/examples/jsm/geometries/TextGeometry.js",
 		"three/examples/jsm/loaders/FontLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/FontLoader.js"
@@ -219,6 +220,7 @@
 <script type="module">
   import * as THREE from 'three';
   import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+  import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
   import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
   import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
@@ -508,6 +510,12 @@
   
   // GLB Loader for spaceship models
   const gltfLoader = new GLTFLoader();
+  
+  // Setup DRACO Loader for compressed models
+  const dracoLoader = new DRACOLoader();
+  dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+  gltfLoader.setDRACOLoader(dracoLoader);
+  
   let shipModel = null; // Cache for loaded model
   let modelLoading = false;
   let modelLoadError = false;
@@ -535,7 +543,7 @@
       modelLoading = true;
 
       gltfLoader.load(
-        'images/gemini3_anim1_draco.glb',
+        'gemini3_anim1_draco.glb',
         (gltf) => {
           shipModel = gltf.scene;
           modelLoading = false;
@@ -543,7 +551,9 @@
           resolve(shipModel.clone());
         },
         (progress) => {
-          console.log('Loading model:', (progress.loaded / progress.total * 100).toFixed(0) + '%');
+          if (progress.total > 0) {
+            console.log('Loading model:', (progress.loaded / progress.total * 100).toFixed(0) + '%');
+          }
         },
         (error) => {
           modelLoading = false;
