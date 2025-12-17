@@ -223,6 +223,64 @@
       margin-bottom: 10px;
     }
 
+    #infoProfitContainer {
+      font-family: "Orbitron", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: auto;
+    }
+
+    #infoProfitIcon {
+      background: url('https://img.icons8.com/quill/100/FAB005/gear.png') no-repeat center center;
+      background-size: contain;
+      width: 120px;
+      height: 120px;
+      position: relative;
+    }
+
+    .profit-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      font-family: "Orbitron", sans-serif;
+      transform: translate(-50%, -50%);
+      font-size: 60px;
+      font-weight: 900;
+      color: #666;
+      opacity: 0.20;
+      letter-spacing: 2px;
+      pointer-events: none;
+      user-select: none;
+      z-index: 0;
+    }
+
+    #infoProfitIcon::before {
+      font-family: "Orbitron", sans-serif;
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: inherit;
+      filter: brightness(0.13);
+      z-index: 0;
+    }
+
+    #infoProfit {
+      font-family: "Orbitron", sans-serif;
+      opacity: 1;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      font-weight: 900;
+      color: #ffee55;
+      text-shadow: 0 0 5px #000;
+    }
+
     #inputFile {
       display: none;
     }
