@@ -926,16 +926,16 @@
     // Shield - short vertical columns with fading lights near the model
     if (attributes.shield > 0) {
       const shieldColor = attributes.shield >= 3 ? 0x00ff88 : (attributes.shield >= 2 ? 0xffff00 : 0xff8888);
-      const shieldRadius = attributes.size * 0.35;
+      const shieldRadius = attributes.size * 0.1;
       
       // Create short vertical light columns around the shield perimeter
-      const columnCount = 6;
+      const columnCount = 12;
       for (let i = 0; i < columnCount; i++) {
         const angle = (i / columnCount) * Math.PI * 2;
         const x = Math.cos(angle) * shieldRadius;
         const z = Math.sin(angle) * shieldRadius;
         
-        const beamGeometry = new THREE.CylinderGeometry(1.5, 1.5, 8, 4);
+        const beamGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 8);
         const beamMaterial = new THREE.MeshBasicMaterial({
           color: shieldColor,
           transparent: true,
@@ -969,7 +969,7 @@
         if (attributes.front > 0) {
           const frontArc = createArc(barRadius, -arcAngle, arcAngle, arcSegments, 0x00ffff);
           frontArc.position.y = 0.01;
-          frontArc.material.linewidth = 3;
+          frontArc.material.linewidth = 30;
           frontArc.userData = {
             isWifiBar: true,
             barIndex: bar,
@@ -984,7 +984,7 @@
         if (attributes.side > 0) {
           const leftArc = createArc(barRadius, Math.PI / 2 - arcAngle, Math.PI / 2 + arcAngle, arcSegments, 0xff00ff);
           leftArc.position.y = 0.01;
-          leftArc.material.linewidth = 3;
+          leftArc.material.linewidth = 30;
           leftArc.userData = {
             isWifiBar: true,
             barIndex: bar,
@@ -999,7 +999,7 @@
         if (attributes.side > 0) {
           const rightArc = createArc(barRadius, -Math.PI / 2 - arcAngle, -Math.PI / 2 + arcAngle, arcSegments, 0xffff00);
           rightArc.position.y = 0.01;
-          rightArc.material.linewidth = 3;
+          rightArc.material.linewidth = 30;
           rightArc.userData = {
             isWifiBar: true,
             barIndex: bar,
@@ -1014,7 +1014,7 @@
         if (attributes.rear > 0) {
           const rearArc = createArc(barRadius, Math.PI - arcAngle, Math.PI + arcAngle, arcSegments, 0xff6600);
           rearArc.position.y = 0.01;
-          rearArc.material.linewidth = 3;
+          rearArc.material.linewidth = 30;
           rearArc.userData = {
             isWifiBar: true,
             barIndex: bar,
@@ -1043,7 +1043,7 @@
           // Pulsing plate animation
           const pulse = Math.sin(time * 2) * 0.3 + 0.7;
           child.material.opacity = child.userData.baseOpacity * pulse;
-          child.scale.set(pulse, 1, pulse);
+          child.scale.set(pulse, pulse, pulse);
         } else if (child.userData.isShieldBeam) {
           // Fading light columns
           const delay = child.userData.columnIndex * 0.15;
