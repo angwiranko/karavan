@@ -1694,7 +1694,7 @@
           if (targetX !== undefined && targetZ !== undefined) {
               const validPosition = findNearestValidPosition(targetX, targetZ, size);
               const targetY = getCorrectYPosition(validPosition.x, validPosition.z, size);
-              smoothMove(selectedPlayer, validPosition.x, targetY, validPosition.z, 500);
+              smoothMove(selectedPlayer, validPosition.x, targetY, validPosition.z, 1500);
               updateInfoPanel(null);
           } 
 		  
