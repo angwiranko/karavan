@@ -1987,10 +1987,18 @@
     };
   
     players.children.forEach(obj => {
+      // Extract color from first mesh material
+      let colorHex = '#0000ff';
+      obj.traverse((node) => {
+        if (colorHex === '#0000ff' && node.isMesh && node.material && node.material.color) {
+          colorHex = '#' + node.material.color.getHexString();
+        }
+      });
+      
       mapData.players.push({
         name: obj.userData.name,
         size: obj.userData.size,
-        color: obj.material ? '#' + obj.material.color.getHexString() : '#0000ff',
+        color: colorHex,
         heading: obj.userData.heading || 0,
         speed: obj.userData.speed || 0,
         shield: obj.userData.shield || 0,
@@ -2008,10 +2016,18 @@
     });
   
     enemies.children.forEach(obj => {
+      // Extract color from first mesh material
+      let colorHex = '#ff0000';
+      obj.traverse((node) => {
+        if (colorHex === '#ff0000' && node.isMesh && node.material && node.material.color) {
+          colorHex = '#' + node.material.color.getHexString();
+        }
+      });
+      
       mapData.enemies.push({
         name: obj.userData.name,
         size: obj.userData.size,
-        color: obj.material ? '#' + obj.material.color.getHexString() : '#ff0000',
+        color: colorHex,
         heading: obj.userData.heading || 0,
         speed: obj.userData.speed || 0,
         shield: obj.userData.shield || 0,
