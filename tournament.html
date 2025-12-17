@@ -437,6 +437,7 @@
   let originalMaterial = null;
   let originalMaterials = []; // Store all original materials for complex models
   let hoverIndicator = null;
+  let sceneNeedsUpdate = true; // Dirty flag for rendering optimization
   
   // Rotation control
   const rotationPanel = document.getElementById('rotationPanel');
@@ -457,6 +458,7 @@
     selectedPlayer.userData.heading = (selectedPlayer.userData.heading || 0) + radians;
     selectedPlayer.rotation.y = selectedPlayer.userData.heading;
     updateRotationDisplay();
+    sceneNeedsUpdate = true;
   }
   
   document.getElementById('rotateUp').addEventListener('click', () => rotateShip(rotationSpeed));
@@ -468,6 +470,7 @@
     selectedPlayer.userData.heading = 0;
     selectedPlayer.rotation.y = 0;
     updateRotationDisplay();
+    sceneNeedsUpdate = true;
   });
   
   // Keyboard controls
@@ -478,24 +481,28 @@
       case 'w':
       case 'W':
         rotateShip(rotationSpeed);
+        sceneNeedsUpdate = true;
         e.preventDefault();
         break;
       case 'ArrowDown':
       case 's':
       case 'S':
         rotateShip(-rotationSpeed);
+        sceneNeedsUpdate = true;
         e.preventDefault();
         break;
       case 'ArrowLeft':
       case 'q':
       case 'Q':
         rotateShip(rotationSpeed);
+        sceneNeedsUpdate = true;
         e.preventDefault();
         break;
       case 'ArrowRight':
       case 'e':
       case 'E':
         rotateShip(-rotationSpeed);
+        sceneNeedsUpdate = true;
         e.preventDefault();
         break;
       case 'r':
@@ -503,6 +510,7 @@
         selectedPlayer.userData.heading = 0;
         selectedPlayer.rotation.y = 0;
         updateRotationDisplay();
+        sceneNeedsUpdate = true;
         e.preventDefault();
         break;
     }
@@ -531,6 +539,7 @@
         });
       }
     });
+    sceneNeedsUpdate = true;
   });
   
   
@@ -653,7 +662,8 @@
     } else if (creatingType === "enemy") {
       createEnemy(0, 0, color, name, size, attributes);
     }
-  
+    
+    sceneNeedsUpdate = true;
     closePopup();
   });
 
@@ -680,6 +690,7 @@
       selectedPlayer = null;
 	  updateInfoPanel(null);
       originalMaterial = null;
+      sceneNeedsUpdate = true;
     }
   });
   
@@ -1583,6 +1594,7 @@
 
       terrain.add(debris);
     }
+    sceneNeedsUpdate = true;
   }
 
   generateTerrain();
@@ -1597,6 +1609,7 @@
       const t = Math.min(elapsed / duration, 1);
   
       object.position.lerpVectors(startPosition, new THREE.Vector3(targetX, targetY, targetZ), t);
+      sceneNeedsUpdate = true;
   
       if (t < 1) {
         requestAnimationFrame(animate);
@@ -1655,6 +1668,7 @@
           selectedPlayer = null;
           originalMaterial = null;
           originalMaterials = [];
+          sceneNeedsUpdate = true;
   
       } else {
           const intersects = raycaster.intersectObjects([...players.children, ...enemies.children], true);
@@ -1725,6 +1739,7 @@
               updateInfoPanel(selectedPlayer);
               rotationPanel.classList.add('active');
               updateRotationDisplay();
+              sceneNeedsUpdate = true;
               console.log('Selected ship:', selectedPlayer);
           } else {
               // Deselect if clicking on nothing
@@ -1744,6 +1759,7 @@
               selectedPlayer = null;
               originalMaterial = null;
               originalMaterials = [];
+              sceneNeedsUpdate = true;
               updateInfoPanel(null);
               rotationPanel.classList.remove('active');
           }
@@ -1788,18 +1804,24 @@
           const validPosition = findNearestValidPosition(targetX, targetZ, size);
           const targetY = getCorrectYPosition(validPosition.x, validPosition.z, size);
           showHoverIndicator(validPosition.x, targetY - size + 2, validPosition.z, size);
+          sceneNeedsUpdate = true;
       } else {
           hideHoverIndicator();
       }
   });
 
-  // Render loop
+  // Render loop with dirty flag optimization
   function animate() {
     requestAnimationFrame(animate);
 	controls.update();
     updateHoverIndicator();
     updateRangeVisuals();
-    renderer.render(scene, camera);
+    
+    // Only render if scene needs update
+    if (sceneNeedsUpdate) {
+      renderer.render(scene, camera);
+      sceneNeedsUpdate = false;
+    }
   }
     
 	
@@ -1810,6 +1832,7 @@
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    sceneNeedsUpdate = true;
   });
   
   
@@ -1884,6 +1907,8 @@
             ship.rotation.y = item.heading;
           }
         });
+
+        sceneNeedsUpdate = true;
       });
 
       showToast("✅ Load successful!");
