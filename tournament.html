@@ -954,7 +954,7 @@
       const sphereMaterial = new THREE.MeshBasicMaterial({
         color: shieldColor,
         transparent: true,
-        opacity: 0.25
+        opacity: 0.1
       });
       const shieldSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
       shieldSphere.position.y = 0.03;
@@ -968,40 +968,40 @@
       const baseRadius = attributes.longRange * rangeScale;
       const arcWidth = Math.PI / 4; // 45 degrees per section
       
-      // Front (0°) - scaled by attributes.front (0-5)
+      // Front (90°) - scaled by attributes.front (0-5)
       if (attributes.front > 0) {
         const frontScale = Math.min(5, Math.max(1, attributes.front)) / 5; // Normalize 1-5 to 0.2-1.0
         const frontMaxRadius = baseRadius * frontScale;
-        addFlatArcSegment(group, frontMaxRadius * 0.6, frontMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.2);
-        addFlatArcSegment(group, frontMaxRadius * 0.75, frontMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.15);
-        addFlatArcSegment(group, frontMaxRadius * 0.9, frontMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.1);
+        addFlatArcSegment(group, frontMaxRadius * 0.6, frontMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, frontMaxRadius * 0.75, frontMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, frontMaxRadius * 0.9, frontMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.1);
       }
       
-      // Left (90°) - scaled by attributes.side (0-5)
+      // Left (180°) - scaled by attributes.side (0-5)
       if (attributes.side > 0) {
         const sideScale = Math.min(5, Math.max(1, attributes.side)) / 5; // Normalize 1-5 to 0.2-1.0
         const sideMaxRadius = baseRadius * sideScale;
-        addFlatArcSegment(group, sideMaxRadius * 0.6, sideMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
-        addFlatArcSegment(group, sideMaxRadius * 0.75, sideMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
-        addFlatArcSegment(group, sideMaxRadius * 0.9, sideMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.1);
+        addFlatArcSegment(group, sideMaxRadius * 0.6, sideMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, sideMaxRadius * 0.75, sideMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, sideMaxRadius * 0.9, sideMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.1);
       }
       
-      // Right (270°) - scaled by attributes.side (0-5)
+      // Right (0°) - scaled by attributes.side (0-5)
       if (attributes.side > 0) {
         const sideScale = Math.min(5, Math.max(1, attributes.side)) / 5;
         const sideMaxRadius = baseRadius * sideScale;
-        addFlatArcSegment(group, sideMaxRadius * 0.6, sideMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
-        addFlatArcSegment(group, sideMaxRadius * 0.75, sideMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
-        addFlatArcSegment(group, sideMaxRadius * 0.9, sideMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.1);
+        addFlatArcSegment(group, sideMaxRadius * 0.6, sideMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, sideMaxRadius * 0.75, sideMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, sideMaxRadius * 0.9, sideMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.1);
       }
       
-      // Rear (180°) - scaled by attributes.rear (0-5)
+      // Rear (270°) - scaled by attributes.rear (0-5)
       if (attributes.rear > 0) {
         const rearScale = Math.min(5, Math.max(1, attributes.rear)) / 5; // Normalize 1-5 to 0.2-1.0
         const rearMaxRadius = baseRadius * rearScale;
-        addFlatArcSegment(group, rearMaxRadius * 0.6, rearMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.2);
-        addFlatArcSegment(group, rearMaxRadius * 0.75, rearMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.15);
-        addFlatArcSegment(group, rearMaxRadius * 0.9, rearMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.1);
+        addFlatArcSegment(group, rearMaxRadius * 0.6, rearMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, rearMaxRadius * 0.75, rearMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, rearMaxRadius * 0.9, rearMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.1);
       }
     }
     
