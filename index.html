@@ -878,6 +878,7 @@
   let selectedGroup = [];
   let allTooltips = [];
   let tooltipsVisible = false;
+  let sceneNeedsUpdate = true; // Dirty flag for rendering optimization
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x222222);
@@ -891,6 +892,11 @@
 
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
+  
+  // Trigger render when camera moves
+  controls.addEventListener('change', () => {
+    sceneNeedsUpdate = true;
+  });
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
   scene.add(ambientLight);
@@ -1156,6 +1162,7 @@
 		document.getElementById('tooltipText').innerText = info?.nev || clickedObject.name || 'Ismeretlen objektum';
 		tooltip.style.display = 'block';
 		updateTooltipPosition(clickedObject);
+		sceneNeedsUpdate = true;
 		
 		}
 		
@@ -1190,6 +1197,7 @@
 	  selectedObject = null;
 	  previousSelection = null;
 	  tooltip.style.display = 'none';
+	  sceneNeedsUpdate = true;
 	}
 
     function updateTooltipPosition(object3D) {
@@ -1249,6 +1257,7 @@ console.log("🧪 Tooltip info:", info);
 		  }
 		});
 	  }
+	  sceneNeedsUpdate = true;
 	}
 
   loadModel(currentModel);
@@ -1257,6 +1266,7 @@ console.log("🧪 Tooltip info:", info);
   document.getElementById('toggleRotation').addEventListener('click', () => {
     rotate = !rotate;
     document.getElementById('rotationLabel').textContent = `Forgatás: ${rotate ? 'BE' : 'KI'}`;
+    sceneNeedsUpdate = true;
   });
   
   
@@ -1281,6 +1291,7 @@ console.log("🧪 Tooltip info:", info);
     currentModelIndex = (currentModelIndex + 1) % availableModels.length;
     currentModel = availableModels[currentModelIndex];
     loadModel(currentModel);
+    sceneNeedsUpdate = true;
   });
   
   const toggleNPClist = document.getElementById('toggleNPClist');
@@ -1660,7 +1671,10 @@ console.log("🧪 Tooltip info:", info);
 	  requestAnimationFrame(animate);
 
 	    if (selectedObject) updateTooltipPosition(selectedObject);
-	    if (model && rotate) model.rotation.y += -0.0002;
+	    if (model && rotate) {
+	    	model.rotation.y += -0.0002;
+	    	sceneNeedsUpdate = true;
+	    }
 		if (tooltipsVisible) {
 		  allTooltips.forEach(({ element, target }) => {
 			const vector = new THREE.Vector3();
@@ -1715,12 +1729,16 @@ console.log("🧪 Tooltip info:", info);
 			
 			
 		});
-		
+		sceneNeedsUpdate = true;
 	}
 
 	  controls.update();
-	  renderer.render(scene, camera);
 	  
+	  // Only render if scene needs update
+	  if (sceneNeedsUpdate) {
+	    renderer.render(scene, camera);
+	    sceneNeedsUpdate = false;
+	  }
 
 	}
 	
@@ -1807,6 +1825,8 @@ console.log("🧪 Tooltip info:", info);
     setTimeout(() => {
       updateTooltipPosition(representativeMesh || group);
     }, 100);
+    
+    sceneNeedsUpdate = true;
   } else {
     console.warn(`ℹ️ Nincs adat ehhez az ID-hez: ${groupId}`);
   }
@@ -1836,6 +1856,16 @@ console.log("🧪 Tooltip info:", info);
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    sceneNeedsUpdate = true;
+  });
+  
+  // ESC to deselect
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      clearSelection();
+      const box = document.getElementById('infoBox');
+      if (box) box.style.display = 'none';
+    }
   });
 </script>
 <script>
