@@ -1763,6 +1763,15 @@
 
   generateTerrain();
 
+  // Helper function to get shortest angle difference
+  function shortestAngleDifference(from, to) {
+    let diff = to - from;
+    // Normalize to [-π, π]
+    while (diff > Math.PI) diff -= 2 * Math.PI;
+    while (diff < -Math.PI) diff += 2 * Math.PI;
+    return diff;
+  }
+
   // Smooth movement
   function smoothMove(object, targetX, targetY, targetZ, duration = 500) {
     // Capture state before movement
@@ -1777,6 +1786,9 @@
     const dz = targetZ - startPosition.z;
     const targetHeading = Math.atan2(dx, dz) + Math.PI;
     
+    // Calculate shortest angle difference
+    const angleDiff = shortestAngleDifference(startHeading, targetHeading);
+    
     function animate() {
       const elapsed = performance.now() - startTime;
       const t = Math.min(elapsed / duration, 1);
@@ -1784,8 +1796,8 @@
       // During first 33% of movement: turn and move
       // After 33%: just move to position
       if (t <= 0.33) {
-        // Turn towards target during first 33%
-        object.userData.heading = startHeading + (targetHeading - startHeading) * (t / 0.33);
+        // Turn towards target during first 33%, taking shortest path
+        object.userData.heading = startHeading + angleDiff * (t / 0.33);
         object.rotation.y = object.userData.heading;
       }
       
