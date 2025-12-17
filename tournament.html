@@ -1848,11 +1848,37 @@
 
       requestAnimationFrame(() => {
         data.players.forEach(item => {
-          createPlayer(item.position.x, item.position.z, item.color, item.name, item.size);
+          const ship = createPlayer(item.position.x, item.position.z, item.color, item.name, item.size, {
+            speed: item.speed,
+            shield: item.shield,
+            shortRange: item.shortRange,
+            longRange: item.longRange,
+            front: item.front,
+            side: item.side,
+            rear: item.rear
+          });
+          if (item.position.y !== undefined) ship.position.y = item.position.y;
+          if (item.heading !== undefined) {
+            ship.userData.heading = item.heading;
+            ship.rotation.y = item.heading;
+          }
         });
 
         data.enemies.forEach(item => {
-          createEnemy(item.position.x, item.position.z, item.color, item.name, item.size);
+          const ship = createEnemy(item.position.x, item.position.z, item.color, item.name, item.size, {
+            speed: item.speed,
+            shield: item.shield,
+            shortRange: item.shortRange,
+            longRange: item.longRange,
+            front: item.front,
+            side: item.side,
+            rear: item.rear
+          });
+          if (item.position.y !== undefined) ship.position.y = item.position.y;
+          if (item.heading !== undefined) {
+            ship.userData.heading = item.heading;
+            ship.rotation.y = item.heading;
+          }
         });
       });
 
@@ -1874,6 +1900,14 @@
         name: obj.userData.name,
         size: obj.userData.size,
         color: obj.material ? '#' + obj.material.color.getHexString() : '#0000ff',
+        heading: obj.userData.heading || 0,
+        speed: obj.userData.speed || 0,
+        shield: obj.userData.shield || 0,
+        shortRange: obj.userData.shortRange || 0,
+        longRange: obj.userData.longRange || 0,
+        front: obj.userData.front || 0,
+        side: obj.userData.side || 0,
+        rear: obj.userData.rear || 0,
         position: {
           x: obj.position.x,
           y: obj.position.y,
@@ -1887,6 +1921,14 @@
         name: obj.userData.name,
         size: obj.userData.size,
         color: obj.material ? '#' + obj.material.color.getHexString() : '#ff0000',
+        heading: obj.userData.heading || 0,
+        speed: obj.userData.speed || 0,
+        shield: obj.userData.shield || 0,
+        shortRange: obj.userData.shortRange || 0,
+        longRange: obj.userData.longRange || 0,
+        front: obj.userData.front || 0,
+        side: obj.userData.side || 0,
+        rear: obj.userData.rear || 0,
         position: {
           x: obj.position.x,
           y: obj.position.y,
