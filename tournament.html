@@ -807,7 +807,14 @@
     return new Promise((resolve) => {
       // If already loaded, clone and return
       if (shipModel) {
-        resolve(shipModel.clone());
+        const clonedModel = shipModel.clone();
+        // Deep clone materials to avoid sharing between instances
+        clonedModel.traverse((node) => {
+          if (node.isMesh && node.material) {
+            node.material = node.material.clone();
+          }
+        });
+        resolve(clonedModel);
         return;
       }
 
@@ -831,7 +838,14 @@
           shipModel = gltf.scene;
           modelLoading = false;
           console.log('✅ Ship model loaded successfully');
-          resolve(shipModel.clone());
+          const clonedModel = shipModel.clone();
+          // Deep clone materials
+          clonedModel.traverse((node) => {
+            if (node.isMesh && node.material) {
+              node.material = node.material.clone();
+            }
+          });
+          resolve(clonedModel);
         },
         (progress) => {
           if (progress.total > 0) {
