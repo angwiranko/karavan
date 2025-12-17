@@ -877,124 +877,171 @@
     }
   }
   
-  // Create visual range indicators for ships - Board Game Inspired (Rogue Trader style)
+  // Create visual range indicators - Flat 2D Board Game Style
   function createRangeVisuals(shipObject, attributes, color) {
     const group = new THREE.Group();
     group.name = "RangeVisuals";
     group.userData = { time: 0, animatingChildren: [] };
     
-    // Scale factors to fit ranges within visible board
     const speedScale = 0.4;
     const rangeScale = 0.35;
-    const torusThickness = 1.2; // Thickness of range arcs
     
-    // Speed range - thin torus (outer boundary)
+    // Speed circle - thin dashed line
     if (attributes.speed > 0) {
       const speedRadius = attributes.speed * speedScale;
-      const torusGeometry = new THREE.TorusGeometry(speedRadius, torusThickness * 0.5, 12, 48, Math.PI * 2 * 0.6);
-      const speedMaterial = new THREE.MeshBasicMaterial({
+      const points = [];
+      const segments = 64;
+      const dashLength = 8;
+      
+      for (let i = 0; i < segments; i++) {
+        if (Math.floor(i / dashLength) % 2 === 0) {
+          const angle = (i / segments) * Math.PI * 2;
+          points.push(new THREE.Vector3(
+            Math.cos(angle) * speedRadius,
+            0.01,
+            Math.sin(angle) * speedRadius
+          ));
+        }
+      }
+      
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const material = new THREE.LineBasicMaterial({
         color: 0x4488ff,
         transparent: true,
-        opacity: 0.35,
-        side: THREE.DoubleSide
+        opacity: 0.4,
+        linewidth: 1
       });
-      const speedTorus = new THREE.Mesh(torusGeometry, speedMaterial);
-      speedTorus.position.y = 0.01;
-      speedTorus.rotation.x = -Math.PI / 2;
-      speedTorus.userData = { isSpeedRing: true, baseOpacity: 0.35 };
-      group.add(speedTorus);
-      group.userData.animatingChildren.push(speedTorus);
+      const line = new THREE.LineSegments(geometry, material);
+      line.userData = { isSpeedRing: true, baseOpacity: 0.4 };
+      group.add(line);
+      group.userData.animatingChildren.push(line);
     }
     
-    // Short range - bright medium torus ring
+    // Short range - simple ring (filled circle outline)
     if (attributes.shortRange > 0) {
       const shortRadius = attributes.shortRange * rangeScale;
-      const torusGeometry = new THREE.TorusGeometry(shortRadius, torusThickness, 16, 64);
-      const shortMaterial = new THREE.MeshBasicMaterial({
+      const points = [];
+      const segments = 64;
+      
+      for (let i = 0; i <= segments; i++) {
+        const angle = (i / segments) * Math.PI * 2;
+        points.push(new THREE.Vector3(
+          Math.cos(angle) * shortRadius,
+          0.02,
+          Math.sin(angle) * shortRadius
+        ));
+      }
+      
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const material = new THREE.LineBasicMaterial({
         color: 0xff8800,
         transparent: true,
-        opacity: 0.25,
-        side: THREE.DoubleSide
+        opacity: 0.35,
+        linewidth: 1
       });
-      const shortTorus = new THREE.Mesh(torusGeometry, shortMaterial);
-      shortTorus.position.y = 0.02;
-      shortTorus.rotation.x = -Math.PI / 2;
-      shortTorus.userData = { isShortRange: true, baseOpacity: 0.25 };
-      group.add(shortTorus);
-      group.userData.animatingChildren.push(shortTorus);
+      const line = new THREE.Line(geometry, material);
+      line.userData = { isShortRange: true, baseOpacity: 0.35 };
+      group.add(line);
+      group.userData.animatingChildren.push(line);
     }
     
-    // Shield - pulsing sphere with soft transparency
+    // Shield - tiny center sphere
     if (attributes.shield > 0) {
       const shieldColor = attributes.shield >= 3 ? 0x00ff88 : (attributes.shield >= 2 ? 0xffff00 : 0xff8888);
-      const shieldRadius = attributes.size * 0.07;
+      const shieldRadius = Math.max(3, attributes.size * 0.04);
       
-      const sphereGeometry = new THREE.SphereGeometry(shieldRadius, 32, 32);
+      const sphereGeometry = new THREE.SphereGeometry(shieldRadius, 16, 16);
       const sphereMaterial = new THREE.MeshBasicMaterial({
         color: shieldColor,
         transparent: true,
-        opacity: 0.2,
-        side: THREE.BackSide
+        opacity: 0.25
       });
       const shieldSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-      shieldSphere.position.set(0, 0, 0);
+      shieldSphere.position.y = 0.03;
       shieldSphere.userData = { isShieldSphere: true };
       group.add(shieldSphere);
       group.userData.animatingChildren.push(shieldSphere);
     }
     
-    // Long range - directional glowing arcs (4 directions with stacked rings)
+    // Long range - directional flat arcs (4 wedge sections)
     if (attributes.longRange > 0) {
       const baseRadius = attributes.longRange * rangeScale;
-      const arcAngle = Math.PI / 6; // 30 degree coverage per direction
+      const arcWidth = Math.PI / 4; // 45 degrees per section
       
-      // Create 3 stacked concentric torus rings
-      for (let ring = 0; ring < 3; ring++) {
-        const ringRadius = baseRadius * (0.55 + (ring * 0.18));
-        const ringOpacity = 0.15 + (ring * 0.08);
-        
-        // Front arc (0 degrees, -30 to +30)
-        if (attributes.front > 0) {
-          const frontArc = createDirectionalArc(ringRadius, -arcAngle, arcAngle, torusThickness, 0x00ffff);
-          frontArc.position.y = 0.02;
-          frontArc.userData = { baseOpacity: ringOpacity, ringIndex: ring };
-          group.add(frontArc);
-          group.userData.animatingChildren.push(frontArc);
-        }
-        
-        // Left arc (90 degrees, 60 to 120)
-        if (attributes.side > 0) {
-          const leftArc = createDirectionalArc(ringRadius, Math.PI / 2 - arcAngle, Math.PI / 2 + arcAngle, torusThickness, 0x00ffff);
-          leftArc.position.y = 0.02;
-          leftArc.userData = { baseOpacity: ringOpacity, ringIndex: ring };
-          group.add(leftArc);
-          group.userData.animatingChildren.push(leftArc);
-        }
-        
-        // Right arc (270 degrees, -120 to -60)
-        if (attributes.side > 0) {
-          const rightArc = createDirectionalArc(ringRadius, -Math.PI / 2 - arcAngle, -Math.PI / 2 + arcAngle, torusThickness, 0x00ffff);
-          rightArc.position.y = 0.02;
-          rightArc.userData = { baseOpacity: ringOpacity, ringIndex: ring };
-          group.add(rightArc);
-          group.userData.animatingChildren.push(rightArc);
-        }
-        
-        // Rear arc (180 degrees, 150 to 210)
-        if (attributes.rear > 0) {
-          const rearArc = createDirectionalArc(ringRadius, Math.PI - arcAngle, Math.PI + arcAngle, torusThickness, 0x00ffff);
-          rearArc.position.y = 0.02;
-          rearArc.userData = { baseOpacity: ringOpacity, ringIndex: ring };
-          group.add(rearArc);
-          group.userData.animatingChildren.push(rearArc);
-        }
+      // Front (0°)
+      if (attributes.front > 0) {
+        addFlatArcSegment(group, baseRadius * 0.6, baseRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, baseRadius * 0.75, baseRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, baseRadius * 0.9, baseRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.1);
+      }
+      
+      // Left (90°)
+      if (attributes.side > 0) {
+        addFlatArcSegment(group, baseRadius * 0.6, baseRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, baseRadius * 0.75, baseRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, baseRadius * 0.9, baseRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.1);
+      }
+      
+      // Right (270°)
+      if (attributes.side > 0) {
+        addFlatArcSegment(group, baseRadius * 0.6, baseRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, baseRadius * 0.75, baseRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, baseRadius * 0.9, baseRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.1);
+      }
+      
+      // Rear (180°)
+      if (attributes.rear > 0) {
+        addFlatArcSegment(group, baseRadius * 0.6, baseRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, baseRadius * 0.75, baseRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, baseRadius * 0.9, baseRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.1);
       }
     }
     
     return group;
   }
   
-  // Animate range visuals - smooth pulsing for board game aesthetic
+  // Helper: Add a simple flat arc line segment
+  function addFlatArcSegment(group, innerRadius, outerRadius, startAngle, endAngle, color, opacity) {
+    const segments = 16;
+    const points = [];
+    
+    // Outer arc
+    for (let i = 0; i <= segments; i++) {
+      const angle = startAngle + (endAngle - startAngle) * (i / segments);
+      points.push(new THREE.Vector3(
+        Math.cos(angle) * outerRadius,
+        0.02,
+        Math.sin(angle) * outerRadius
+      ));
+    }
+    
+    // Inner arc (reverse)
+    for (let i = segments; i >= 0; i--) {
+      const angle = startAngle + (endAngle - startAngle) * (i / segments);
+      points.push(new THREE.Vector3(
+        Math.cos(angle) * innerRadius,
+        0.02,
+        Math.sin(angle) * innerRadius
+      ));
+    }
+    
+    // Close the shape
+    points.push(points[0]);
+    
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: opacity,
+      linewidth: 1
+    });
+    const line = new THREE.Line(geometry, material);
+    line.userData = { isRangeArc: true, baseOpacity: opacity };
+    group.add(line);
+    group.userData.animatingChildren.push(line);
+  }
+  
+  // Animate range visuals - simple opacity pulse
   function updateRangeVisuals() {
     const time = Date.now() * 0.001;
     
@@ -1004,22 +1051,19 @@
         if (!rangeGroup || !rangeGroup.userData.animatingChildren) return;
         
         rangeGroup.userData.animatingChildren.forEach(child => {
+          if (!child.material || !child.userData.baseOpacity) return;
+          
           if (child.userData.isSpeedRing) {
-            // Outer speed circle - gentle fade
             const pulse = Math.sin(time * 0.6) * 0.15 + 0.85;
             child.material.opacity = child.userData.baseOpacity * pulse;
           } else if (child.userData.isShortRange) {
-            // Short range torus - subtle pulse
             const pulse = Math.sin(time * 0.7) * 0.1 + 0.9;
             child.material.opacity = child.userData.baseOpacity * pulse;
           } else if (child.userData.isShieldSphere) {
-            // Shield sphere - smooth shimmer
-            const shimmer = Math.sin(time * 0.5) * 0.1 + 0.2;
+            const shimmer = Math.sin(time * 0.5) * 0.08 + 0.25;
             child.material.opacity = shimmer;
-          } else if (child.userData.ringIndex !== undefined) {
-            // Long range directional arcs - wave cascade
-            const delay = child.userData.ringIndex * 0.15;
-            const wave = Math.sin(time * 0.65 + delay) * 0.2 + 0.8;
+          } else if (child.userData.isRangeArc) {
+            const wave = Math.sin(time * 0.5) * 0.15 + 0.85;
             child.material.opacity = child.userData.baseOpacity * wave;
           }
         });
@@ -1069,22 +1113,7 @@
     return geometry;
   }
   
-  // Helper: Create a directional arc using torus geometry
-  function createDirectionalArc(radius, startAngle, endAngle, thickness, color) {
-    const arcAngleRange = endAngle - startAngle;
-    const torusGeometry = new THREE.TorusGeometry(radius, thickness, 8, 32, arcAngleRange);
-    const material = new THREE.MeshBasicMaterial({
-      color: color,
-      transparent: true,
-      opacity: 0.2,
-      side: THREE.DoubleSide
-    });
-    const arc = new THREE.Mesh(torusGeometry, material);
-    arc.rotation.z = startAngle + arcAngleRange / 2;
-    return arc;
-  }
-  
-  // Create player ship
+  // Helper: Create a solid circle (line geometry) - already in XZ plane
   async function createPlayer(x, z, color = 0x0000ff, name = "Player", size = 20, attributes = {}) {
     // Set default attributes
     const attrs = {
