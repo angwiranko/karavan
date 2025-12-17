@@ -291,6 +291,7 @@
 	<button id="addPlayer" class="sci-button">➕ Új Hajó</button>
     <button id="addNPC" class="sci-button">➕ Új Ellenfél</button>
     <button id="deleteSelected" class="sci-button">🗑️ Törlés</button>
+    <button id="undoMove" class="sci-button">↶ Visszavonás</button>
     <button id="saveMap" class="sci-button">💾 Mentés</button>
     <button id="loadMap" class="sci-button">📂 Betöltés</button>
     <input type="file" id="fileInput" style="display: none;">
@@ -443,6 +444,85 @@
   let originalMaterials = []; // Store all original materials for complex models
   let hoverIndicator = null;
   let sceneNeedsUpdate = true; // Dirty flag for rendering optimization
+  
+  // Undo/Redo system
+  const stateHistory = [];
+  const MAX_HISTORY = 50;
+  
+  function captureState() {
+    const state = {
+      players: [],
+      enemies: []
+    };
+    
+    // Capture all player states
+    players.children.forEach(player => {
+      state.players.push({
+        id: player.uuid,
+        position: { x: player.position.x, y: player.position.y, z: player.position.z },
+        heading: player.userData.heading || 0,
+        rotation: { x: player.rotation.x, y: player.rotation.y, z: player.rotation.z }
+      });
+    });
+    
+    // Capture all enemy states
+    enemies.children.forEach(enemy => {
+      state.enemies.push({
+        id: enemy.uuid,
+        position: { x: enemy.position.x, y: enemy.position.y, z: enemy.position.z },
+        heading: enemy.userData.heading || 0,
+        rotation: { x: enemy.rotation.x, y: enemy.rotation.y, z: enemy.rotation.z }
+      });
+    });
+    
+    stateHistory.push(state);
+    if (stateHistory.length > MAX_HISTORY) {
+      stateHistory.shift();
+    }
+  }
+  
+  function restoreState(state) {
+    if (!state) return;
+    
+    // Restore player states
+    state.players.forEach(savedPlayer => {
+      const player = [...players.children].find(p => p.uuid === savedPlayer.id);
+      if (player) {
+        player.position.set(savedPlayer.position.x, savedPlayer.position.y, savedPlayer.position.z);
+        player.userData.heading = savedPlayer.heading;
+        player.rotation.y = savedPlayer.heading;
+        player.rotation.x = savedPlayer.rotation.x;
+        player.rotation.z = savedPlayer.rotation.z;
+      }
+    });
+    
+    // Restore enemy states
+    state.enemies.forEach(savedEnemy => {
+      const enemy = [...enemies.children].find(e => e.uuid === savedEnemy.id);
+      if (enemy) {
+        enemy.position.set(savedEnemy.position.x, savedEnemy.position.y, savedEnemy.position.z);
+        enemy.userData.heading = savedEnemy.heading;
+        enemy.rotation.y = savedEnemy.heading;
+        enemy.rotation.x = savedEnemy.rotation.x;
+        enemy.rotation.z = savedEnemy.rotation.z;
+      }
+    });
+    
+    sceneNeedsUpdate = true;
+  }
+  
+  function undo() {
+    if (stateHistory.length < 2) {
+      showToast("⚠️ Nincs mit visszavonni", 'warning');
+      return;
+    }
+    stateHistory.pop(); // Remove current state
+    const previousState = stateHistory[stateHistory.length - 1];
+    restoreState(previousState);
+    showToast("↶ Mozgás visszavonva", 'success');
+  }
+  
+  document.getElementById('undoMove').addEventListener('click', undo);
   
   // Rotation control
   const rotationPanel = document.getElementById('rotationPanel');
@@ -1644,6 +1724,9 @@
 
   // Smooth movement
   function smoothMove(object, targetX, targetY, targetZ, duration = 500) {
+    // Capture state before movement
+    captureState();
+    
     const startPosition = object.position.clone();
     const startTime = performance.now();
     const startHeading = object.userData.heading || 0;
