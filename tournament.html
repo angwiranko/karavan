@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Space Tournament - Three.js (ES Modules)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@200..800&family=Share+Tech+Mono&display=swap" rel="stylesheet"> 
+  <link rel="stylesheet" href="https://use.typekit.net/xmi4cwr.css">
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+  <style>
+
+	
+	html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+	  font-family: 'Orbitron', sans-serif;
+	  background-color: #0a0a0f;
+
+	}
+	#c {
+	  width: 100%;
+	  height: 100%;
+	  display: block;
+	}
+	
+	#uiPanel {
+	  position: absolute;
+	  top: 30px;
+	  left: 10px;
+	  z-index: 10;
+	  display: flex;
+	  flex-direction: column;
+	  align-items: flex-start;
+	  gap: 10px;
+	}
+
+	#controls {
+	  display: flex;
+	  flex-direction: row;
+	  gap: 8px;
+	  flex-wrap: wrap;
+	}
+
+    .sci-button {
+      font-family: "Orbitron", sans-serif;
+      background: linear-gradient(145deg, #1a1a1a, #2b2b2b);
+      color: #00ffff;
+      border: 2px solid #666;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      text-shadow: 0 0 3px #000;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.3s;
+	  width: auto;
+	  height: auto;
+	  white-space: nowrap;
+    }
+
+    .sci-button:hover {
+      background: #333;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
+    }
+
+    .sci-button img {
+      width: 24px;
+      height: 24px;
+      filter: brightness(1.5);
+    }
+
+    .infoBox {
+      position: relative;
+      top: 20px;
+      left: 20px;
+      background: radial-gradient(ellipse at top left, #0f1a2e 60%, #050a14 100%);
+      border: 2px solid #666;
+      box-shadow: 0 0 12px rgba(0, 255, 255, 0.4);
+      color: #a3d9ff;
+      font-family: "Share Tech Mono", monospace;
+      font-weight: 400;
+      text-shadow: 0 0 3px #000;
+      border-radius: 8px;
+      z-index: 1000;
+      padding: 16px;
+      width: auto;
+	}
+
+    #infoPanel {
+      display: none;
+	  position: relative;
+      top: 20px;
+      left: 20px;
+	  padding: 16px;
+      background: radial-gradient(ellipse at top left, #0f1a2e 60%, #050a14 100%);
+      border: 2px solid #666;
+      box-shadow: 0 0 12px rgba(0, 255, 255, 0.4);
+      color: #a3d9ff;
+      font-family: "Share Tech Mono", monospace;
+      font-weight: 400;
+      text-shadow: 0 0 3px #000;
+      border-radius: 8px;
+      width: auto;
+    }
+	.infoName {
+      font-family: "Orbitron", sans-serif;
+      color: #00ffff;
+      padding: 4px 4px;
+      font-size: 14px;
+	}
+	.infoHP {
+      font-family: "Share Tech Mono", monospace;
+      font-weight: 400;
+      padding: 4px 4px;
+      font-size: 14px;
+	}
+	
+	.nametag {
+	color: #a3d9ff;
+	background: #0a0a0f;
+	width: auto;
+	}
+	
+	#ui {
+	  pointer-events: none;
+	}
+
+	#ui button {
+	  pointer-events: auto;
+	}
+	
+    .color-button {
+      width: 30px;
+      height: 30px;
+      border: 2px solid white;
+      margin: 2px;
+      cursor: pointer;
+      border-radius: 50%;
+      outline: none;
+    }
+    .color-button.selected {
+      border: 3px solid #00ffff;
+    }
+
+    #backButton {
+      position: absolute;
+      top: 30px;
+      right: 30px;
+      z-index: 10;
+    }
+  </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/examples/jsm/loaders/GLTFLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js",
+        "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js",
+		"three/examples/jsm/geometries/TextGeometry.js": "https://unpkg.com/three@0.160.0/examples/jsm/geometries/TextGeometry.js",
+		"three/examples/jsm/loaders/FontLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/FontLoader.js"
+      }
+    }
+    </script>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<button id="backButton" class="sci-button">⬅️ Vissza</button>
+
+<div id="uiPanel">
+
+  <div id="controls">
+    <button id="toggleNames" class="sci-button">👁️ Nevek</button>
+	<button id="addPlayer" class="sci-button">➕ Új Hajó</button>
+    <button id="addNPC" class="sci-button">➕ Új Ellenfél</button>
+    <button id="deleteSelected" class="sci-button">🗑️ Törlés</button>
+    <button id="saveMap" class="sci-button">💾 Mentés</button>
+    <button id="loadMap" class="sci-button">📂 Betöltés</button>
+    <input type="file" id="fileInput" style="display: none;">
+  </div>
+  
+  <div id="popup" class="infoBox" style="display: none;">
+    <h3 style="font-family:'Orbitron'; color:#00ffff; padding-top:4px; padding-bottom:12px; font-size: 20px; margin:0px">Új Hajó</h3>
+    <label>Név: <input type="text" id="charName" value="Hajó" class="nametag"></label><br><br>
+    <div id="colorPalette">
+      <label>Szín:</label>
+      <button class="color-button" style="background-color: #ff0000;" data-color="#ff0000"></button>
+      <button class="color-button" style="background-color: #00ff00;" data-color="#00ff00"></button>
+      <button class="color-button" style="background-color: #0000ff;" data-color="#0000ff"></button>
+      <button class="color-button" style="background-color: #ffffff;" data-color="#ffffff"></button>
+    </div>
+    <br>
+    <label>Méret: <input type="number" id="charSize" class="nametag" value="20"></label><br><br>
+    <div style="display: flex; flex-direction:row; gap:8px">
+      <button id="confirmAdd" class="sci-button">➕ Létrehozás</button>
+      <button id="cancelAdd" class="sci-button">❌ Mégse</button>
+    </div>
+  </div>
+
+  <div id="infoPanel">
+  <div id="infoPortraitPanel" style="text-align:center; margin-bottom:8px;">
+    <canvas id="infoPortraitCanvas" width="128" height="128" style="border-radius:12px;"></canvas>
+  </div>
+    <div id="infoName" class="infoName">Hajó: -</div>
+    <div id="infoHP" class="infoHP">Sebesség: -</div>
+  </div>
+  
+</div>
+
+
+
+<script type="module">
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+  import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+  import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
+  import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
+
+  // Toast notification function
+  function showToast(message, type = 'success') {
+    const backgroundColor = type === 'error' 
+      ? 'linear-gradient(to right, #ff4444, #cc0000)'
+      : 'radial-gradient(circle,rgba(0, 100, 150, 1) 60%, rgba(0, 50, 100, 1) 100%)';
+    
+    Toastify({
+      text: message,
+      duration: 1500,
+      gravity: "top",
+      position: "right",
+      backgroundColor: backgroundColor,
+      style: {
+        fontFamily: "'Orbitron', sans-serif",
+        fontSize: "14px",
+        borderRadius: "8px",
+        border: "2px solid #666",
+        boxShadow: "0 0 12px " + (type === 'error' ? '#ff4444' : '#00ffff')
+      }
+    }).showToast();
+  };
+
+  // Back button
+  document.getElementById('backButton').addEventListener('click', () => {
+    window.location.href = 'starfort.html';
+  });
+
+  // Scene, Camera, Renderer
+
+  let scene, camera, renderer, controls;
+  
+  const canvas = document.querySelector( '#c' );
+  renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
+  renderer.setSize(window.innerWidth, window.innerHeight, true);
+  renderer.setPixelRatio(window.devicePixelRatio || 1);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 400, 400);
+  camera.lookAt(0, 0, 0);  
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0a0f);
+  scene.fog = new THREE.Fog(0x0a0a0f, 1500, 2000);
+  
+  // OrbitControls
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 0, 0);
+  controls.update();
+  
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  let selectedPlayer = null;
+  let originalMaterial = null;
+  let hoverIndicator = null;
+  
+  // Buttons
+  const addPlayerBtn = document.getElementById('addPlayer');
+  const addNPCBtn = document.getElementById('addNPC');
+  const deleteSelectedBtn = document.getElementById('deleteSelected');
+  const popup = document.getElementById('popup');
+  const saveMapBtn = document.getElementById('saveMap');
+  const loadMapBtn = document.getElementById('loadMap');
+  const fileInput2 = document.getElementById('fileInput');
+  const toggleNamesBtn = document.getElementById('toggleNames');
+  let namesVisible = false;
+  
+  toggleNamesBtn.addEventListener('click', () => {
+    namesVisible = !namesVisible;
+  
+    [...players.children, ...enemies.children].forEach(obj => {
+      if (obj.children.length > 0) {
+        obj.children.forEach(child => {
+          if (child.type === "Sprite") {
+            child.visible = namesVisible;
+          }
+        });
+      }
+    });
+  });
+  
+  
+  // Popup
+  const charNameInput = document.getElementById('charName');
+  const charSizeInput = document.getElementById('charSize');
+  const confirmAddBtn = document.getElementById('confirmAdd');
+  const cancelAddBtn = document.getElementById('cancelAdd');
+  
+  let selectedColor = "#00ffff";
+
+  const colorButtons = document.querySelectorAll('.color-button');
+  colorButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      selectedColor = button.getAttribute('data-color');
+  
+      colorButtons.forEach(btn => btn.classList.remove('selected'));
+      button.classList.add('selected');
+    });
+  });
+  
+  function openPopup() {
+    popup.style.display = 'block';
+  }
+  
+  function closePopup() {
+    popup.style.display = 'none';
+  }
+  
+  // Info panel
+  const infoPanel = document.getElementById('infoPanel');
+  const infoName = document.getElementById('infoName');
+  const infoHP = document.getElementById('infoHP');
+  
+  function updateInfoPanel(object) {
+    if (!object) {
+      infoPanel.style.display = 'none';
+      return;
+    }
+  
+    const { name, size } = object.userData || {};
+    
+    const portraitCanvas = document.getElementById('infoPortraitCanvas');
+    const ctx = portraitCanvas.getContext('2d');
+    const img = new Image();
+    img.src = "/images/" + (name?.toLowerCase() || "spaceship") + ".jpg";
+    
+    img.onload = () => {
+      ctx.clearRect(0, 0, 128, 128);
+    
+      const cropSize = Math.min(img.width, img.height);
+      const cropX = (img.width - cropSize) / 2;
+      const cropY = (img.height - cropSize) / 2;
+    
+      const radius = 12;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(128 - radius, 0);
+      ctx.quadraticCurveTo(128, 0, 128, radius);
+      ctx.lineTo(128, 128 - radius);
+      ctx.quadraticCurveTo(128, 128, 128 - radius, 128);
+      ctx.lineTo(radius, 128);
+      ctx.quadraticCurveTo(0, 128, 0, 128 - radius);
+      ctx.lineTo(0, radius);
+      ctx.quadraticCurveTo(0, 0, radius, 0);
+      ctx.closePath();
+      ctx.clip();
+    
+      ctx.drawImage(img, cropX, cropY, cropSize, cropSize, 0, 0, 128, 128);
+      ctx.restore();
+    };
+    
+    img.onerror = () => {
+      ctx.clearRect(0, 0, 128, 128);
+      ctx.fillStyle = '#00ffff';
+      ctx.fillRect(0, 0, 128, 128);
+      ctx.fillStyle = '#000';
+      ctx.font = '12px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('SHIP', 64, 60);
+    };
+	
+    infoName.textContent = `Hajó: ${name || '-'}`;
+    infoHP.textContent = `Sebesség: ${size != null ? (size / 5).toFixed(0) : '-'}`;
+    infoPanel.style.display = 'block';
+  }
+  
+  // Popup buttons
+  cancelAddBtn.addEventListener('click', () => {
+    closePopup();
+  });
+  
+  // Create button
+  confirmAddBtn.addEventListener('click', () => {
+    const name = charNameInput.value;
+    const color = selectedColor;
+    const size = parseFloat(charSizeInput.value);
+  
+    if (creatingType === "player") {
+      createPlayer(0, 0, color, name, size);
+    } else if (creatingType === "enemy") {
+      createEnemy(0, 0, color, name, size);
+    }
+  
+    closePopup();
+  });
+
+  let creatingType = null;
+  
+  // Add player
+  addPlayerBtn.addEventListener('click', () => {
+    creatingType = "player";
+    charNameInput.value = "Hajó";
+    openPopup();
+  });
+  
+  // Add NPC
+  addNPCBtn.addEventListener('click', () => {
+    creatingType = "enemy";
+    charNameInput.value = "Ellenfél";
+    openPopup();
+  });
+    
+  // Delete selected
+  deleteSelectedBtn.addEventListener('click', () => {
+    if (selectedPlayer) {
+      selectedPlayer.parent.remove(selectedPlayer);
+      selectedPlayer = null;
+	  updateInfoPanel(null);
+      originalMaterial = null;
+    }
+  });
+  
+  // Lights
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(ambientLight);
+
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
+  directionalLight.position.set(200, 300, 200);
+  scene.add(directionalLight);
+
+  // Space Background Plane
+  const planeGeometry = new THREE.PlaneGeometry(2000, 2000, 10, 10);
+  const planeMaterial = new THREE.MeshStandardMaterial({ color: 0x0a0a0f, wireframe: false });
+  const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+  plane.rotation.x = -Math.PI / 2;
+  scene.add(plane);
+
+  // Grid Helper
+  const grid = new THREE.GridHelper(1000, 10, 0x333366, 0x1a1a33);
+  scene.add(grid);
+  
+  // Space Grid Labels
+  function createLetterNumberGrid(gridSize = 10, cellSize = 100) {
+    const loader = new FontLoader();
+    loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  
+      for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+          const label = `${letters[row]}${col + 1}`;
+  
+          const textGeometry = new TextGeometry(label, {
+            font: font,
+            size: 8,
+            height: 1,
+          });
+  
+          const textMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            transparent: true,
+            opacity: 0.4
+          });
+          const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+  
+          const posX = col * cellSize - (gridSize * cellSize) / 2 + cellSize / 2;
+          const posZ = row * cellSize - (gridSize * cellSize) / 2 + cellSize / 2;
+  
+          textMesh.position.set(posX, 2, posZ);
+          textMesh.rotation.x = -Math.PI / 2;
+  
+          scene.add(textMesh);
+        }
+      }
+    });
+  }
+
+  // Terrain group - for asteroids
+  const terrain = new THREE.Group();
+  terrain.name = "Asteroids";
+  scene.add(terrain);
+  
+  // Characters (Ships) and Enemies
+  const players = new THREE.Group();
+  players.name = "PlayerShips";
+  scene.add(players);
+  
+  const enemies = new THREE.Group();
+  enemies.name = "EnemyShips";
+  scene.add(enemies);
+  
+  // GLB Loader for spaceship models
+  const gltfLoader = new GLTFLoader();
+  const shipModels = {}; // Cache for loaded models
+
+  function loadShipModel(modelPath = 'gemini3_anim1_draco.glb') {
+    return new Promise((resolve, reject) => {
+      if (shipModels[modelPath]) {
+        resolve(shipModels[modelPath]);
+      } else {
+        gltfLoader.load(
+          modelPath,
+          (gltf) => {
+            shipModels[modelPath] = gltf.scene;
+            resolve(gltf.scene);
+          },
+          undefined,
+          reject
+        );
+      }
+    });
+  }
+
+  // Name labels for ships
+  function createNameLabel(name, portreURL = "/images/spaceship.jpg") {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.width = 256;
+    canvas.height = 128;
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(120, 60, 1);
+    sprite.visible = namesVisible;
+    sprite.userData.isNameLabel = true;
+
+    const img = new Image();
+    img.src = portreURL;
+
+    img.onload = () => {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      const cropSize = Math.min(img.width, img.height);
+      const cropX = (img.width - cropSize) / 2;
+      const cropY = (img.height - cropSize) / 2;
+
+      const radius = 8;
+      const drawX = (canvas.width - 64) / 2;
+      const drawY = 0;
+
+      context.save();
+      context.beginPath();
+      context.moveTo(drawX + radius, drawY);
+      context.lineTo(drawX + 64 - radius, drawY);
+      context.quadraticCurveTo(drawX + 64, drawY, drawX + 64, drawY + radius);
+      context.lineTo(drawX + 64, drawY + 64 - radius);
+      context.quadraticCurveTo(drawX + 64, drawY + 64, drawX + 64 - radius, drawY + 64);
+      context.lineTo(drawX + radius, drawY + 64);
+      context.quadraticCurveTo(drawX, drawY + 64, drawX, drawY + 64 - radius);
+      context.lineTo(drawX, drawY + radius);
+      context.quadraticCurveTo(drawX, drawY, drawX + radius, drawY);
+      context.closePath();
+      context.clip();
+
+      context.drawImage(img, cropX, cropY, cropSize, cropSize, drawX, drawY, 64, 64);
+      context.restore();
+
+      context.fillStyle = '#00ffff';
+      context.font = 'bold 24px monospace';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText(name, canvas.width / 2, 96);
+
+      texture.needsUpdate = true;
+    };
+
+    img.onerror = () => {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = '#00ffff';
+      context.fillRect(0, 0, 256, 128);
+      context.fillStyle = '#000';
+      context.font = 'bold 24px monospace';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText(name, canvas.width / 2, 64);
+      texture.needsUpdate = true;
+    };
+
+    return sprite;
+  }
+
+  function getCorrectYPosition(x, z, size) {
+    return size;
+  }
+
+  let lastValidPosition = null;
+  let positionCache = new Map();
+  const CACHE_GRID_SIZE = 10;
+  
+  function getCacheKey(x, z) {
+    const gridX = Math.floor(x / CACHE_GRID_SIZE);
+    const gridZ = Math.floor(z / CACHE_GRID_SIZE);
+    return `${gridX},${gridZ}`;
+  }
+
+  function isValidPosition(x, z, size) {
+    const cacheKey = getCacheKey(x, z);
+    if (positionCache.has(cacheKey)) {
+      return positionCache.get(cacheKey);
+    }
+    
+    const tempRaycaster = new THREE.Raycaster();
+    const characterHeight = size;
+    
+    const checkDirections = [
+      new THREE.Vector3(1, 0, 0),
+      new THREE.Vector3(-1, 0, 0),
+      new THREE.Vector3(0, 0, 1),
+      new THREE.Vector3(0, 0, -1),
+    ];
+    
+    let isValid = true;
+    
+    for (const direction of checkDirections) {
+      const origin = new THREE.Vector3(x, characterHeight, z);
+      tempRaycaster.set(origin, direction);
+      
+      const intersects = tempRaycaster.intersectObjects(terrain.children, true);
+      
+      for (const hit of intersects) {
+        if (hit.distance < size + 5) {
+          isValid = false;
+          break;
+        }
+      }
+      if (!isValid) break;
+    }
+    
+    positionCache.set(cacheKey, isValid);
+    return isValid;
+  }
+
+  function findNearestValidPosition(targetX, targetZ, size) {
+    if (isValidPosition(targetX, targetZ, size)) {
+      lastValidPosition = { x: targetX, z: targetZ };
+      return lastValidPosition;
+    }
+    
+    if (lastValidPosition) {
+      const distance = Math.sqrt(
+        Math.pow(targetX - lastValidPosition.x, 2) + 
+        Math.pow(targetZ - lastValidPosition.z, 2)
+      );
+      
+      if (distance < 30) {
+        for (let t = 0.1; t <= 1.0; t += 0.1) {
+          const interpX = lastValidPosition.x + (targetX - lastValidPosition.x) * t;
+          const interpZ = lastValidPosition.z + (targetZ - lastValidPosition.z) * t;
+          
+          if (isValidPosition(interpX, interpZ, size)) {
+            lastValidPosition = { x: interpX, z: interpZ };
+            return lastValidPosition;
+          }
+        }
+      }
+    }
+    
+    const searchRadius = 10;
+    const maxRadius = 50;
+    const angleSteps = 6;
+    
+    for (let radius = searchRadius; radius <= maxRadius; radius += 10) {
+      for (let i = 0; i < angleSteps; i++) {
+        const angle = (i / angleSteps) * Math.PI * 2;
+        const testX = targetX + Math.cos(angle) * radius;
+        const testZ = targetZ + Math.sin(angle) * radius;
+        
+        if (isValidPosition(testX, testZ, size)) {
+          lastValidPosition = { x: testX, z: testZ };
+          return lastValidPosition;
+        }
+      }
+    }
+    
+    return lastValidPosition || { x: targetX, z: targetZ };
+  }
+
+  // Hover indicator
+  function createHoverIndicator(size = 20) {
+    const innerRadius = size * 0.75;
+    const outerRadius = size * 1.25;
+    const ringGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 32);
+    const ringMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.6,
+      side: THREE.DoubleSide
+    });
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.rotation.x = -Math.PI / 2;
+    
+    const discRadius = size * 0.6;
+    const discGeometry = new THREE.CircleGeometry(discRadius, 32);
+    const discMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.3
+    });
+    const disc = new THREE.Mesh(discGeometry, discMaterial);
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.y = 0.1;
+    
+    const beamRadius = size * 0.4;
+    const beamHeight = size * 2;
+    const beamGeometry = new THREE.CylinderGeometry(beamRadius, beamRadius, beamHeight, 8, 1, true);
+    const beamMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.2,
+      side: THREE.DoubleSide
+    });
+    const beam = new THREE.Mesh(beamGeometry, beamMaterial);
+    beam.position.y = beamHeight / 2;
+    
+    const indicator = new THREE.Group();
+    indicator.add(ring);
+    indicator.add(disc);
+    indicator.add(beam);
+    indicator.visible = false;
+    
+    indicator.userData = {
+      time: 0,
+      size,
+      originalRingOpacity: ringMaterial.opacity,
+      originalDiscOpacity: discMaterial.opacity,
+      originalBeamOpacity: beamMaterial.opacity
+    };
+    
+    scene.add(indicator);
+    return indicator;
+  }
+
+  function updateHoverIndicator() {
+    if (!hoverIndicator || !hoverIndicator.visible) return;
+    
+    hoverIndicator.userData.time += 0.05;
+    const pulseValue = Math.sin(hoverIndicator.userData.time) * 0.3 + 0.7;
+    
+    hoverIndicator.children[0].material.opacity = hoverIndicator.userData.originalRingOpacity * pulseValue;
+    hoverIndicator.children[1].material.opacity = hoverIndicator.userData.originalDiscOpacity * pulseValue;
+    hoverIndicator.children[2].material.opacity = hoverIndicator.userData.originalBeamOpacity * pulseValue;
+    
+    hoverIndicator.children[2].rotation.y += 0.02;
+    
+    if (hoverIndicator.userData.targetPosition) {
+      const current = hoverIndicator.position;
+      const target = hoverIndicator.userData.targetPosition;
+      const lerpFactor = 0.15;
+      
+      current.lerp(target, lerpFactor);
+      
+      if (current.distanceTo(target) < 1) {
+        hoverIndicator.userData.targetPosition = null;
+      }
+    }
+  }
+
+  function showHoverIndicator(x, y, z, size = 20) {
+    if (!hoverIndicator || (hoverIndicator.userData.size !== size)) {
+      if (hoverIndicator) {
+        scene.remove(hoverIndicator);
+      }
+      hoverIndicator = createHoverIndicator(size);
+    }
+    
+    const targetPosition = new THREE.Vector3(x, y, z);
+    
+    if (!hoverIndicator.visible) {
+      hoverIndicator.position.copy(targetPosition);
+      hoverIndicator.visible = true;
+    } else {
+      hoverIndicator.userData.targetPosition = targetPosition;
+    }
+  }
+
+  function hideHoverIndicator() {
+    if (hoverIndicator) {
+      hoverIndicator.visible = false;
+    }
+  }
+  
+  // Create player ship
+  async function createPlayer(x, z, color = 0x0000ff, name = "Player", size = 20) {
+    let shipObject;
+    try {
+      const modelScene = await loadShipModel();
+      shipObject = modelScene.clone();
+      shipObject.scale.set(size / 100, size / 100, size / 100);
+    } catch (e) {
+      console.warn('Could not load ship model, using sphere:', e);
+      const geometry = new THREE.SphereGeometry(size, 16, 16);
+      const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(color) });
+      shipObject = new THREE.Mesh(geometry, material);
+    }
+
+    const nameLabel = createNameLabel(name);
+    nameLabel.visible = namesVisible;
+    shipObject.add(nameLabel);
+    nameLabel.position.set(0, size + 20, -size);
+
+    const validPosition = findNearestValidPosition(x, z, size);
+    const correctY = getCorrectYPosition(validPosition.x, validPosition.z, size);
+    shipObject.position.set(validPosition.x, correctY, validPosition.z);
+  
+    shipObject.userData = {
+      type: "player",
+      name,
+      size
+    };
+
+    players.add(shipObject);
+  }
+  
+  // Create enemy ship
+  async function createEnemy(x, z, color = 0xff0000, name = "Enemy", size = 20) {
+    let shipObject;
+    try {
+      const modelScene = await loadShipModel();
+      shipObject = modelScene.clone();
+      shipObject.scale.set(size / 100, size / 100, size / 100);
+    } catch (e) {
+      console.warn('Could not load ship model, using sphere:', e);
+      const geometry = new THREE.SphereGeometry(size, 16, 16);
+      const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(color) });
+      shipObject = new THREE.Mesh(geometry, material);
+    }
+
+    const nameLabel = createNameLabel(name);
+    nameLabel.visible = namesVisible;
+    shipObject.add(nameLabel);
+    nameLabel.position.set(0, size + 20, -size);
+
+    const validPosition = findNearestValidPosition(x, z, size);
+    const correctY = getCorrectYPosition(validPosition.x, validPosition.z, size);
+    shipObject.position.set(validPosition.x, correctY, validPosition.z);
+  
+    shipObject.userData = {
+      type: "Enemy",
+      name,
+      size
+    };
+      
+    enemies.add(shipObject);
+  }
+
+  // Seed-based random
+  let globalSeed = Math.floor(Math.random() * 1000000);
+  
+  function seededRandom(seed) {
+    let x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  }
+  
+  let randomCounter = 0;
+  function nextRandom() {
+    return seededRandom(globalSeed + randomCounter++);
+  }
+  
+  function setSeed(seed) {
+    globalSeed = seed;
+    randomCounter = 0;
+  }
+
+  // Asteroid/Space Debris generation
+  function generateTerrain() {
+    terrain.clear();
+    positionCache.clear();
+    lastValidPosition = null;
+    randomCounter = 0;
+    
+    const gridSize = 10;
+    const cellSize = 100;
+
+    // Create random asteroids and space debris
+    for (let i = 0; i < 20 + nextRandom() * 15; i++) {
+      const x = (nextRandom() - 0.5) * 1000;
+      const z = (nextRandom() - 0.5) * 1000;
+      const y = (nextRandom() - 0.5) * 200;
+
+      // Random asteroid or debris
+      const type = nextRandom();
+      let geometry;
+      let size;
+
+      if (type < 0.6) {
+        // Asteroid
+        size = nextRandom() * 30 + 10;
+        geometry = new THREE.IcosahedronGeometry(size, 2);
+      } else if (type < 0.85) {
+        // Debris (irregular)
+        size = nextRandom() * 15 + 5;
+        geometry = new THREE.BoxGeometry(size, size * 0.7, size * 0.5);
+      } else {
+        // Floating rock
+        size = nextRandom() * 20 + 5;
+        geometry = new THREE.SphereGeometry(size, 3, 3);
+      }
+
+      const material = new THREE.MeshStandardMaterial({
+        color: new THREE.Color().setHSL(0, 0, 0.3 + nextRandom() * 0.3),
+        metalness: nextRandom() * 0.4,
+        roughness: 0.8 + nextRandom() * 0.2
+      });
+
+      const asteroid = new THREE.Mesh(geometry, material);
+      asteroid.position.set(x, y, z);
+      asteroid.rotation.set(
+        nextRandom() * Math.PI * 2,
+        nextRandom() * Math.PI * 2,
+        nextRandom() * Math.PI * 2
+      );
+      asteroid.userData = { type: "asteroid" };
+
+      terrain.add(asteroid);
+    }
+
+    // Floating debris field
+    for (let i = 0; i < 30 + nextRandom() * 20; i++) {
+      const x = (nextRandom() - 0.5) * 1200;
+      const z = (nextRandom() - 0.5) * 1200;
+      const y = (nextRandom() - 0.5) * 300;
+
+      const sizeDebris = nextRandom() * 8 + 2;
+      const geometry = new THREE.BoxGeometry(sizeDebris, sizeDebris * 0.6, sizeDebris * 0.3);
+      const material = new THREE.MeshStandardMaterial({
+        color: new THREE.Color().setHSL(0.05 + nextRandom() * 0.1, 0.3, 0.25 + nextRandom() * 0.2),
+        metalness: 0.6 + nextRandom() * 0.3,
+        roughness: 0.5 + nextRandom() * 0.3
+      });
+
+      const debris = new THREE.Mesh(geometry, material);
+      debris.position.set(x, y, z);
+      debris.rotation.set(
+        nextRandom() * Math.PI * 2,
+        nextRandom() * Math.PI * 2,
+        nextRandom() * Math.PI * 2
+      );
+      debris.userData = { type: "debris" };
+
+      terrain.add(debris);
+    }
+  }
+
+  generateTerrain();
+
+  // Smooth movement
+  function smoothMove(object, targetX, targetY, targetZ, duration = 500) {
+    const startPosition = object.position.clone();
+    const startTime = performance.now();
+  
+    function animate() {
+      const elapsed = performance.now() - startTime;
+      const t = Math.min(elapsed / duration, 1);
+  
+      object.position.lerpVectors(startPosition, new THREE.Vector3(targetX, targetY, targetZ), t);
+  
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      }
+    }
+  
+    animate();
+  }
+
+  
+  renderer.domElement.addEventListener('click', (event) => {
+      event.preventDefault();
+	   
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  
+      raycaster.setFromCamera(mouse, camera);
+  
+      if (selectedPlayer) {
+          const terrainIntersects = raycaster.intersectObjects(terrain.children, true);
+          const planeIntersects = raycaster.intersectObject(plane, true);
+          const size = selectedPlayer.userData.size || 20;
+  
+          let targetX, targetZ;
+          
+          if (terrainIntersects.length > 0) {
+              targetX = terrainIntersects[0].point.x;
+              targetZ = terrainIntersects[0].point.z;
+          } else if (planeIntersects.length > 0) {
+              targetX = planeIntersects[0].point.x;
+              targetZ = planeIntersects[0].point.z;
+          }
+          
+          if (targetX !== undefined && targetZ !== undefined) {
+              const validPosition = findNearestValidPosition(targetX, targetZ, size);
+              const targetY = getCorrectYPosition(validPosition.x, validPosition.z, size);
+              smoothMove(selectedPlayer, validPosition.x, targetY, validPosition.z, 500);
+              updateInfoPanel(null);
+          } 
+		  
+          hideHoverIndicator();
+          selectedPlayer.material = originalMaterial;
+          selectedPlayer = null;
+          originalMaterial = null;
+  
+      } else {
+          const intersects = raycaster.intersectObjects([...players.children, ...enemies.children], true);
+		  
+          const validIntersects = intersects.filter(i => !i.object.userData.isNameLabel);
+          
+          if (validIntersects.length > 0) {
+              const intersectedObject = validIntersects[0].object;
+          
+              if (selectedPlayer && originalMaterial) {
+                  selectedPlayer.material = originalMaterial;
+                  hideHoverIndicator();
+              }
+          
+              selectedPlayer = intersectedObject;
+              originalMaterial = selectedPlayer.material;
+          
+              if (originalMaterial) {
+                selectedPlayer.material = new THREE.MeshStandardMaterial({
+                    color: 0x00ffff,
+                    emissive: 0x00ffff,
+                    emissiveIntensity: 0.5,
+                    metalness: 0.3,
+                    roughness: 0.5
+                });
+              }
+          
+              updateInfoPanel(selectedPlayer);
+              console.log('Selected ship:', selectedPlayer);
+          } else {
+              if (selectedPlayer && originalMaterial) {
+                  selectedPlayer.material = originalMaterial;
+                  hideHoverIndicator();
+              }
+              selectedPlayer = null;
+              originalMaterial = null;
+              updateInfoPanel(null);
+          }
+      }
+  });
+
+  let lastMouseMoveTime = 0;
+  const MOUSE_MOVE_THROTTLE = 50;
+  
+  renderer.domElement.addEventListener('mousemove', (event) => {
+      const now = performance.now();
+      if (now - lastMouseMoveTime < MOUSE_MOVE_THROTTLE) {
+          return;
+      }
+      lastMouseMoveTime = now;
+      
+      if (!selectedPlayer) {
+          hideHoverIndicator();
+          return;
+      }
+
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+
+      const terrainIntersects = raycaster.intersectObjects(terrain.children, true);
+      const planeIntersects = raycaster.intersectObject(plane, true);
+      const size = selectedPlayer.userData.size || 20;
+
+      let targetX, targetZ;
+
+      if (terrainIntersects.length > 0) {
+          targetX = terrainIntersects[0].point.x;
+          targetZ = terrainIntersects[0].point.z;
+      } else if (planeIntersects.length > 0) {
+          targetX = planeIntersects[0].point.x;
+          targetZ = planeIntersects[0].point.z;
+      }
+
+      if (targetX !== undefined && targetZ !== undefined) {
+          const validPosition = findNearestValidPosition(targetX, targetZ, size);
+          const targetY = getCorrectYPosition(validPosition.x, validPosition.z, size);
+          showHoverIndicator(validPosition.x, targetY - size + 2, validPosition.z, size);
+      } else {
+          hideHoverIndicator();
+      }
+  });
+
+  // Render loop
+  function animate() {
+    requestAnimationFrame(animate);
+	controls.update();
+    updateHoverIndicator();
+    renderer.render(scene, camera);
+  }
+    
+	
+  createLetterNumberGrid();
+  animate();
+    
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+  
+  
+  loadMapBtn.onclick = () => {
+    console.log("📂 Load map");
+    fileInput2.click();
+  };
+
+  fileInput2.onchange = (e) => {
+    console.log("📂 File input changed!");
+
+    const file = e.target.files[0];
+    if (!file) {
+      console.warn("⚠️ No file selected");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      console.log("📂 File read");
+      let data;
+      try {
+        data = JSON.parse(reader.result);
+        console.log("✅ JSON loaded:", data);
+      } catch (err) {
+        console.error("❌ JSON parse error:", err);
+        showToast("❌ Invalid file format!", 'error');
+        return;
+      }
+
+      players.clear();
+      enemies.clear();
+      
+      if (data.seed !== undefined) {
+        setSeed(data.seed);
+        generateTerrain();
+      }
+
+      requestAnimationFrame(() => {
+        data.players.forEach(item => {
+          createPlayer(item.position.x, item.position.z, item.color, item.name, item.size);
+        });
+
+        data.enemies.forEach(item => {
+          createEnemy(item.position.x, item.position.z, item.color, item.name, item.size);
+        });
+      });
+
+      showToast("✅ Load successful!");
+    };
+    reader.readAsText(file);
+  };
+
+  // Save
+  saveMapBtn.onclick = () => {
+    const mapData = {
+      seed: globalSeed,
+      players: [],
+      enemies: []
+    };
+  
+    players.children.forEach(obj => {
+      mapData.players.push({
+        name: obj.userData.name,
+        size: obj.userData.size,
+        color: obj.material ? '#' + obj.material.color.getHexString() : '#0000ff',
+        position: {
+          x: obj.position.x,
+          y: obj.position.y,
+          z: obj.position.z
+        }
+      });
+    });
+  
+    enemies.children.forEach(obj => {
+      mapData.enemies.push({
+        name: obj.userData.name,
+        size: obj.userData.size,
+        color: obj.material ? '#' + obj.material.color.getHexString() : '#ff0000',
+        position: {
+          x: obj.position.x,
+          y: obj.position.y,
+          z: obj.position.z
+        }
+      });
+    });
+  
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA');
+    const filename = `tournament ${formatter.format(now)}.json`;
+
+    const blob = new Blob([JSON.stringify(mapData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+</script>
+
+</body>
+</html>
