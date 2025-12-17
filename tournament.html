@@ -162,7 +162,9 @@
         "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
         "three/examples/jsm/loaders/GLTFLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js",
         "three/examples/jsm/loaders/DRACOLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/DRACOLoader.js",
-        "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js"
+        "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js",
+		"three/examples/jsm/geometries/TextGeometry.js": "https://unpkg.com/three@0.160.0/examples/jsm/geometries/TextGeometry.js",
+		"three/examples/jsm/loaders/FontLoader.js": "https://unpkg.com/three@0.160.0/examples/jsm/loaders/FontLoader.js"
       }
     }
     </script>
@@ -241,7 +243,11 @@
 
 <script type="module">
   import * as THREE from 'three';
+  import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+  import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
   import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+  import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
+  import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 
   // Toast notification function
   function showToast(message, type = 'success') {
@@ -496,11 +502,39 @@
   const grid = new THREE.GridHelper(1000, 10, 0x333366, 0x1a1a33);
   scene.add(grid);
   
-  // Space Grid Labels - Disabled for CPU optimization
+  // Space Grid Labels
   function createLetterNumberGrid(gridSize = 10, cellSize = 100) {
-    // Grid labels (TextGeometry) have been disabled to reduce CPU load
-    // Each label creates a complex mesh that slows down rendering
-    // To re-enable, use canvas-based sprites instead
+    const loader = new FontLoader();
+    loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+      const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  
+      for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+          const label = `${letters[row]}${col + 1}`;
+  
+          const textGeometry = new TextGeometry(label, {
+            font: font,
+            size: 8,
+            height: 1,
+          });
+  
+          const textMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            transparent: true,
+            opacity: 0.4
+          });
+          const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+  
+          const posX = col * cellSize - (gridSize * cellSize) / 2 + cellSize / 2;
+          const posZ = row * cellSize - (gridSize * cellSize) / 2 + cellSize / 2;
+  
+          textMesh.position.set(posX, 2, posZ);
+          textMesh.rotation.x = -Math.PI / 2;
+  
+          scene.add(textMesh);
+        }
+      }
+    });
   }
 
   // Terrain group - for asteroids
@@ -929,37 +963,45 @@
       group.userData.animatingChildren.push(shieldSphere);
     }
     
-    // Long range - directional flat arcs (4 wedge sections)
+    // Long range - directional flat arcs (4 wedge sections, scaled by attribute values)
     if (attributes.longRange > 0) {
       const baseRadius = attributes.longRange * rangeScale;
       const arcWidth = Math.PI / 4; // 45 degrees per section
       
-      // Front (0°)
+      // Front (0°) - scaled by attributes.front (0-5)
       if (attributes.front > 0) {
-        addFlatArcSegment(group, baseRadius * 0.6, baseRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.2);
-        addFlatArcSegment(group, baseRadius * 0.75, baseRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.15);
-        addFlatArcSegment(group, baseRadius * 0.9, baseRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.1);
+        const frontScale = Math.min(5, Math.max(1, attributes.front)) / 5; // Normalize 1-5 to 0.2-1.0
+        const frontMaxRadius = baseRadius * frontScale;
+        addFlatArcSegment(group, frontMaxRadius * 0.6, frontMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, frontMaxRadius * 0.75, frontMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, frontMaxRadius * 0.9, frontMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.1);
       }
       
-      // Left (90°)
+      // Left (90°) - scaled by attributes.side (0-5)
       if (attributes.side > 0) {
-        addFlatArcSegment(group, baseRadius * 0.6, baseRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
-        addFlatArcSegment(group, baseRadius * 0.75, baseRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
-        addFlatArcSegment(group, baseRadius * 0.9, baseRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.1);
+        const sideScale = Math.min(5, Math.max(1, attributes.side)) / 5; // Normalize 1-5 to 0.2-1.0
+        const sideMaxRadius = baseRadius * sideScale;
+        addFlatArcSegment(group, sideMaxRadius * 0.6, sideMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, sideMaxRadius * 0.75, sideMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, sideMaxRadius * 0.9, sideMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.1);
       }
       
-      // Right (270°)
+      // Right (270°) - scaled by attributes.side (0-5)
       if (attributes.side > 0) {
-        addFlatArcSegment(group, baseRadius * 0.6, baseRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
-        addFlatArcSegment(group, baseRadius * 0.75, baseRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
-        addFlatArcSegment(group, baseRadius * 0.9, baseRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.1);
+        const sideScale = Math.min(5, Math.max(1, attributes.side)) / 5;
+        const sideMaxRadius = baseRadius * sideScale;
+        addFlatArcSegment(group, sideMaxRadius * 0.6, sideMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, sideMaxRadius * 0.75, sideMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, sideMaxRadius * 0.9, sideMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.1);
       }
       
-      // Rear (180°)
+      // Rear (180°) - scaled by attributes.rear (0-5)
       if (attributes.rear > 0) {
-        addFlatArcSegment(group, baseRadius * 0.6, baseRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.2);
-        addFlatArcSegment(group, baseRadius * 0.75, baseRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.15);
-        addFlatArcSegment(group, baseRadius * 0.9, baseRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.1);
+        const rearScale = Math.min(5, Math.max(1, attributes.rear)) / 5; // Normalize 1-5 to 0.2-1.0
+        const rearMaxRadius = baseRadius * rearScale;
+        addFlatArcSegment(group, rearMaxRadius * 0.6, rearMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, rearMaxRadius * 0.75, rearMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, rearMaxRadius * 0.9, rearMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.1);
       }
     }
     
@@ -1120,9 +1162,8 @@
             emissiveIntensity: 0.2
           });
           node.material = newMaterial;
-          // Shadows disabled for performance - comment out to re-enable
-          // node.castShadow = true;
-          // node.receiveShadow = true;
+          node.castShadow = true;
+          node.receiveShadow = true;
         }
       });
       
@@ -1203,9 +1244,8 @@
             emissiveIntensity: 0.2
           });
           node.material = newMaterial;
-          // Shadows disabled for performance - comment out to re-enable
-          // node.castShadow = true;
-          // node.receiveShadow = true;
+          node.castShadow = true;
+          node.receiveShadow = true;
         }
       });
       
