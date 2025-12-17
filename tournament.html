@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@200..800&family=Share+Tech+Mono&display=swap" rel="stylesheet"> 
   <link rel="stylesheet" href="https://use.typekit.net/xmi4cwr.css">
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
   <style>
 
@@ -130,9 +131,9 @@
 	
 	#rotationPanel {
 	  position: absolute;
-	  bottom: 30px;
-	  left: 50%;
-	  transform: translateX(-50%);
+	  right: 30px;
+	  top: 50%;
+	  transform: translateY(-50%);
 	  background: radial-gradient(ellipse at top left, #0f1a2e 60%, #050a14 100%);
 	  border: 2px solid #666;
 	  box-shadow: 0 0 12px rgba(0, 255, 255, 0.4);
@@ -149,6 +150,16 @@
 	  display: flex;
 	}
 	
+	@media (max-width: 1200px) {
+	  #rotationPanel {
+	    right: auto;
+	    bottom: 30px;
+	    top: auto;
+	    left: 50%;
+	    transform: translateX(-50%);
+	  }
+	}
+	
 	#rotationControls {
 	  display: grid;
 	  grid-template-columns: 1fr 1fr 1fr;
@@ -163,10 +174,14 @@
 	  color: #00ffff;
 	  border: 2px solid #00ffff;
 	  border-radius: 4px;
-	  font-size: 16px;
 	  cursor: pointer;
 	  transition: all 0.2s;
-	  font-family: "Orbitron", sans-serif;
+	  font-family: "Material Icons";
+	  font-size: 20px;
+	  display: flex;
+	  align-items: center;
+	  justify-content: center;
+	  padding: 0;
 	}
 	
 	.rotation-button:hover {
@@ -342,13 +357,13 @@
   </div>
   <div id="rotationControls">
     <div style="grid-column: 1/2;"></div>
-    <button class="rotation-button" id="rotateUp">⬆️</button>
+    <button class="rotation-button" id="rotateUp"><span class="material-icons">arrow_upward</span></button>
     <div style="grid-column: 3/4;"></div>
-    <button class="rotation-button" id="rotateLeft">⬅️</button>
-    <button class="rotation-button" id="rotateCenter">●</button>
-    <button class="rotation-button" id="rotateRight">➡️</button>
+    <button class="rotation-button" id="rotateLeft"><span class="material-icons">arrow_back</span></button>
+    <button class="rotation-button" id="rotateCenter"><span class="material-icons">adjust</span></button>
+    <button class="rotation-button" id="rotateRight"><span class="material-icons">arrow_forward</span></button>
     <div style="grid-column: 1/2;"></div>
-    <button class="rotation-button" id="rotateDown">⬇️</button>
+    <button class="rotation-button" id="rotateDown"><span class="material-icons">arrow_downward</span></button>
     <div style="grid-column: 3/4;"></div>
   </div>
   <div style="font-size: 10px; color: #666; text-align: center;">Arrow Keys or Q/E to rotate</div>
@@ -1139,7 +1154,7 @@
       const sphereMaterial = new THREE.MeshBasicMaterial({
         color: shieldColor,
         transparent: true,
-        opacity: 0.05
+        opacity: 0.15
       });
       const shieldSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
       shieldSphere.position.y = 0.03;
@@ -1157,8 +1172,8 @@
       if (attributes.front > 0) {
         const frontScale = Math.min(5, Math.max(1, attributes.front)) / 5; // Normalize 1-5 to 0.2-1.0
         const frontMaxRadius = baseRadius * frontScale;
-        addFlatArcSegment(group, frontMaxRadius * 0.6, frontMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
-        addFlatArcSegment(group, frontMaxRadius * 0.75, frontMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, frontMaxRadius * 0.2, frontMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, frontMaxRadius * 0.5, frontMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
         addFlatArcSegment(group, frontMaxRadius * 0.9, frontMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.1);
       }
       
@@ -1166,8 +1181,8 @@
       if (attributes.side > 0) {
         const sideScale = Math.min(5, Math.max(1, attributes.side)) / 5; // Normalize 1-5 to 0.2-1.0
         const sideMaxRadius = baseRadius * sideScale;
-        addFlatArcSegment(group, sideMaxRadius * 0.6, sideMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.2);
-        addFlatArcSegment(group, sideMaxRadius * 0.75, sideMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, sideMaxRadius * 0.2, sideMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, sideMaxRadius * 0.5, sideMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.15);
         addFlatArcSegment(group, sideMaxRadius * 0.9, sideMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.1);
       }
       
@@ -1175,8 +1190,8 @@
       if (attributes.side > 0) {
         const sideScale = Math.min(5, Math.max(1, attributes.side)) / 5;
         const sideMaxRadius = baseRadius * sideScale;
-        addFlatArcSegment(group, sideMaxRadius * 0.6, sideMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.2);
-        addFlatArcSegment(group, sideMaxRadius * 0.75, sideMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, sideMaxRadius * 0.2, sideMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, sideMaxRadius * 0.5, sideMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.15);
         addFlatArcSegment(group, sideMaxRadius * 0.9, sideMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.1);
       }
       
@@ -1184,8 +1199,8 @@
       if (attributes.rear > 0) {
         const rearScale = Math.min(5, Math.max(1, attributes.rear)) / 5; // Normalize 1-5 to 0.2-1.0
         const rearMaxRadius = baseRadius * rearScale;
-        addFlatArcSegment(group, rearMaxRadius * 0.6, rearMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
-        addFlatArcSegment(group, rearMaxRadius * 0.75, rearMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
+        addFlatArcSegment(group, rearMaxRadius * 0.2, rearMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
+        addFlatArcSegment(group, rearMaxRadius * 0.5, rearMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
         addFlatArcSegment(group, rearMaxRadius * 0.9, rearMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.1);
       }
     }
@@ -1313,8 +1328,8 @@
       speed: attributes.speed || 30,
       shield: attributes.shield || 3,
       shortRange: attributes.shortRange || 20,
-      longRange: attributes.longRange || 50,
-      front: attributes.front || 1,
+      longRange: attributes.longRange || 100,
+      front: attributes.front || 3,
       side: attributes.side || 1,
       rear: attributes.rear || 1,
       size: size
@@ -1395,8 +1410,8 @@
       speed: attributes.speed || 30,
       shield: attributes.shield || 3,
       shortRange: attributes.shortRange || 20,
-      longRange: attributes.longRange || 50,
-      front: attributes.front || 1,
+      longRange: attributes.longRange || 100,
+      front: attributes.front || 3,
       side: attributes.side || 1,
       rear: attributes.rear || 1,
       size: size
