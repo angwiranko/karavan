@@ -1673,131 +1673,186 @@
   function createSpaceStation(x, z, name = "Stanice", scale = 50) {
     const stationGroup = new THREE.Group();
     
-    // Main station body - large sphere
-    const bodyGeometry = new THREE.IcosahedronGeometry(scale * 0.7, 4);
-    const bodyMaterial = new THREE.MeshStandardMaterial({
-      color: 0x444444,
-      metalness: 0.8,
-      roughness: 0.3,
-      emissive: 0x1a1a1a
-    });
-    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    body.castShadow = true;
-    body.receiveShadow = true;
-    stationGroup.add(body);
-    
-    // Ring around the station
-    const ringGeometry = new THREE.TorusGeometry(scale * 0.85, scale * 0.15, 16, 32);
-    const ringMaterial = new THREE.MeshStandardMaterial({
-      color: 0x666666,
+    // Material definitions
+    const hullMaterial = new THREE.MeshStandardMaterial({
+      color: 0xcccccc,
       metalness: 0.7,
       roughness: 0.4,
       emissive: 0x333333
     });
-    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-    ring.rotation.x = Math.PI * 0.3;
-    ring.position.y = scale * 0.1;
-    ring.castShadow = true;
-    ring.receiveShadow = true;
-    stationGroup.add(ring);
     
-    // Towers around the station
-    const towerCount = 8;
-    for (let i = 0; i < towerCount; i++) {
-      const angle = (i / towerCount) * Math.PI * 2;
-      const towerX = Math.cos(angle) * scale * 0.6;
-      const towerZ = Math.sin(angle) * scale * 0.6;
+    const turretMaterial = new THREE.MeshStandardMaterial({
+      color: 0x666666,
+      metalness: 0.8,
+      roughness: 0.3,
+      emissive: 0x111111
+    });
+    
+    const gunMaterial = new THREE.MeshStandardMaterial({
+      color: 0x444444,
+      metalness: 0.9,
+      roughness: 0.2,
+      emissive: 0x000000
+    });
+    
+    // Central hub - octagonal structure
+    const hubGeometry = new THREE.CylinderGeometry(scale * 0.4, scale * 0.5, scale * 0.3, 8);
+    const hub = new THREE.Mesh(hubGeometry, hullMaterial);
+    hub.castShadow = true;
+    hub.receiveShadow = true;
+    stationGroup.add(hub);
+    
+    // Central spires (cathedral-like)
+    const spireCount = 6;
+    for (let i = 0; i < spireCount; i++) {
+      const angle = (i / spireCount) * Math.PI * 2;
+      const spireX = Math.cos(angle) * scale * 0.25;
+      const spireZ = Math.sin(angle) * scale * 0.25;
       
-      const towerGroup = new THREE.Group();
-      
-      // Tower base
-      const towerGeometry = new THREE.CylinderGeometry(scale * 0.12, scale * 0.15, scale * 0.4, 8);
-      const towerMaterial = new THREE.MeshStandardMaterial({
-        color: 0x555555,
-        metalness: 0.75,
-        roughness: 0.35
-      });
-      const tower = new THREE.Mesh(towerGeometry, towerMaterial);
-      tower.position.y = scale * 0.25;
-      tower.castShadow = true;
-      tower.receiveShadow = true;
-      towerGroup.add(tower);
-      
-      // Docking port (small cube)
-      const portGeometry = new THREE.BoxGeometry(scale * 0.2, scale * 0.2, scale * 0.25);
-      const portMaterial = new THREE.MeshStandardMaterial({
-        color: 0xff6600,
-        metalness: 0.6,
-        roughness: 0.4,
-        emissive: 0x663300
-      });
-      const port = new THREE.Mesh(portGeometry, portMaterial);
-      port.position.y = scale * 0.5;
-      port.position.z = scale * 0.15;
-      port.castShadow = true;
-      port.receiveShadow = true;
-      towerGroup.add(port);
-      
-      towerGroup.position.set(towerX, 0, towerZ);
-      stationGroup.add(towerGroup);
+      // Tall cone-shaped spire
+      const spireGeometry = new THREE.ConeGeometry(scale * 0.1, scale * 0.8, 6);
+      const spire = new THREE.Mesh(spireGeometry, gunMaterial);
+      spire.position.set(spireX, scale * 0.5, spireZ);
+      spire.castShadow = true;
+      spire.receiveShadow = true;
+      stationGroup.add(spire);
     }
     
-    // Antenna spikes
-    const antennaCount = 12;
-    for (let i = 0; i < antennaCount; i++) {
-      const theta = (i / antennaCount) * Math.PI * 2;
-      const phi = Math.random() * Math.PI * 0.5 + Math.PI * 0.25;
+    // Four main arms extending outward
+    const armDirections = [
+      { x: 1, z: 0 },   // Right
+      { x: -1, z: 0 },  // Left
+      { x: 0, z: 1 },   // Forward
+      { x: 0, z: -1 }   // Back
+    ];
+    
+    armDirections.forEach((dir) => {
+      // Main arm structure
+      const armGeometry = new THREE.BoxGeometry(scale * 0.3, scale * 0.25, scale * 1.2);
+      const arm = new THREE.Mesh(armGeometry, hullMaterial);
+      arm.position.set(dir.x * scale * 0.7, 0, dir.z * scale * 0.7);
+      arm.castShadow = true;
+      arm.receiveShadow = true;
+      stationGroup.add(arm);
       
-      const antennaX = Math.sin(phi) * Math.cos(theta) * scale * 0.8;
-      const antennaY = Math.cos(phi) * scale * 0.8;
-      const antennaZ = Math.sin(phi) * Math.sin(theta) * scale * 0.8;
+      // Gun batteries along the arm (rectangular protrusions)
+      for (let i = 0; i < 4; i++) {
+        const gunBatteryGeometry = new THREE.BoxGeometry(scale * 0.2, scale * 0.15, scale * 0.2);
+        const gunBattery = new THREE.Mesh(gunBatteryGeometry, turretMaterial);
+        gunBattery.position.set(
+          dir.x * (scale * 0.3 + (i - 1.5) * scale * 0.25),
+          scale * 0.15,
+          dir.z * (scale * 0.3 + (i - 1.5) * scale * 0.25)
+        );
+        gunBattery.castShadow = true;
+        gunBattery.receiveShadow = true;
+        stationGroup.add(gunBattery);
+      }
       
-      // Antenna spike
-      const antennaGeometry = new THREE.ConeGeometry(scale * 0.08, scale * 0.5, 8);
-      const antennaMaterial = new THREE.MeshStandardMaterial({
-        color: 0xffff00,
-        metalness: 0.9,
-        roughness: 0.2,
-        emissive: 0x888800
-      });
-      const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
-      antenna.position.set(antennaX, antennaY, antennaZ);
+      // Large turrets at the end of each arm
+      for (let side = -1; side <= 1; side += 2) {
+        const turretGeometry = new THREE.CylinderGeometry(scale * 0.15, scale * 0.15, scale * 0.4, 8);
+        const turret = new THREE.Mesh(turretGeometry, turretMaterial);
+        turret.position.set(
+          dir.x * scale * 1.4 + (side * scale * 0.3),
+          scale * 0.2,
+          dir.z * scale * 1.4 + (side * scale * 0.3)
+        );
+        turret.castShadow = true;
+        turret.receiveShadow = true;
+        stationGroup.add(turret);
+        
+        // Gun barrel on turret
+        const barrelGeometry = new THREE.CylinderGeometry(scale * 0.06, scale * 0.06, scale * 0.6, 8);
+        const barrel = new THREE.Mesh(barrelGeometry, gunMaterial);
+        barrel.rotation.z = Math.PI * 0.3;
+        barrel.position.set(
+          dir.x * scale * 1.4 + (side * scale * 0.3),
+          scale * 0.4,
+          dir.z * scale * 1.4 + (side * scale * 0.3)
+        );
+        barrel.castShadow = true;
+        barrel.receiveShadow = true;
+        stationGroup.add(barrel);
+      }
+    });
+    
+    // Armor plates between arms (curved sections)
+    for (let i = 0; i < 4; i++) {
+      const angle = (i / 4) * Math.PI * 2 + Math.PI * 0.25;
+      const armorX = Math.cos(angle) * scale * 0.6;
+      const armorZ = Math.sin(angle) * scale * 0.6;
       
-      // Point antenna outward from station center
-      const direction = new THREE.Vector3(antennaX, antennaY, antennaZ).normalize();
-      antenna.lookAt(direction.x + antenna.position.x, direction.y + antenna.position.y, direction.z + antenna.position.z);
+      const armorGeometry = new THREE.BoxGeometry(scale * 0.4, scale * 0.2, scale * 0.5);
+      const armor = new THREE.Mesh(armorGeometry, hullMaterial);
+      armor.position.set(armorX, 0, armorZ);
+      armor.rotation.y = angle;
+      armor.castShadow = true;
+      armor.receiveShadow = true;
+      stationGroup.add(armor);
       
-      antenna.castShadow = true;
-      antenna.receiveShadow = true;
-      stationGroup.add(antenna);
+      // Detail ribs on armor plates
+      for (let j = 0; j < 3; j++) {
+        const ribGeometry = new THREE.BoxGeometry(scale * 0.35, scale * 0.05, scale * 0.08);
+        const rib = new THREE.Mesh(ribGeometry, turretMaterial);
+        rib.position.set(armorX, (j - 1) * scale * 0.1, armorZ);
+        rib.rotation.y = angle;
+        rib.castShadow = true;
+        rib.receiveShadow = true;
+        stationGroup.add(rib);
+      }
     }
     
-    // Solar panels/heat radiators (flat rectangles)
-    const radiatorCount = 6;
-    for (let i = 0; i < radiatorCount; i++) {
-      const angle = (i / radiatorCount) * Math.PI * 2;
-      const radiatorX = Math.cos(angle) * scale;
-      const radiatorZ = Math.sin(angle) * scale;
+    // Side pods (engine/shield generators)
+    for (let side = -1; side <= 1; side += 2) {
+      for (let dir of [0, 1]) {
+        const podX = side * scale * 0.8;
+        const podZ = (dir - 0.5) * scale * 1.2;
+        
+        const podGeometry = new THREE.BoxGeometry(scale * 0.25, scale * 0.3, scale * 0.4);
+        const pod = new THREE.Mesh(podGeometry, hullMaterial);
+        pod.position.set(podX, 0, podZ);
+        pod.castShadow = true;
+        pod.receiveShadow = true;
+        stationGroup.add(pod);
+        
+        // Reactor glow
+        const glowGeometry = new THREE.SphereGeometry(scale * 0.12, 8, 8);
+        const glowMaterial = new THREE.MeshStandardMaterial({
+          color: 0xff6600,
+          metalness: 0.5,
+          roughness: 0.3,
+          emissive: 0xff3300,
+          emissiveIntensity: 0.6
+        });
+        const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+        glow.position.set(podX, 0, podZ);
+        glow.castShadow = true;
+        glow.receiveShadow = true;
+        stationGroup.add(glow);
+      }
+    }
+    
+    // Additional turrets scattered around the station
+    const extraTurretCount = 12;
+    for (let i = 0; i < extraTurretCount; i++) {
+      const angle = (i / extraTurretCount) * Math.PI * 2;
+      const distance = scale * (0.4 + Math.random() * 0.3);
+      const turretX = Math.cos(angle) * distance;
+      const turretZ = Math.sin(angle) * distance;
+      const turretY = (Math.random() - 0.5) * scale * 0.5;
       
-      const radiatorGeometry = new THREE.PlaneGeometry(scale * 0.3, scale * 0.6);
-      const radiatorMaterial = new THREE.MeshStandardMaterial({
-        color: 0x0066ff,
-        metalness: 0.8,
-        roughness: 0.3,
-        emissive: 0x003366,
-        side: THREE.DoubleSide
-      });
-      const radiator = new THREE.Mesh(radiatorGeometry, radiatorMaterial);
-      radiator.position.set(radiatorX, scale * 0.3, radiatorZ);
-      radiator.lookAt(0, 0, 0);
-      radiator.castShadow = true;
-      radiator.receiveShadow = true;
-      stationGroup.add(radiator);
+      const smallTurretGeometry = new THREE.CylinderGeometry(scale * 0.08, scale * 0.08, scale * 0.25, 6);
+      const smallTurret = new THREE.Mesh(smallTurretGeometry, turretMaterial);
+      smallTurret.position.set(turretX, turretY, turretZ);
+      smallTurret.castShadow = true;
+      smallTurret.receiveShadow = true;
+      stationGroup.add(smallTurret);
     }
     
     // Position and add to scene
-    const validPosition = findNearestValidPosition(x, z, scale * 1.2);
-    const correctY = getCorrectYPosition(validPosition.x, validPosition.z, scale * 1.2) + scale * 0.5;
+    const validPosition = findNearestValidPosition(x, z, scale * 1.5);
+    const correctY = getCorrectYPosition(validPosition.x, validPosition.z, scale * 1.5) + scale * 0.3;
     stationGroup.position.set(validPosition.x, correctY, validPosition.z);
     
     stationGroup.userData = {
