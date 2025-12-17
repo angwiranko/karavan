@@ -889,63 +889,63 @@
     
     // Speed range - dashed outer circle (farthest point ship can travel)
     if (attributes.speed > 0) {
-      const speedGeometry = createDashedCircle(attributes.speed * speedScale, 32);
+      const speedGeometry = createDashedCircle(attributes.speed * speedScale, 64);
       const speedMaterial = new THREE.LineBasicMaterial({
         color: 0x4488ff,
         transparent: true,
         opacity: 0.4,
-        linewidth: 1
+        linewidth: 2
       });
       const speedCircle = new THREE.Line(speedGeometry, speedMaterial);
       speedCircle.position.y = 0.01;
       group.add(speedCircle);
     }
     
-    // Short range - pulsing plate (filled disc with pulse effect)
+    // Short range - pulsing ring with gradient fade (sides fade, not filled)
     if (attributes.shortRange > 0) {
       const shortRadius = attributes.shortRange * rangeScale;
-      const shortGeometry = new THREE.CircleGeometry(shortRadius, 32);
+      const ringGeometry = new THREE.RingGeometry(shortRadius * 0.8, shortRadius, 64);
       const shortMaterial = new THREE.MeshBasicMaterial({
         color: 0xff8800,
         transparent: true,
-        opacity: 0.2,
+        opacity: 0.3,
         side: THREE.DoubleSide
       });
-      const shortPlate = new THREE.Mesh(shortGeometry, shortMaterial);
-      shortPlate.position.y = 0.02;
-      shortPlate.rotation.x = -Math.PI / 2;
-      shortPlate.userData = {
+      const shortRing = new THREE.Mesh(ringGeometry, shortMaterial);
+      shortRing.position.y = 0.02;
+      shortRing.rotation.x = -Math.PI / 2;
+      shortRing.userData = {
         isPulsingPlate: true,
-        baseOpacity: 0.2,
+        baseOpacity: 0.3,
         baseScale: 1
       };
-      group.add(shortPlate);
-      group.userData.animatingChildren.push(shortPlate);
+      group.add(shortRing);
+      group.userData.animatingChildren.push(shortRing);
     }
     
-    // Shield - short vertical columns with fading lights near the model
+    // Shield - short vertical columns with fading lights on/near the model
     if (attributes.shield > 0) {
       const shieldColor = attributes.shield >= 3 ? 0x00ff88 : (attributes.shield >= 2 ? 0xffff00 : 0xff8888);
-      const shieldRadius = attributes.size * 0.1;
+      const shieldRadius = attributes.size * 0.15;
       
       // Create short vertical light columns around the shield perimeter
-      const columnCount = 12;
+      const columnCount = 8;
       for (let i = 0; i < columnCount; i++) {
         const angle = (i / columnCount) * Math.PI * 2;
         const x = Math.cos(angle) * shieldRadius;
         const z = Math.sin(angle) * shieldRadius;
         
-        const beamGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1, 8);
+        const beamGeometry = new THREE.CylinderGeometry(1, 1, 5, 4);
         const beamMaterial = new THREE.MeshBasicMaterial({
           color: shieldColor,
           transparent: true,
-          opacity: 0.3
+          opacity: 0.4
         });
         const beam = new THREE.Mesh(beamGeometry, beamMaterial);
-        beam.position.set(x, 4, z);
+        beam.position.set(x, 2.5, z);
         beam.userData = {
           isShieldBeam: true,
-          baseOpacity: 0.3,
+          baseOpacity: 0.4,
           columnIndex: i,
           totalColumns: columnCount
         };
@@ -954,75 +954,71 @@
       }
     }
     
-    // Long range - WiFi-like signal strength bars with gaps and thicker lines
+    // Long range - WiFi-like signal strength bars with gaps and thicker mesh tubes
     if (attributes.longRange > 0) {
       const baseRadius = attributes.longRange * rangeScale;
       const barCount = 3;
+      const arcAngle = Math.PI / 6; // 30 degree arc with gap
       
       // Create stacked arcs like WiFi strength indicator with gaps between directions
       for (let bar = 0; bar < barCount; bar++) {
-        const barRadius = baseRadius * (0.6 + (bar * 0.2));
-        const arcSegments = 16;
-        const arcAngle = Math.PI / 6; // 30 degree arc with gap
+        const barRadius = baseRadius * (0.5 + (bar * 0.25));
+        const tubeRadius = 1.5 + (bar * 0.8);
         
         // Front bar
         if (attributes.front > 0) {
-          const frontArc = createArc(barRadius, -arcAngle, arcAngle, arcSegments, 0x00ffff);
-          frontArc.position.y = 0.01;
-          frontArc.material.linewidth = 30;
-          frontArc.userData = {
+          const frontBar = createTubeArc(barRadius, -arcAngle, arcAngle, 16, tubeRadius, 0x00ffff);
+          frontBar.position.y = 0.02;
+          frontBar.userData = {
             isWifiBar: true,
             barIndex: bar,
             totalBars: barCount,
-            baseOpacity: 0.3 + (bar * 0.25)
+            baseOpacity: 0.4 + (bar * 0.2)
           };
-          group.add(frontArc);
-          group.userData.animatingChildren.push(frontArc);
+          group.add(frontBar);
+          group.userData.animatingChildren.push(frontBar);
         }
         
         // Left bar
         if (attributes.side > 0) {
-          const leftArc = createArc(barRadius, Math.PI / 2 - arcAngle, Math.PI / 2 + arcAngle, arcSegments, 0xff00ff);
-          leftArc.position.y = 0.01;
-          leftArc.material.linewidth = 30;
-          leftArc.userData = {
+          const leftBar = createTubeArc(barRadius, Math.PI / 2 - arcAngle, Math.PI / 2 + arcAngle, 16, tubeRadius, 0xff00ff);
+          leftBar.position.y = 0.02;
+          leftBar.userData = {
             isWifiBar: true,
             barIndex: bar,
             totalBars: barCount,
-            baseOpacity: 0.3 + (bar * 0.25)
+            baseOpacity: 0.4 + (bar * 0.2)
           };
-          group.add(leftArc);
-          group.userData.animatingChildren.push(leftArc);
+          group.add(leftBar);
+          group.userData.animatingChildren.push(leftBar);
         }
         
         // Right bar
         if (attributes.side > 0) {
-          const rightArc = createArc(barRadius, -Math.PI / 2 - arcAngle, -Math.PI / 2 + arcAngle, arcSegments, 0xffff00);
-          rightArc.position.y = 0.01;
-          rightArc.material.linewidth = 30;
-          rightArc.userData = {
+          const rightBar = createTubeArc(barRadius, -Math.PI / 2 - arcAngle, -Math.PI / 2 + arcAngle, 16, tubeRadius, 0xffff00);
+          rightBar.position.y = 0.02;
+          rightBar.userData = {
             isWifiBar: true,
             barIndex: bar,
             totalBars: barCount,
-            baseOpacity: 0.3 + (bar * 0.25)
+            baseOpacity: 0.4 + (bar * 0.2)
           };
-          group.add(rightArc);
-          group.userData.animatingChildren.push(rightArc);
+          group.add(rightBar);
+          group.userData.animatingChildren.push(rightBar);
         }
         
         // Rear bar
         if (attributes.rear > 0) {
-          const rearArc = createArc(barRadius, Math.PI - arcAngle, Math.PI + arcAngle, arcSegments, 0xff6600);
-          rearArc.position.y = 0.01;
-          rearArc.material.linewidth = 30;
-          rearArc.userData = {
+          const rearBar = createTubeArc(barRadius, Math.PI - arcAngle, Math.PI + arcAngle, 16, tubeRadius, 0xff6600);
+          rearBar.position.y = 0.02;
+          rearBar.userData = {
             isWifiBar: true,
             barIndex: bar,
             totalBars: barCount,
-            baseOpacity: 0.3 + (bar * 0.25)
+            baseOpacity: 0.4 + (bar * 0.2)
           };
-          group.add(rearArc);
-          group.userData.animatingChildren.push(rearArc);
+          group.add(rearBar);
+          group.userData.animatingChildren.push(rearBar);
         }
       }
     }
@@ -1040,10 +1036,10 @@
       
       rangeGroup.userData.animatingChildren.forEach(child => {
         if (child.userData.isPulsingPlate) {
-          // Pulsing plate animation
-          const pulse = Math.sin(time * 2) * 0.3 + 0.7;
+          // Pulsing plate animation - fades sides, never drops to 0
+          const pulse = Math.sin(time * 2) * 0.2 + 0.8;
           child.material.opacity = child.userData.baseOpacity * pulse;
-          child.scale.set(pulse, pulse, pulse);
+          child.scale.set(1, 1, 1);
         } else if (child.userData.isShieldBeam) {
           // Fading light columns
           const delay = child.userData.columnIndex * 0.15;
@@ -1064,9 +1060,9 @@
       
       rangeGroup.userData.animatingChildren.forEach(child => {
         if (child.userData.isPulsingPlate) {
-          const pulse = Math.sin(time * 2) * 0.3 + 0.7;
+          const pulse = Math.sin(time * 2) * 0.2 + 0.8;
           child.material.opacity = child.userData.baseOpacity * pulse;
-          child.scale.set(pulse, 1, pulse);
+          child.scale.set(1, 1, 1);
         } else if (child.userData.isShieldBeam) {
           const delay = child.userData.columnIndex * 0.15;
           const flicker = Math.sin(time * 3 + delay) * 0.5 + 0.5;
@@ -1098,9 +1094,15 @@
   // Helper: Create a dashed circle - already in XZ plane
   function createDashedCircle(radius, segments) {
     const points = [];
-    const dashLength = segments / 8; // 8 dashes
+    const dashSegments = 12; // 12 dashes
+    const segmentsPerDash = segments / dashSegments;
+    let onDash = true;
+    
     for (let i = 0; i <= segments; i++) {
-      if (Math.floor((i / dashLength) % 2) === 0) {
+      const segmentIndex = Math.floor(i / segmentsPerDash);
+      onDash = (segmentIndex % 2) === 0;
+      
+      if (onDash || i === segments) {
         const angle = (i / segments) * Math.PI * 2;
         points.push(new THREE.Vector3(
           Math.cos(angle) * radius,
@@ -1134,6 +1136,30 @@
     });
     const line = new THREE.Line(geometry, material);
     return line;
+  }
+  
+  // Helper: Create a thick tube arc (3D bar instead of line)
+  function createTubeArc(radius, startAngle, endAngle, segments, tubeRadius, color) {
+    const points = [];
+    const angleStep = (endAngle - startAngle) / segments;
+    for (let i = 0; i <= segments; i++) {
+      const angle = startAngle + angleStep * i;
+      points.push(new THREE.Vector3(
+        Math.cos(angle) * radius,
+        0,
+        Math.sin(angle) * radius
+      ));
+    }
+    
+    const curve = new THREE.CatmullRomCurve3(points);
+    const tubeGeometry = new THREE.TubeGeometry(curve, segments, tubeRadius, 6, false);
+    const tubeMaterial = new THREE.MeshBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: 0.5
+    });
+    const tube = new THREE.Mesh(tubeGeometry, tubeMaterial);
+    return tube;
   }
   
   // Create player ship
@@ -1515,7 +1541,7 @@
                 });
               }
           
-              // Apply selection highlight
+              // Apply selection highlight (skip RangeVisuals group)
               const newMat = new THREE.MeshStandardMaterial({
                   color: 0x00ffff,
                   emissive: 0x00ffff,
@@ -1527,9 +1553,9 @@
               if (selectedPlayer.isMesh) {
                 selectedPlayer.material = newMat;
               } else {
-                // For complex models, apply to all meshes
+                // For complex models, apply to all meshes except RangeVisuals
                 selectedPlayer.traverse((node) => {
-                  if (node.isMesh) {
+                  if (node.isMesh && node.parent?.name !== "RangeVisuals") {
                     node.material = newMat.clone();
                   }
                 });
