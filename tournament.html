@@ -310,25 +310,25 @@
     <label>Méret: <input type="number" id="charSize" class="nametag" value="50"></label><br><br>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
       <div>
-        <label>Sebesség: <input type="number" id="shipSpeed" class="nametag" value="30" min="0"></label>
+        <label>Sebesség: <input type="number" id="shipSpeed" class="nametag" value="20" min="0"></label>
       </div>
       <div>
         <label>Pajzs: <input type="number" id="shipShield" class="nametag" value="3" min="0" max="5"></label>
       </div>
       <div>
-        <label>Közeli: <input type="number" id="shipShortRange" class="nametag" value="20" min="0"></label>
+        <label>Radar: <input type="number" id="shipShortRange" class="nametag" value="30" min="0"></label>
       </div>
       <div>
-        <label>Távolsági: <input type="number" id="shipLongRange" class="nametag" value="50" min="0"></label>
+        <label>Fegyvertáv: <input type="number" id="shipLongRange" class="nametag" value="100" min="0"></label>
       </div>
       <div>
-        <label>Előrefelé: <input type="number" id="shipFront" class="nametag" value="1" min="0" max="5"></label>
+        <label>Hátsó ágyúk: <input type="number" id="shipFront" class="nametag" value="0" min="0" max="5"></label>
       </div>
       <div>
-        <label>Oldalt: <input type="number" id="shipSide" class="nametag" value="1" min="0" max="5"></label>
+        <label>Oldal ágyúk: <input type="number" id="shipSide" class="nametag" value="1" min="0" max="5"></label>
       </div>
       <div>
-        <label>Hátrafelé: <input type="number" id="shipRear" class="nametag" value="1" min="0" max="5"></label>
+        <label>Front ágyúk: <input type="number" id="shipRear" class="nametag" value="3" min="0" max="5"></label>
       </div>
     </div>
     <br>
@@ -1154,7 +1154,7 @@
       const sphereMaterial = new THREE.MeshBasicMaterial({
         color: shieldColor,
         transparent: true,
-        opacity: 0.15
+        opacity: 0.7
       });
       const shieldSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
       shieldSphere.position.y = 0.03;
