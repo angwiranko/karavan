@@ -128,6 +128,100 @@
 	width: auto;
 	}
 	
+	#rotationPanel {
+	  position: absolute;
+	  bottom: 30px;
+	  left: 50%;
+	  transform: translateX(-50%);
+	  background: radial-gradient(ellipse at top left, #0f1a2e 60%, #050a14 100%);
+	  border: 2px solid #666;
+	  box-shadow: 0 0 12px rgba(0, 255, 255, 0.4);
+	  padding: 12px;
+	  border-radius: 8px;
+	  z-index: 10;
+	  display: none;
+	  flex-direction: column;
+	  align-items: center;
+	  gap: 8px;
+	}
+	
+	#rotationPanel.active {
+	  display: flex;
+	}
+	
+	#rotationControls {
+	  display: grid;
+	  grid-template-columns: 1fr 1fr 1fr;
+	  gap: 4px;
+	  margin-bottom: 8px;
+	}
+	
+	.rotation-button {
+	  width: 40px;
+	  height: 40px;
+	  background: linear-gradient(145deg, #1a3a3a, #2b5a5a);
+	  color: #00ffff;
+	  border: 2px solid #00ffff;
+	  border-radius: 4px;
+	  font-size: 16px;
+	  cursor: pointer;
+	  transition: all 0.2s;
+	  font-family: "Orbitron", sans-serif;
+	}
+	
+	.rotation-button:hover {
+	  background: #2b5a5a;
+	  box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+	}
+	
+	#headingDisplay {
+	  font-family: "Share Tech Mono", monospace;
+	  color: #00ffff;
+	  font-size: 12px;
+	  text-align: center;
+	  min-width: 120px;
+	}
+	
+	#headingCompass {
+	  width: 60px;
+	  height: 60px;
+	  border: 2px solid #00ffff;
+	  border-radius: 50%;
+	  position: relative;
+	  background: rgba(0, 255, 255, 0.05);
+	}
+	
+	#compassNeedle {
+	  position: absolute;
+	  top: 50%;
+	  left: 50%;
+	  width: 2px;
+	  height: 20px;
+	  background: #00ffff;
+	  transform: translate(-50%, -50%);
+	  transform-origin: center 12px;
+	  box-shadow: 0 0 5px rgba(0, 255, 255, 0.8);
+	}
+	
+	#compassLabel {
+	  position: absolute;
+	  font-size: 10px;
+	  color: #00ffff;
+	  font-weight: bold;
+	  font-family: "Share Tech Mono", monospace;
+	}
+	
+	#compassN {
+	  top: 2px;
+	  left: 50%;
+	  transform: translateX(-50%);
+	}
+	
+	.nametag {
+	color: #a3d9ff;
+	background: #0a0a0f;
+	width: auto;
+	}
 	#ui {
 	  pointer-events: none;
 	}
@@ -239,6 +333,27 @@
   
 </div>
 
+<!-- Rotation Control Panel -->
+<div id="rotationPanel">
+  <div id="headingDisplay">Heading: 0°</div>
+  <div id="headingCompass">
+    <div id="compassNeedle"></div>
+    <div id="compassLabel" id="compassN">N</div>
+  </div>
+  <div id="rotationControls">
+    <div style="grid-column: 1/2;"></div>
+    <button class="rotation-button" id="rotateUp">⬆️</button>
+    <div style="grid-column: 3/4;"></div>
+    <button class="rotation-button" id="rotateLeft">⬅️</button>
+    <button class="rotation-button" id="rotateCenter">●</button>
+    <button class="rotation-button" id="rotateRight">➡️</button>
+    <div style="grid-column: 1/2;"></div>
+    <button class="rotation-button" id="rotateDown">⬇️</button>
+    <div style="grid-column: 3/4;"></div>
+  </div>
+  <div style="font-size: 10px; color: #666; text-align: center;">Arrow Keys or Q/E to rotate</div>
+</div>
+
 
 
 <script type="module">
@@ -307,6 +422,76 @@
   let originalMaterial = null;
   let originalMaterials = []; // Store all original materials for complex models
   let hoverIndicator = null;
+  
+  // Rotation control
+  const rotationPanel = document.getElementById('rotationPanel');
+  const headingDisplay = document.getElementById('headingDisplay');
+  const compassNeedle = document.getElementById('compassNeedle');
+  const rotationSpeed = 5; // degrees per click
+  
+  function updateRotationDisplay() {
+    if (!selectedPlayer) return;
+    const heading = (selectedPlayer.userData.heading || 0) * 180 / Math.PI;
+    headingDisplay.textContent = `Heading: ${Math.round(heading)}°`;
+    compassNeedle.style.transform = `translate(-50%, -50%) rotate(${heading}deg)`;
+  }
+  
+  function rotateShip(degrees) {
+    if (!selectedPlayer) return;
+    const radians = degrees * Math.PI / 180;
+    selectedPlayer.userData.heading = (selectedPlayer.userData.heading || 0) + radians;
+    selectedPlayer.rotation.y = selectedPlayer.userData.heading;
+    updateRotationDisplay();
+  }
+  
+  document.getElementById('rotateUp').addEventListener('click', () => rotateShip(rotationSpeed));
+  document.getElementById('rotateDown').addEventListener('click', () => rotateShip(-rotationSpeed));
+  document.getElementById('rotateLeft').addEventListener('click', () => rotateShip(rotationSpeed));
+  document.getElementById('rotateRight').addEventListener('click', () => rotateShip(-rotationSpeed));
+  document.getElementById('rotateCenter').addEventListener('click', () => {
+    if (!selectedPlayer) return;
+    selectedPlayer.userData.heading = 0;
+    selectedPlayer.rotation.y = 0;
+    updateRotationDisplay();
+  });
+  
+  // Keyboard controls
+  document.addEventListener('keydown', (e) => {
+    if (!selectedPlayer) return;
+    switch(e.key) {
+      case 'ArrowUp':
+      case 'w':
+      case 'W':
+        rotateShip(rotationSpeed);
+        e.preventDefault();
+        break;
+      case 'ArrowDown':
+      case 's':
+      case 'S':
+        rotateShip(-rotationSpeed);
+        e.preventDefault();
+        break;
+      case 'ArrowLeft':
+      case 'q':
+      case 'Q':
+        rotateShip(rotationSpeed);
+        e.preventDefault();
+        break;
+      case 'ArrowRight':
+      case 'e':
+      case 'E':
+        rotateShip(-rotationSpeed);
+        e.preventDefault();
+        break;
+      case 'r':
+      case 'R':
+        selectedPlayer.userData.heading = 0;
+        selectedPlayer.rotation.y = 0;
+        updateRotationDisplay();
+        e.preventDefault();
+        break;
+    }
+  });
   
   // Buttons
   const addPlayerBtn = document.getElementById('addPlayer');
@@ -954,7 +1139,7 @@
       const sphereMaterial = new THREE.MeshBasicMaterial({
         color: shieldColor,
         transparent: true,
-        opacity: 0.1
+        opacity: 0.05
       });
       const shieldSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
       shieldSphere.position.y = 0.03;
@@ -1521,6 +1706,8 @@
               }
           
               updateInfoPanel(selectedPlayer);
+              rotationPanel.classList.add('active');
+              updateRotationDisplay();
               console.log('Selected ship:', selectedPlayer);
           } else {
               // Deselect if clicking on nothing
@@ -1541,6 +1728,7 @@
               originalMaterial = null;
               originalMaterials = [];
               updateInfoPanel(null);
+              rotationPanel.classList.remove('active');
           }
       }
   });
