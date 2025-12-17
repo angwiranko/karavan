@@ -368,6 +368,7 @@
     <div style="grid-column: 3/4;"></div>
   </div>
   <div style="font-size: 10px; color: #666; text-align: center;">Arrow Keys or Q/E to rotate</div>
+  <div style="font-size: 10px; color: #666; text-align: center;">WASD to move</div>
 </div>
 
 
@@ -559,6 +560,8 @@
   });
   
   // Keyboard controls
+  const moveDistance = 25; // Distance to move per keypress
+  
   document.addEventListener('keydown', (e) => {
     // ESC to deselect
     if (e.key === 'Escape') {
@@ -585,37 +588,75 @@
     }
     
     if (!selectedPlayer) return;
-    switch(e.key) {
-      case 'ArrowUp':
+    
+    // WASD for movement
+    switch(e.key.toLowerCase()) {
       case 'w':
-      case 'W':
+        // Move forward (positive Z direction in world)
+        captureState();
+        selectedPlayer.position.z += moveDistance;
+        updateInfoPanel(selectedPlayer);
+        sceneNeedsUpdate = true;
+        e.preventDefault();
+        break;
+      case 's':
+        // Move backward (negative Z direction in world)
+        captureState();
+        selectedPlayer.position.z -= moveDistance;
+        updateInfoPanel(selectedPlayer);
+        sceneNeedsUpdate = true;
+        e.preventDefault();
+        break;
+      case 'a':
+        // Move left (negative X direction in world)
+        captureState();
+        selectedPlayer.position.x -= moveDistance;
+        updateInfoPanel(selectedPlayer);
+        sceneNeedsUpdate = true;
+        e.preventDefault();
+        break;
+      case 'd':
+        // Move right (positive X direction in world)
+        captureState();
+        selectedPlayer.position.x += moveDistance;
+        updateInfoPanel(selectedPlayer);
+        sceneNeedsUpdate = true;
+        e.preventDefault();
+        break;
+      // Arrow keys for rotation
+      case 'arrowup':
         rotateShip(rotationSpeed);
         sceneNeedsUpdate = true;
         e.preventDefault();
         break;
-      case 'ArrowDown':
-      case 's':
-      case 'S':
+      case 'arrowdown':
         rotateShip(-rotationSpeed);
         sceneNeedsUpdate = true;
         e.preventDefault();
         break;
-      case 'ArrowLeft':
-      case 'q':
-      case 'Q':
+      case 'arrowleft':
         rotateShip(rotationSpeed);
         sceneNeedsUpdate = true;
         e.preventDefault();
         break;
-      case 'ArrowRight':
+      case 'arrowright':
+        rotateShip(-rotationSpeed);
+        sceneNeedsUpdate = true;
+        e.preventDefault();
+        break;
+      case 'q':
+        // Q and E for alternative rotation
+        rotateShip(rotationSpeed);
+        sceneNeedsUpdate = true;
+        e.preventDefault();
+        break;
       case 'e':
-      case 'E':
         rotateShip(-rotationSpeed);
         sceneNeedsUpdate = true;
         e.preventDefault();
         break;
       case 'r':
-      case 'R':
+        // Reset heading
         selectedPlayer.userData.heading = 0;
         selectedPlayer.rotation.y = 0;
         updateRotationDisplay();
