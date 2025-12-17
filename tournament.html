@@ -508,23 +508,50 @@
   
   // GLB Loader for spaceship models
   const gltfLoader = new GLTFLoader();
-  const shipModels = {}; // Cache for loaded models
+  let shipModel = null; // Cache for loaded model
+  let modelLoading = false;
+  let modelLoadError = false;
 
-  function loadShipModel(modelPath = 'gemini3_anim1_draco.glb') {
-    return new Promise((resolve, reject) => {
-      if (shipModels[modelPath]) {
-        resolve(shipModels[modelPath]);
-      } else {
-        gltfLoader.load(
-          modelPath,
-          (gltf) => {
-            shipModels[modelPath] = gltf.scene;
-            resolve(gltf.scene);
-          },
-          undefined,
-          reject
-        );
+  async function loadShipModel() {
+    return new Promise((resolve) => {
+      // If already loaded, clone and return
+      if (shipModel) {
+        resolve(shipModel.clone());
+        return;
       }
+
+      // If already loading, wait a bit and try again
+      if (modelLoading) {
+        setTimeout(() => loadShipModel().then(resolve), 100);
+        return;
+      }
+
+      // If loading failed before, just resolve with null to use fallback
+      if (modelLoadError) {
+        resolve(null);
+        return;
+      }
+
+      modelLoading = true;
+
+      gltfLoader.load(
+        'images/gemini3_anim1_draco.glb',
+        (gltf) => {
+          shipModel = gltf.scene;
+          modelLoading = false;
+          console.log('✅ Ship model loaded successfully');
+          resolve(shipModel.clone());
+        },
+        (progress) => {
+          console.log('Loading model:', (progress.loaded / progress.total * 100).toFixed(0) + '%');
+        },
+        (error) => {
+          modelLoading = false;
+          modelLoadError = true;
+          console.warn('⚠️ Could not load ship model:', error);
+          resolve(null);
+        }
+      );
     });
   }
 
@@ -800,15 +827,29 @@
   // Create player ship
   async function createPlayer(x, z, color = 0x0000ff, name = "Player", size = 20) {
     let shipObject;
-    try {
-      const modelScene = await loadShipModel();
-      shipObject = modelScene.clone();
-      shipObject.scale.set(size / 100, size / 100, size / 100);
-    } catch (e) {
-      console.warn('Could not load ship model, using sphere:', e);
+    const model = await loadShipModel();
+    
+    if (model) {
+      shipObject = model;
+      // Scale the model appropriately
+      const scale = size / 50;
+      shipObject.scale.set(scale, scale, scale);
+      
+      // Apply color to all meshes in the model
+      shipObject.traverse((node) => {
+        if (node.isMesh && node.material) {
+          node.material = node.material.clone();
+          node.material.color.setHex(parseInt(color.replace('#', ''), 16));
+        }
+      });
+      
+      console.log('✅ Player ship created with model');
+    } else {
+      // Fallback to sphere if model loading failed
       const geometry = new THREE.SphereGeometry(size, 16, 16);
       const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(color) });
       shipObject = new THREE.Mesh(geometry, material);
+      console.log('⚠️ Player ship using fallback sphere');
     }
 
     const nameLabel = createNameLabel(name);
@@ -832,15 +873,29 @@
   // Create enemy ship
   async function createEnemy(x, z, color = 0xff0000, name = "Enemy", size = 20) {
     let shipObject;
-    try {
-      const modelScene = await loadShipModel();
-      shipObject = modelScene.clone();
-      shipObject.scale.set(size / 100, size / 100, size / 100);
-    } catch (e) {
-      console.warn('Could not load ship model, using sphere:', e);
+    const model = await loadShipModel();
+    
+    if (model) {
+      shipObject = model;
+      // Scale the model appropriately
+      const scale = size / 50;
+      shipObject.scale.set(scale, scale, scale);
+      
+      // Apply color to all meshes in the model
+      shipObject.traverse((node) => {
+        if (node.isMesh && node.material) {
+          node.material = node.material.clone();
+          node.material.color.setHex(parseInt(color.replace('#', ''), 16));
+        }
+      });
+      
+      console.log('✅ Enemy ship created with model');
+    } else {
+      // Fallback to sphere if model loading failed
       const geometry = new THREE.SphereGeometry(size, 16, 16);
       const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(color) });
       shipObject = new THREE.Mesh(geometry, material);
+      console.log('⚠️ Enemy ship using fallback sphere');
     }
 
     const nameLabel = createNameLabel(name);
