@@ -1029,7 +1029,7 @@
   function updateRangeVisuals() {
     const time = Date.now() * 0.001;
     
-    players.forEach(ship => {
+    players.children.forEach(ship => {
       const rangeGroup = ship.getObjectByName("RangeVisuals");
       if (!rangeGroup || !rangeGroup.userData.animatingChildren) return;
       
@@ -1053,7 +1053,7 @@
       });
     });
     
-    enemies.forEach(ship => {
+    enemies.children.forEach(ship => {
       const rangeGroup = ship.getObjectByName("RangeVisuals");
       if (!rangeGroup || !rangeGroup.userData.animatingChildren) return;
       
