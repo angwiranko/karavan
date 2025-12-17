@@ -198,19 +198,19 @@
       <button class="color-button" style="background-color: #ffffff;" data-color="#ffffff"></button>
     </div>
     <br>
-    <label>Méret: <input type="number" id="charSize" class="nametag" value="20"></label><br><br>
+    <label>Méret: <input type="number" id="charSize" class="nametag" value="50"></label><br><br>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
       <div>
-        <label>Sebesség: <input type="number" id="shipSpeed" class="nametag" value="100" min="0"></label>
+        <label>Sebesség: <input type="number" id="shipSpeed" class="nametag" value="30" min="0"></label>
       </div>
       <div>
         <label>Pajzs: <input type="number" id="shipShield" class="nametag" value="3" min="0" max="5"></label>
       </div>
       <div>
-        <label>Közeli: <input type="number" id="shipShortRange" class="nametag" value="50" min="0"></label>
+        <label>Közeli: <input type="number" id="shipShortRange" class="nametag" value="20" min="0"></label>
       </div>
       <div>
-        <label>Távolsági: <input type="number" id="shipLongRange" class="nametag" value="120" min="0"></label>
+        <label>Távolsági: <input type="number" id="shipLongRange" class="nametag" value="50" min="0"></label>
       </div>
       <div>
         <label>Előrefelé: <input type="number" id="shipFront" class="nametag" value="1" min="0" max="5"></label>
@@ -893,7 +893,7 @@
       });
       const speedCircle = new THREE.Line(speedGeometry, speedMaterial);
       speedCircle.rotation.x = -Math.PI / 2;
-      speedCircle.position.y = 0.5;
+      speedCircle.position.y = 0.01;
       group.add(speedCircle);
     }
     
@@ -908,13 +908,13 @@
       });
       const shortCircle = new THREE.Line(shortGeometry, shortMaterial);
       shortCircle.rotation.x = -Math.PI / 2;
-      shortCircle.position.y = 0.3;
+      shortCircle.position.y = 0.01;
       group.add(shortCircle);
     }
     
     // Shield - ring very close to ship, shiny/pulsing based on value
     if (attributes.shield > 0) {
-      const shieldRingGeometry = createSolidCircle(attributes.size * 1.5, 32);
+      const shieldRingGeometry = createSolidCircle(attributes.size * 0.8, 32);
       const shieldOpacity = attributes.shield >= 3 ? 0.8 : (attributes.shield >= 2 ? 0.5 : 0.2);
       const shieldColor = attributes.shield >= 3 ? 0x00ff88 : (attributes.shield >= 2 ? 0xffff00 : 0xff8888);
       
@@ -926,7 +926,7 @@
       });
       const shieldRing = new THREE.Line(shieldRingGeometry, shieldMaterial);
       shieldRing.rotation.x = -Math.PI / 2;
-      shieldRing.position.y = 0.1;
+      shieldRing.position.y = 0.01;
       shieldRing.userData = {
         isShield: true,
         shieldValue: attributes.shield
@@ -942,28 +942,28 @@
       // Front (0 degrees)
       if (attributes.front > 0) {
         const frontArc = createArc(arcRadius, -Math.PI / 4, Math.PI / 4, arcSegments, 0x00ffff);
-        frontArc.position.y = 0.2;
+        frontArc.position.y = 0.01;
         group.add(frontArc);
       }
       
       // Left side (90 degrees)
       if (attributes.side > 0) {
         const leftArc = createArc(arcRadius, Math.PI / 4, (3 * Math.PI) / 4, arcSegments, 0xff00ff);
-        leftArc.position.y = 0.2;
+        leftArc.position.y = 0.01;
         group.add(leftArc);
       }
       
       // Right side (270 degrees)
       if (attributes.side > 0) {
         const rightArc = createArc(arcRadius, -3 * Math.PI / 4, -Math.PI / 4, arcSegments, 0xffff00);
-        rightArc.position.y = 0.2;
+        rightArc.position.y = 0.01;
         group.add(rightArc);
       }
       
       // Rear (180 degrees)
       if (attributes.rear > 0) {
         const rearArc = createArc(arcRadius, 3 * Math.PI / 4, 5 * Math.PI / 4, arcSegments, 0xff6600);
-        rearArc.position.y = 0.2;
+        rearArc.position.y = 0.01;
         group.add(rearArc);
       }
     }
@@ -1032,10 +1032,10 @@
   async function createPlayer(x, z, color = 0x0000ff, name = "Player", size = 20, attributes = {}) {
     // Set default attributes
     const attrs = {
-      speed: attributes.speed || 100,
+      speed: attributes.speed || 30,
       shield: attributes.shield || 3,
-      shortRange: attributes.shortRange || 50,
-      longRange: attributes.longRange || 120,
+      shortRange: attributes.shortRange || 20,
+      longRange: attributes.longRange || 50,
       front: attributes.front || 1,
       side: attributes.side || 1,
       rear: attributes.rear || 1,
@@ -1114,10 +1114,10 @@
   async function createEnemy(x, z, color = 0xff0000, name = "Enemy", size = 20, attributes = {}) {
     // Set default attributes
     const attrs = {
-      speed: attributes.speed || 100,
+      speed: attributes.speed || 30,
       shield: attributes.shield || 3,
-      shortRange: attributes.shortRange || 50,
-      longRange: attributes.longRange || 120,
+      shortRange: attributes.shortRange || 20,
+      longRange: attributes.longRange || 50,
       front: attributes.front || 1,
       side: attributes.side || 1,
       rear: attributes.rear || 1,
