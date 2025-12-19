@@ -97,10 +97,11 @@
     #infoPanel {
       display: none;
 	  position: fixed;
-      right: -310px;
+      right: -340px;
       top: 50%;
       transform: translateY(-50%);
 	  padding: 16px;
+      padding-left: 56px;
       background: radial-gradient(ellipse at top left, #0f1a2e 60%, #050a14 100%);
       border: 2px solid #666;
       border-right: none;
@@ -110,7 +111,7 @@
       font-weight: 400;
       text-shadow: 0 0 3px #000;
       border-radius: 8px 0 0 8px;
-      width: 300px;
+      width: 340px;
       z-index: 10;
       max-height: 90vh;
       overflow-y: auto;
@@ -122,6 +123,7 @@
       flex-direction: column;
       align-items: center;
       gap: 8px;
+      right: -300px;
     }
     
     #infoPanel.expanded {
@@ -130,7 +132,7 @@
     
     #infoPanelHandle {
       position: absolute;
-      left: -40px;
+      left: 0;
       top: 50%;
       transform: translateY(-50%);
       width: 40px;
@@ -146,7 +148,7 @@
       color: #00ffff;
       font-size: 24px;
       transition: background 0.3s;
-      z-index: 11;
+      z-index: 12;
     }
     
     #infoPanelHandle:hover {
@@ -156,8 +158,11 @@
     
     @media (max-width: 1200px) {
       #infoPanel {
-        right: -310px;
-        width: 280px;
+        right: -340px;
+        width: 320px;
+      }
+      #infoPanel.active {
+        right: -280px;
       }
       #infoPanel.expanded {
         right: 0;
