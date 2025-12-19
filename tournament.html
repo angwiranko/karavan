@@ -1525,7 +1525,11 @@
   function createRangeVisuals(shipObject, attributes, color) {
     const group = new THREE.Group();
     group.name = "RangeVisuals";
-    group.userData = { time: 0, animatingChildren: [] };
+    group.userData = { 
+      time: 0, 
+      animatingChildren: [],
+      attributes: { ...attributes } // Store attributes for comparison later
+    };
     
     const speedScale = 0.4;
     const rangeScale = 0.35;
@@ -2541,6 +2545,42 @@
             
                 updateInfoPanel(selectedPlayer);
                 updateRotationDisplay();
+                
+                // Check if range visuals need to be updated based on current userData
+                const rangeVisuals = selectedPlayer.children.find(child => child.name === 'RangeVisuals');
+                if (rangeVisuals) {
+                  // Check if attributes have changed since range visuals were created
+                  const needsUpdate = !rangeVisuals.userData.attributes || 
+                    rangeVisuals.userData.attributes.shield !== selectedPlayer.userData.shield ||
+                    rangeVisuals.userData.attributes.speed !== selectedPlayer.userData.speed ||
+                    rangeVisuals.userData.attributes.shortRange !== selectedPlayer.userData.shortRange ||
+                    rangeVisuals.userData.attributes.longRange !== selectedPlayer.userData.longRange ||
+                    rangeVisuals.userData.attributes.front !== selectedPlayer.userData.front ||
+                    rangeVisuals.userData.attributes.side !== selectedPlayer.userData.side ||
+                    rangeVisuals.userData.attributes.rear !== selectedPlayer.userData.rear;
+                  
+                  if (needsUpdate) {
+                    console.log('Range visuals out of sync, recreating...');
+                    const wasVisible = rangeVisuals.visible;
+                    selectedPlayer.remove(rangeVisuals);
+                    
+                    const attributes = {
+                      speed: selectedPlayer.userData.speed,
+                      shield: selectedPlayer.userData.shield,
+                      shortRange: selectedPlayer.userData.shortRange,
+                      longRange: selectedPlayer.userData.longRange,
+                      front: selectedPlayer.userData.front,
+                      side: selectedPlayer.userData.side,
+                      rear: selectedPlayer.userData.rear,
+                      size: selectedPlayer.userData.size
+                    };
+                    const color = selectedPlayer.userData.color || 0x00ffff;
+                    const newRangeVisuals = createRangeVisuals(selectedPlayer, attributes, color);
+                    newRangeVisuals.visible = wasVisible;
+                    selectedPlayer.add(newRangeVisuals);
+                  }
+                }
+                
                 sceneNeedsUpdate = true;
                 console.log('Selected ship:', selectedPlayer);
                 return; // Exit early, don't process movement
