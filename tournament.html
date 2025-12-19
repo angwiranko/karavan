@@ -2549,6 +2549,19 @@
                 // Check if range visuals need to be updated based on current userData
                 const rangeVisuals = selectedPlayer.children.find(child => child.name === 'RangeVisuals');
                 if (rangeVisuals) {
+                  console.log('Checking range visuals sync:', {
+                    stored: rangeVisuals.userData.attributes,
+                    current: {
+                      shield: selectedPlayer.userData.shield,
+                      speed: selectedPlayer.userData.speed,
+                      shortRange: selectedPlayer.userData.shortRange,
+                      longRange: selectedPlayer.userData.longRange,
+                      front: selectedPlayer.userData.front,
+                      side: selectedPlayer.userData.side,
+                      rear: selectedPlayer.userData.rear
+                    }
+                  });
+                  
                   // Check if attributes have changed since range visuals were created
                   const needsUpdate = !rangeVisuals.userData.attributes || 
                     rangeVisuals.userData.attributes.shield !== selectedPlayer.userData.shield ||
@@ -2558,6 +2571,8 @@
                     rangeVisuals.userData.attributes.front !== selectedPlayer.userData.front ||
                     rangeVisuals.userData.attributes.side !== selectedPlayer.userData.side ||
                     rangeVisuals.userData.attributes.rear !== selectedPlayer.userData.rear;
+                  
+                  console.log('Needs update?', needsUpdate);
                   
                   if (needsUpdate) {
                     console.log('Range visuals out of sync, recreating...');
