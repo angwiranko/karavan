@@ -926,6 +926,8 @@
   
     const { name, size, speed, shield, shortRange, longRange, front, side, rear } = object.userData || {};
     
+    console.log('updateInfoPanel for ship:', name, 'shield:', shield, 'userData:', object.userData);
+    
     // Show handle when panel becomes active
     infoPanelHandle.classList.add('active');
     infoPanelHandle.style.display = 'flex';
@@ -1003,7 +1005,7 @@
     const oldSize = selectedPlayer.userData.size || 50;
     const newSize = parseFloat(editSize.value);
     
-    // Update userData with new values
+    // Update userData with new values - be explicit
     selectedPlayer.userData.size = newSize;
     selectedPlayer.userData.speed = parseFloat(editSpeed.value);
     selectedPlayer.userData.shield = parseFloat(editShield.value);
@@ -1012,6 +1014,8 @@
     selectedPlayer.userData.front = parseFloat(editFront.value);
     selectedPlayer.userData.side = parseFloat(editSide.value);
     selectedPlayer.userData.rear = parseFloat(editRear.value);
+    
+    console.log('Applied attributes to ship:', selectedPlayer.userData.name, 'shield:', selectedPlayer.userData.shield);
     
     // Update visual scale if size changed
     if (newSize !== oldSize) {
