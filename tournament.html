@@ -1663,9 +1663,13 @@
         `
       });
       
+      sphereMaterial.needsUpdate = true;
+      
       const shieldSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
       shieldSphere.position.y = 0.03;
-      shieldSphere.userData = { isShieldSphere: true };
+      shieldSphere.name = 'ShieldSphere_' + Date.now(); // Unique name for debugging
+      shieldSphere.userData = { isShieldSphere: true, shieldValue: attributes.shield, baseOpacity: baseOpacity };
+      console.log('Shield sphere created:', shieldSphere.name, 'baseOpacity uniform:', sphereMaterial.uniforms.baseOpacity.value);
       group.add(shieldSphere);
       group.userData.animatingChildren.push(shieldSphere);
     }
