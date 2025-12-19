@@ -1605,6 +1605,8 @@
       // Higher shield = higher opacity, lower shield = lower opacity
       const baseOpacity = Math.min(1, Math.max(0.1, attributes.shield / 5)); // Normalize 0-5 to 0.1-1.0
       
+      console.log('Creating shield sphere with shield value:', attributes.shield, 'baseOpacity:', baseOpacity);
+      
       const sphereGeometry = new THREE.SphereGeometry(shieldRadius, 32, 32);
       
       // Create vertex colors for gradient opacity effect
