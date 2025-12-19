@@ -2134,7 +2134,20 @@
       } else {
           const intersects = raycaster.intersectObjects([...players.children, ...enemies.children], true);
 		  
-          const validIntersects = intersects.filter(i => !i.object.userData.isNameLabel);
+          // Filter out name labels and range visuals (circles, arcs, etc.)
+          const validIntersects = intersects.filter(i => {
+            if (i.object.userData.isNameLabel) return false;
+            
+            // Check if this object is part of RangeVisuals group
+            let current = i.object;
+            while (current) {
+              if (current.name === "RangeVisuals") return false;
+              if (current.userData.isSpeedRing || current.userData.isShortRange || 
+                  current.userData.isShieldSphere || current.userData.isRangeArc) return false;
+              current = current.parent;
+            }
+            return true;
+          });
           
           if (validIntersects.length > 0) {
               // Find the actual ship object (parent if needed)
@@ -2147,8 +2160,9 @@
               
               if (!shipObject) shipObject = validIntersects[0].object.parent || validIntersects[0].object;
           
-              // Restore previous selection's materials
-              if (selectedPlayer) {
+              // Check if clicking on the same ship - deselect it
+              if (selectedPlayer === shipObject) {
+                // Restore materials and deselect
                 if (selectedPlayer.isMesh && originalMaterial) {
                   selectedPlayer.material = originalMaterial;
                 } else if (originalMaterials.length > 0) {
@@ -2160,49 +2174,72 @@
                   });
                 }
                 hideHoverIndicator();
-              }
-          
-              // Save new selection's materials
-              selectedPlayer = shipObject;
-              originalMaterials = [];
-              
-              if (selectedPlayer.isMesh) {
-                originalMaterial = selectedPlayer.material;
+                selectedPlayer = null;
+                originalMaterial = null;
+                originalMaterials = [];
+                updateInfoPanel(null);
+                rotationPanel.classList.remove('active');
+                sceneNeedsUpdate = true;
+                console.log('Deselected ship');
               } else {
-                // For complex models, save all mesh materials (as clones to preserve originals)
-                selectedPlayer.traverse((node) => {
-                  if (node.isMesh && node.material) {
-                    originalMaterials.push(node.material);
+                // Selecting a different ship
+                // Restore previous selection's materials
+                if (selectedPlayer) {
+                  if (selectedPlayer.isMesh && originalMaterial) {
+                    selectedPlayer.material = originalMaterial;
+                  } else if (originalMaterials.length > 0) {
+                    let matIdx = 0;
+                    selectedPlayer.traverse((node) => {
+                      if (node.isMesh && matIdx < originalMaterials.length) {
+                        node.material = originalMaterials[matIdx++];
+                      }
+                    });
                   }
+                  hideHoverIndicator();
+                }
+            
+                // Save new selection's materials
+                selectedPlayer = shipObject;
+                originalMaterials = [];
+                
+                if (selectedPlayer.isMesh) {
+                  originalMaterial = selectedPlayer.material;
+                } else {
+                  // For complex models, save all mesh materials (as clones to preserve originals)
+                  selectedPlayer.traverse((node) => {
+                    if (node.isMesh && node.material) {
+                      originalMaterials.push(node.material);
+                    }
+                  });
+                }
+            
+                // Apply selection highlight using the ship's base color
+                const baseColor = selectedPlayer.userData.color || 0x00ffff;
+                const newMat = new THREE.MeshStandardMaterial({
+                    color: baseColor,
+                    emissive: baseColor,
+                    emissiveIntensity: 0.5,
+                    metalness: 0.3,
+                    roughness: 0.5
                 });
+                
+                if (selectedPlayer.isMesh) {
+                  selectedPlayer.material = newMat;
+                } else {
+                  // For complex models, apply to all meshes except RangeVisuals
+                  selectedPlayer.traverse((node) => {
+                    if (node.isMesh && node.parent?.name !== "RangeVisuals") {
+                      node.material = newMat.clone();
+                    }
+                  });
+                }
+            
+                updateInfoPanel(selectedPlayer);
+                rotationPanel.classList.add('active');
+                updateRotationDisplay();
+                sceneNeedsUpdate = true;
+                console.log('Selected ship:', selectedPlayer);
               }
-          
-              // Apply selection highlight using the ship's base color
-              const baseColor = selectedPlayer.userData.color || 0x00ffff;
-              const newMat = new THREE.MeshStandardMaterial({
-                  color: baseColor,
-                  emissive: baseColor,
-                  emissiveIntensity: 0.5,
-                  metalness: 0.3,
-                  roughness: 0.5
-              });
-              
-              if (selectedPlayer.isMesh) {
-                selectedPlayer.material = newMat;
-              } else {
-                // For complex models, apply to all meshes except RangeVisuals
-                selectedPlayer.traverse((node) => {
-                  if (node.isMesh && node.parent?.name !== "RangeVisuals") {
-                    node.material = newMat.clone();
-                  }
-                });
-              }
-          
-              updateInfoPanel(selectedPlayer);
-              rotationPanel.classList.add('active');
-              updateRotationDisplay();
-              sceneNeedsUpdate = true;
-              console.log('Selected ship:', selectedPlayer);
           } else {
               // Deselect if clicking on nothing
               if (selectedPlayer) {
