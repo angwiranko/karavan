@@ -2258,8 +2258,6 @@
   
       // First check if clicking on any ship (for selection/deselection)
       const intersects = raycaster.intersectObjects([...players.children, ...enemies.children], true);
-      // First check if clicking on any ship (for selection/deselection)
-      const intersects = raycaster.intersectObjects([...players.children, ...enemies.children], true);
 		  
           // Filter out name labels and range visuals (circles, arcs, etc.)
           const validIntersects = intersects.filter(i => {
