@@ -2222,59 +2222,44 @@
     animate();
   }
 
+  // Track mouse position for distinguishing clicks from drags
+  let mouseDownPos = { x: 0, y: 0 };
+  let mouseUpPos = { x: 0, y: 0 };
+  const DRAG_THRESHOLD = 5; // pixels
+  
+  renderer.domElement.addEventListener('mousedown', (event) => {
+    mouseDownPos.x = event.clientX;
+    mouseDownPos.y = event.clientY;
+  });
+  
+  renderer.domElement.addEventListener('mouseup', (event) => {
+    mouseUpPos.x = event.clientX;
+    mouseUpPos.y = event.clientY;
+  });
   
   renderer.domElement.addEventListener('click', (event) => {
       event.preventDefault();
+      
+      // Check if this was a drag (camera movement) or a click
+      const dragDistance = Math.sqrt(
+        Math.pow(mouseUpPos.x - mouseDownPos.x, 2) + 
+        Math.pow(mouseUpPos.y - mouseDownPos.y, 2)
+      );
+      
+      // If dragged more than threshold, ignore the click
+      if (dragDistance > DRAG_THRESHOLD) {
+        return;
+      }
 	   
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   
       raycaster.setFromCamera(mouse, camera);
   
-      if (selectedPlayer) {
-          const terrainIntersects = raycaster.intersectObjects(terrain.children, true);
-          const planeIntersects = raycaster.intersectObject(plane, true);
-          const size = selectedPlayer.userData.size || 20;
-  
-          let targetX, targetZ;
-          
-          if (terrainIntersects.length > 0) {
-              targetX = terrainIntersects[0].point.x;
-              targetZ = terrainIntersects[0].point.z;
-          } else if (planeIntersects.length > 0) {
-              targetX = planeIntersects[0].point.x;
-              targetZ = planeIntersects[0].point.z;
-          }
-          
-          if (targetX !== undefined && targetZ !== undefined) {
-              const validPosition = findNearestValidPosition(targetX, targetZ, size);
-              const targetY = getCorrectYPosition(validPosition.x, validPosition.z, size);
-              smoothMove(selectedPlayer, validPosition.x, targetY, validPosition.z, 1500);
-              updateInfoPanel(null);
-          } 
-		  
-          
-          hideHoverIndicator();
-          // Restore original materials
-          if (selectedPlayer) {
-            if (selectedPlayer.isMesh && originalMaterial) {
-              selectedPlayer.material = originalMaterial;
-            } else if (originalMaterials.length > 0) {
-              let matIdx = 0;
-              selectedPlayer.traverse((node) => {
-                if (node.isMesh && matIdx < originalMaterials.length) {
-                  node.material = originalMaterials[matIdx++];
-                }
-              });
-            }
-          }
-          selectedPlayer = null;
-          originalMaterial = null;
-          originalMaterials = [];
-          sceneNeedsUpdate = true;
-  
-      } else {
-          const intersects = raycaster.intersectObjects([...players.children, ...enemies.children], true);
+      // First check if clicking on any ship (for selection/deselection)
+      const intersects = raycaster.intersectObjects([...players.children, ...enemies.children], true);
+      // First check if clicking on any ship (for selection/deselection)
+      const intersects = raycaster.intersectObjects([...players.children, ...enemies.children], true);
 		  
           // Filter out name labels and range visuals (circles, arcs, etc.)
           const validIntersects = intersects.filter(i => {
@@ -2322,6 +2307,7 @@
                 updateInfoPanel(null);
                 sceneNeedsUpdate = true;
                 console.log('Deselected ship');
+                return; // Exit early, don't process movement
               } else {
                 // Selecting a different ship
                 // Restore previous selection's materials
@@ -2379,9 +2365,52 @@
                 updateRotationDisplay();
                 sceneNeedsUpdate = true;
                 console.log('Selected ship:', selectedPlayer);
+                return; // Exit early, don't process movement
+              }
+          }
+          
+          // If we reach here, either no ship was clicked or we're switching selection
+          // If a ship is selected and we clicked empty space, try to move
+          if (selectedPlayer) {
+              const terrainIntersects = raycaster.intersectObjects(terrain.children, true);
+              const planeIntersects = raycaster.intersectObject(plane, true);
+              const size = selectedPlayer.userData.size || 20;
+  
+              let targetX, targetZ;
+              
+              if (terrainIntersects.length > 0) {
+                  targetX = terrainIntersects[0].point.x;
+                  targetZ = terrainIntersects[0].point.z;
+              } else if (planeIntersects.length > 0) {
+                  targetX = planeIntersects[0].point.x;
+                  targetZ = planeIntersects[0].point.z;
+              }
+              
+              if (targetX !== undefined && targetZ !== undefined) {
+                  const validPosition = findNearestValidPosition(targetX, targetZ, size);
+                  const targetY = getCorrectYPosition(validPosition.x, validPosition.z, size);
+                  smoothMove(selectedPlayer, validPosition.x, targetY, validPosition.z, 1500);
+                  updateInfoPanel(null);
+                  
+                  hideHoverIndicator();
+                  // Restore original materials
+                  if (selectedPlayer.isMesh && originalMaterial) {
+                    selectedPlayer.material = originalMaterial;
+                  } else if (originalMaterials.length > 0) {
+                    let matIdx = 0;
+                    selectedPlayer.traverse((node) => {
+                      if (node.isMesh && matIdx < originalMaterials.length) {
+                        node.material = originalMaterials[matIdx++];
+                      }
+                    });
+                  }
+                  selectedPlayer = null;
+                  originalMaterial = null;
+                  originalMaterials = [];
+                  sceneNeedsUpdate = true;
               }
           } else {
-              // Deselect if clicking on nothing
+              // Deselect if clicking on nothing and nothing is selected
               if (selectedPlayer) {
                 if (selectedPlayer.isMesh && originalMaterial) {
                   selectedPlayer.material = originalMaterial;
@@ -2394,14 +2423,13 @@
                   });
                 }
                 hideHoverIndicator();
+                selectedPlayer = null;
+                originalMaterial = null;
+                originalMaterials = [];
+                sceneNeedsUpdate = true;
+                updateInfoPanel(null);
               }
-              selectedPlayer = null;
-              originalMaterial = null;
-              originalMaterials = [];
-              sceneNeedsUpdate = true;
-              updateInfoPanel(null);
           }
-      }
   });
 
   let lastMouseMoveTime = 0;
