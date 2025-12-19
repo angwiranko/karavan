@@ -1470,18 +1470,53 @@
       group.userData.animatingChildren.push(line);
     }
     
-    // Shield - tiny center sphere
+    // Shield - tiny center sphere with gradient opacity (transparent at poles)
     if (attributes.shield > 0) {
       const shieldColor = attributes.shield >= 3 ? 0x00ff88 : (attributes.shield >= 2 ? 0xffff00 : 0xff8888);
       const baseSize = attributes.size || 50;
       const shieldRadius = Math.max(3, baseSize * 0.04);
       
-      const sphereGeometry = new THREE.SphereGeometry(shieldRadius, 16, 16);
-      const sphereMaterial = new THREE.MeshBasicMaterial({
-        color: shieldColor,
+      const sphereGeometry = new THREE.SphereGeometry(shieldRadius, 32, 32);
+      
+      // Create vertex colors for gradient opacity effect
+      const colors = [];
+      const positionAttribute = sphereGeometry.getAttribute('position');
+      const color = new THREE.Color(shieldColor);
+      
+      for (let i = 0; i < positionAttribute.count; i++) {
+        const y = positionAttribute.getY(i);
+        // Calculate opacity based on distance from poles (y-axis)
+        // Maximum opacity at equator (y=0), minimum at poles (y=±radius)
+        const normalizedY = Math.abs(y) / shieldRadius;
+        const opacity = 1 - normalizedY; // 1 at equator, 0 at poles
+        
+        colors.push(color.r, color.g, color.b, opacity);
+      }
+      
+      sphereGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
+      
+      const sphereMaterial = new THREE.ShaderMaterial({
         transparent: true,
-        opacity: 0.075
+        side: THREE.DoubleSide,
+        uniforms: {
+          baseColor: { value: new THREE.Color(shieldColor) }
+        },
+        vertexShader: `
+          attribute vec4 color;
+          varying vec4 vColor;
+          void main() {
+            vColor = color;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          varying vec4 vColor;
+          void main() {
+            gl_FragColor = vec4(vColor.rgb, vColor.a * 0.3);
+          }
+        `
       });
+      
       const shieldSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
       shieldSphere.position.y = 0.03;
       shieldSphere.userData = { isShieldSphere: true };
