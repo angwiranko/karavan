@@ -463,8 +463,8 @@
       duration: 1500,
       gravity: "top",
       position: "right",
-      backgroundColor: backgroundColor,
       style: {
+        background: backgroundColor,
         fontFamily: "'Orbitron', sans-serif",
         fontSize: "14px",
         borderRadius: "8px",
@@ -887,8 +887,11 @@
   document.getElementById('applyAttributes').addEventListener('click', () => {
     if (!selectedPlayer) return;
     
+    const oldSize = selectedPlayer.userData.size || 50;
+    const newSize = parseFloat(editSize.value);
+    
     // Update userData with new values
-    selectedPlayer.userData.size = parseFloat(editSize.value);
+    selectedPlayer.userData.size = newSize;
     selectedPlayer.userData.speed = parseFloat(editSpeed.value);
     selectedPlayer.userData.shield = parseFloat(editShield.value);
     selectedPlayer.userData.shortRange = parseFloat(editShortRange.value);
@@ -898,9 +901,10 @@
     selectedPlayer.userData.rear = parseFloat(editRear.value);
     
     // Update visual scale if size changed
-    const newSize = selectedPlayer.userData.size;
-    const scaleFactor = newSize / 50; // 50 is base size
-    selectedPlayer.scale.set(scaleFactor, scaleFactor, scaleFactor);
+    if (newSize !== oldSize) {
+      const scaleRatio = newSize / oldSize;
+      selectedPlayer.scale.multiplyScalar(scaleRatio);
+    }
     
     // Update range visuals if they exist
     const rangeVisuals = selectedPlayer.children.find(child => child.name === 'RangeVisuals');
@@ -916,7 +920,8 @@
       longRange: selectedPlayer.userData.longRange,
       front: selectedPlayer.userData.front,
       side: selectedPlayer.userData.side,
-      rear: selectedPlayer.userData.rear
+      rear: selectedPlayer.userData.rear,
+      size: selectedPlayer.userData.size
     };
     const color = selectedPlayer.userData.color || 0x00ffff;
     const newRangeVisuals = createRangeVisuals(selectedPlayer, attributes, color);
@@ -1468,7 +1473,8 @@
     // Shield - tiny center sphere
     if (attributes.shield > 0) {
       const shieldColor = attributes.shield >= 3 ? 0x00ff88 : (attributes.shield >= 2 ? 0xffff00 : 0xff8888);
-      const shieldRadius = Math.max(3, attributes.size * 0.04);
+      const baseSize = attributes.size || 50;
+      const shieldRadius = Math.max(3, baseSize * 0.04);
       
       const sphereGeometry = new THREE.SphereGeometry(shieldRadius, 16, 16);
       const sphereMaterial = new THREE.MeshBasicMaterial({
