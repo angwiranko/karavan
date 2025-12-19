@@ -97,9 +97,9 @@
     #infoPanel {
       display: none;
 	  position: absolute;
-      right: 30px;
-      top: 50%;
-      transform: translateY(-50%);
+      left: 10px;
+      top: 160px;
+      transform: none;
 	  padding: 16px;
       background: radial-gradient(ellipse at top left, #0f1a2e 60%, #050a14 100%);
       border: 2px solid #666;
@@ -123,11 +123,8 @@
     
     @media (max-width: 1200px) {
       #infoPanel {
-        right: auto;
-        bottom: 30px;
-        top: auto;
-        left: 50%;
-        transform: translateX(-50%);
+        left: 10px;
+        top: 160px;
       }
     }
 	.infoName {
@@ -428,15 +425,15 @@
       </div>
       <div class="attribute-item">
         <span class="attribute-label">Front Guns</span>
-        <input type="number" id="editFront" class="attribute-input" min="0" max="5" step="0.1">
+        <input type="number" id="editFront" class="attribute-input" min="0" max="5" step="0.01">
       </div>
       <div class="attribute-item">
         <span class="attribute-label">Side Guns</span>
-        <input type="number" id="editSide" class="attribute-input" min="0" max="5" step="0.1">
+        <input type="number" id="editSide" class="attribute-input" min="0" max="5" step="0.01">
       </div>
       <div class="attribute-item">
         <span class="attribute-label">Rear Guns</span>
-        <input type="number" id="editRear" class="attribute-input" min="0" max="5" step="0.1">
+        <input type="number" id="editRear" class="attribute-input" min="0" max="5" step="0.01">
       </div>
     </div>
     
@@ -866,17 +863,17 @@
     };
 	
     infoName.textContent = `Hajó: ${name || '-'}`;
-    infoHP.textContent = `Sebesség: ${speed != null ? speed : (size != null ? (size / 5).toFixed(0) : '-')}`;
+    infoHP.textContent = `Sebesség: ${speed != null ? speed : '-'}`;
     
-    // Populate attribute editing fields
-    editSize.value = size || 50;
-    editSpeed.value = speed || 20;
-    editShield.value = shield || 3;
-    editShortRange.value = shortRange || 30;
-    editLongRange.value = longRange || 100;
-    editFront.value = front || 0.1;
-    editSide.value = side || 0.1;
-    editRear.value = rear || 3;
+    // Populate attribute editing fields with actual stored values
+    editSize.value = size != null ? size : 50;
+    editSpeed.value = speed != null ? speed : 20;
+    editShield.value = shield != null ? shield : 3;
+    editShortRange.value = shortRange != null ? shortRange : 30;
+    editLongRange.value = longRange != null ? longRange : 100;
+    editFront.value = front != null ? front : 0.1;
+    editSide.value = side != null ? side : 0.1;
+    editRear.value = rear != null ? rear : 3;
     
     infoPanel.classList.add('active');
   }
@@ -1493,7 +1490,7 @@
       
       // Front (90°) - scaled by attributes.front (0-5)
       if (attributes.front > 0) {
-        const frontScale = Math.min(5, Math.max(1, attributes.front)) / 5; // Normalize 1-5 to 0.2-1.0
+        const frontScale = Math.min(5, Math.max(0.01, attributes.front)) / 5; // Normalize 0.01-5 to proportional scale
         const frontMaxRadius = baseRadius * frontScale;
         addFlatArcSegment(group, frontMaxRadius * 0.2, frontMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
         addFlatArcSegment(group, frontMaxRadius * 0.5, frontMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
@@ -1502,7 +1499,7 @@
       
       // Left (180°) - scaled by attributes.side (0-5)
       if (attributes.side > 0) {
-        const sideScale = Math.min(5, Math.max(1, attributes.side)) / 5; // Normalize 1-5 to 0.2-1.0
+        const sideScale = Math.min(5, Math.max(0.01, attributes.side)) / 5;
         const sideMaxRadius = baseRadius * sideScale;
         addFlatArcSegment(group, sideMaxRadius * 0.2, sideMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.2);
         addFlatArcSegment(group, sideMaxRadius * 0.5, sideMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.15);
@@ -1511,7 +1508,7 @@
       
       // Right (0°) - scaled by attributes.side (0-5)
       if (attributes.side > 0) {
-        const sideScale = Math.min(5, Math.max(1, attributes.side)) / 5;
+        const sideScale = Math.min(5, Math.max(0.01, attributes.side)) / 5;
         const sideMaxRadius = baseRadius * sideScale;
         addFlatArcSegment(group, sideMaxRadius * 0.2, sideMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.2);
         addFlatArcSegment(group, sideMaxRadius * 0.5, sideMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.15);
@@ -1520,7 +1517,7 @@
       
       // Rear (270°) - scaled by attributes.rear (0-5)
       if (attributes.rear > 0) {
-        const rearScale = Math.min(5, Math.max(1, attributes.rear)) / 5; // Normalize 1-5 to 0.2-1.0
+        const rearScale = Math.min(5, Math.max(0.01, attributes.rear)) / 5; // Normalize 0.01-5 to proportional scale
         const rearMaxRadius = baseRadius * rearScale;
         addFlatArcSegment(group, rearMaxRadius * 0.2, rearMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.2);
         addFlatArcSegment(group, rearMaxRadius * 0.5, rearMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.15);
@@ -2439,7 +2436,8 @@
           const validPosition = findNearestValidPosition(targetX, targetZ, size);
           const targetY = getCorrectYPosition(validPosition.x, validPosition.z, size);
           const shipColor = selectedPlayer.userData.color || 0x00ffff;
-          showHoverIndicator(validPosition.x, targetY - size + 2, validPosition.z, size, shipColor);
+          const indicatorSize = 20;
+          showHoverIndicator(validPosition.x, targetY - size + 2, validPosition.z, indicatorSize, shipColor);
           sceneNeedsUpdate = true;
       } else {
           hideHoverIndicator();
