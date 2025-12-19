@@ -1157,12 +1157,12 @@
   }
 
   // Hover indicator
-  function createHoverIndicator(size = 20) {
+  function createHoverIndicator(size = 20, color = 0x00ffff) {
     const innerRadius = size * 0.75;
     const outerRadius = size * 1.25;
     const ringGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 32);
     const ringMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ffff,
+      color: color,
       transparent: true,
       opacity: 0.6,
       side: THREE.DoubleSide
@@ -1173,7 +1173,7 @@
     const discRadius = size * 0.6;
     const discGeometry = new THREE.CircleGeometry(discRadius, 32);
     const discMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ffff,
+      color: color,
       transparent: true,
       opacity: 0.3
     });
@@ -1185,7 +1185,7 @@
     const beamHeight = size * 2;
     const beamGeometry = new THREE.CylinderGeometry(beamRadius, beamRadius, beamHeight, 8, 1, true);
     const beamMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ffff,
+      color: color,
       transparent: true,
       opacity: 0.2,
       side: THREE.DoubleSide
@@ -1202,6 +1202,7 @@
     indicator.userData = {
       time: 0,
       size,
+      color,
       originalRingOpacity: ringMaterial.opacity,
       originalDiscOpacity: discMaterial.opacity,
       originalBeamOpacity: beamMaterial.opacity
@@ -1236,12 +1237,12 @@
     }
   }
 
-  function showHoverIndicator(x, y, z, size = 20) {
-    if (!hoverIndicator || (hoverIndicator.userData.size !== size)) {
+  function showHoverIndicator(x, y, z, size = 20, color = 0x00ffff) {
+    if (!hoverIndicator || (hoverIndicator.userData.size !== size) || (hoverIndicator.userData.color !== color)) {
       if (hoverIndicator) {
         scene.remove(hoverIndicator);
       }
-      hoverIndicator = createHoverIndicator(size);
+      hoverIndicator = createHoverIndicator(size, color);
     }
     
     const targetPosition = new THREE.Vector3(x, y, z);
@@ -1580,6 +1581,7 @@
       type: "player",
       name,
       size,
+      color: color,
       ...attrs
     };
 
@@ -1663,6 +1665,7 @@
       type: "Enemy",
       name,
       size,
+      color: color,
       ...attrs
     };
       
@@ -2174,10 +2177,11 @@
                 });
               }
           
-              // Apply selection highlight (skip RangeVisuals group)
+              // Apply selection highlight using the ship's base color
+              const baseColor = selectedPlayer.userData.color || 0x00ffff;
               const newMat = new THREE.MeshStandardMaterial({
-                  color: 0x00ffff,
-                  emissive: 0x00ffff,
+                  color: baseColor,
+                  emissive: baseColor,
                   emissiveIntensity: 0.5,
                   metalness: 0.3,
                   roughness: 0.5
@@ -2261,7 +2265,8 @@
       if (targetX !== undefined && targetZ !== undefined) {
           const validPosition = findNearestValidPosition(targetX, targetZ, size);
           const targetY = getCorrectYPosition(validPosition.x, validPosition.z, size);
-          showHoverIndicator(validPosition.x, targetY - size + 2, validPosition.z, size);
+          const shipColor = selectedPlayer.userData.color || 0x00ffff;
+          showHoverIndicator(validPosition.x, targetY - size + 2, validPosition.z, size, shipColor);
           sceneNeedsUpdate = true;
       } else {
           hideHoverIndicator();
@@ -2331,7 +2336,9 @@
 
       requestAnimationFrame(async () => {
         for (const item of data.players) {
-          const colorNum = item.color.startsWith('#') ? parseInt(item.color.slice(1), 16) : item.color;
+          const colorNum = typeof item.color === 'string' && item.color.startsWith('#') 
+            ? parseInt(item.color.slice(1), 16) 
+            : (typeof item.color === 'number' ? item.color : parseInt(item.color, 16));
           const ship = await createPlayer(item.position.x, item.position.z, colorNum, item.name, item.size, {
             speed: item.speed,
             shield: item.shield,
@@ -2349,7 +2356,9 @@
         }
 
         for (const item of data.enemies) {
-          const colorNum = item.color.startsWith('#') ? parseInt(item.color.slice(1), 16) : item.color;
+          const colorNum = typeof item.color === 'string' && item.color.startsWith('#') 
+            ? parseInt(item.color.slice(1), 16) 
+            : (typeof item.color === 'number' ? item.color : parseInt(item.color, 16));
           const ship = await createEnemy(item.position.x, item.position.z, colorNum, item.name, item.size, {
             speed: item.speed,
             shield: item.shield,
@@ -2383,13 +2392,23 @@
     };
   
     players.children.forEach(obj => {
-      // Extract color from first mesh material
+      // Get color from userData, or fallback to extracting from mesh material
       let colorHex = '#0000ff';
-      obj.traverse((node) => {
-        if (colorHex === '#0000ff' && node.isMesh && node.material && node.material.color) {
-          colorHex = '#' + node.material.color.getHexString();
+      if (obj.userData.color !== undefined) {
+        // Convert stored color (hex number or string) to hex string
+        if (typeof obj.userData.color === 'string') {
+          colorHex = obj.userData.color.startsWith('#') ? obj.userData.color : '#' + obj.userData.color;
+        } else {
+          colorHex = '#' + obj.userData.color.toString(16).padStart(6, '0');
         }
-      });
+      } else {
+        // Fallback: extract from mesh material
+        obj.traverse((node) => {
+          if (colorHex === '#0000ff' && node.isMesh && node.material && node.material.color) {
+            colorHex = '#' + node.material.color.getHexString();
+          }
+        });
+      }
       
       mapData.players.push({
         name: obj.userData.name,
@@ -2412,13 +2431,23 @@
     });
   
     enemies.children.forEach(obj => {
-      // Extract color from first mesh material
+      // Get color from userData, or fallback to extracting from mesh material
       let colorHex = '#ff0000';
-      obj.traverse((node) => {
-        if (colorHex === '#ff0000' && node.isMesh && node.material && node.material.color) {
-          colorHex = '#' + node.material.color.getHexString();
+      if (obj.userData.color !== undefined) {
+        // Convert stored color (hex number or string) to hex string
+        if (typeof obj.userData.color === 'string') {
+          colorHex = obj.userData.color.startsWith('#') ? obj.userData.color : '#' + obj.userData.color;
+        } else {
+          colorHex = '#' + obj.userData.color.toString(16).padStart(6, '0');
         }
-      });
+      } else {
+        // Fallback: extract from mesh material
+        obj.traverse((node) => {
+          if (colorHex === '#ff0000' && node.isMesh && node.material && node.material.color) {
+            colorHex = '#' + node.material.color.getHexString();
+          }
+        });
+      }
       
       mapData.enemies.push({
         name: obj.userData.name,
