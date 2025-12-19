@@ -340,7 +340,7 @@
         <label>Sebesség: <input type="number" id="shipSpeed" class="nametag" value="20" min="0"></label>
       </div>
       <div>
-        <label>Pajzs: <input type="number" id="shipShield" class="nametag" value="3" min="0" max="5"></label>
+        <label>Pajzs: <input type="number" id="shipShield" class="nametag" value="1" min="0" max="5"></label>
       </div>
       <div>
         <label>Radar: <input type="number" id="shipShortRange" class="nametag" value="30" min="0"></label>
@@ -437,12 +437,28 @@
       </div>
     </div>
     
+    <div class="section-divider"></div>
+    
+    <!-- Range Visuals Toggle -->
+    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 8px 0;">
+      <span style="font-family: 'Share Tech Mono', monospace; color: #00ffff; font-size: 11px;">Show Ranges</span>
+      <label style="position: relative; display: inline-block; width: 40px; height: 20px;">
+        <input type="checkbox" id="toggleRanges" checked style="opacity: 0; width: 0; height: 0;">
+        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #0a0a0f; border: 1px solid #00ffff; border-radius: 10px; transition: .3s;"></span>
+        <span id="rangeSlider" style="position: absolute; content: ''; height: 14px; width: 14px; left: 3px; bottom: 2px; background-color: #00ffff; border-radius: 50%; transition: .3s;"></span>
+      </label>
+    </div>
+    
     <button id="applyAttributes" class="sci-button" style="width: 100%; margin-top: 8px;">✅ Apply Changes</button>
   </div>
   
 </div>
 
-
+<style>
+  #toggleRanges:checked + span + #rangeSlider {
+    transform: translateX(20px);
+  }
+</style>
 
 <script type="module">
   import * as THREE from 'three';
@@ -812,6 +828,19 @@
   const editFront = document.getElementById('editFront');
   const editSide = document.getElementById('editSide');
   const editRear = document.getElementById('editRear');
+  const toggleRanges = document.getElementById('toggleRanges');
+  
+  // Toggle range visuals for selected ship
+  toggleRanges.addEventListener('change', () => {
+    if (!selectedPlayer) return;
+    
+    const rangeVisuals = selectedPlayer.children.find(child => child.name === 'RangeVisuals');
+    if (rangeVisuals) {
+      rangeVisuals.visible = toggleRanges.checked;
+      selectedPlayer.userData.showRanges = toggleRanges.checked;
+      sceneNeedsUpdate = true;
+    }
+  });
   
   function updateInfoPanel(object) {
     if (!object) {
@@ -874,6 +903,10 @@
     editFront.value = front != null ? front : 0.1;
     editSide.value = side != null ? side : 0.1;
     editRear.value = rear != null ? rear : 3;
+    
+    // Set range visibility toggle based on ship's current state
+    const showRanges = object.userData.showRanges !== undefined ? object.userData.showRanges : true;
+    toggleRanges.checked = showRanges;
     
     infoPanel.classList.add('active');
   }
@@ -1488,7 +1521,7 @@
         // Calculate opacity based on distance from poles (y-axis)
         // Maximum opacity at equator (y=0), minimum at poles (y=±radius)
         const normalizedY = Math.abs(y) / shieldRadius;
-        const opacity = (1 - normalizedY)*0.5; // 1 at equator, 0 at poles
+        const opacity = 1 - normalizedY; // 1 at equator, 0 at poles
         
         colors.push(color.r, color.g, color.b, opacity);
       }
@@ -1776,6 +1809,7 @@
       name,
       size,
       color: color,
+      showRanges: true,
       ...attrs
     };
 
@@ -1860,6 +1894,7 @@
       name,
       size,
       color: color,
+      showRanges: true,
       ...attrs
     };
       
@@ -2608,6 +2643,13 @@
             ship.userData.heading = item.heading;
             ship.rotation.y = item.heading;
           }
+          if (item.showRanges !== undefined) {
+            ship.userData.showRanges = item.showRanges;
+            const rangeVisuals = ship.children.find(child => child.name === 'RangeVisuals');
+            if (rangeVisuals) {
+              rangeVisuals.visible = item.showRanges;
+            }
+          }
         }
 
         for (const item of data.enemies) {
@@ -2627,6 +2669,13 @@
           if (item.heading !== undefined) {
             ship.userData.heading = item.heading;
             ship.rotation.y = item.heading;
+          }
+          if (item.showRanges !== undefined) {
+            ship.userData.showRanges = item.showRanges;
+            const rangeVisuals = ship.children.find(child => child.name === 'RangeVisuals');
+            if (rangeVisuals) {
+              rangeVisuals.visible = item.showRanges;
+            }
           }
         }
 
@@ -2677,6 +2726,7 @@
         front: obj.userData.front || 0,
         side: obj.userData.side || 0,
         rear: obj.userData.rear || 0,
+        showRanges: obj.userData.showRanges !== undefined ? obj.userData.showRanges : true,
         position: {
           x: obj.position.x,
           y: obj.position.y,
@@ -2716,6 +2766,7 @@
         front: obj.userData.front || 0,
         side: obj.userData.side || 0,
         rear: obj.userData.rear || 0,
+        showRanges: obj.userData.showRanges !== undefined ? obj.userData.showRanges : true,
         position: {
           x: obj.position.x,
           y: obj.position.y,
