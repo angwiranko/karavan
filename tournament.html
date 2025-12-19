@@ -676,36 +676,42 @@
     
     if (!selectedPlayer) return;
     
-    // WASD for movement
+    // WASD for movement (relative to ship's orientation)
+    const heading = selectedPlayer.userData.heading || 0;
+    
     switch(e.key.toLowerCase()) {
-      case 's':
-        // Move forward (positive Z direction in world)
+      case 'w':
+        // Move forward relative to ship's front
         captureState();
-        selectedPlayer.position.z += moveDistance;
+        selectedPlayer.position.x += Math.sin(heading) * moveDistance;
+        selectedPlayer.position.z += Math.cos(heading) * moveDistance;
         updateInfoPanel(selectedPlayer);
         sceneNeedsUpdate = true;
         e.preventDefault();
         break;
-      case 'w':
-        // Move backward (negative Z direction in world)
+      case 's':
+        // Move backward relative to ship's back
         captureState();
-        selectedPlayer.position.z -= moveDistance;
+        selectedPlayer.position.x -= Math.sin(heading) * moveDistance;
+        selectedPlayer.position.z -= Math.cos(heading) * moveDistance;
         updateInfoPanel(selectedPlayer);
         sceneNeedsUpdate = true;
         e.preventDefault();
         break;
       case 'a':
-        // Move left (negative X direction in world)
+        // Move left relative to ship's left side
         captureState();
-        selectedPlayer.position.x -= moveDistance;
+        selectedPlayer.position.x += Math.sin(heading - Math.PI / 2) * moveDistance;
+        selectedPlayer.position.z += Math.cos(heading - Math.PI / 2) * moveDistance;
         updateInfoPanel(selectedPlayer);
         sceneNeedsUpdate = true;
         e.preventDefault();
         break;
       case 'd':
-        // Move right (positive X direction in world)
+        // Move right relative to ship's right side
         captureState();
-        selectedPlayer.position.x += moveDistance;
+        selectedPlayer.position.x += Math.sin(heading + Math.PI / 2) * moveDistance;
+        selectedPlayer.position.z += Math.cos(heading + Math.PI / 2) * moveDistance;
         updateInfoPanel(selectedPlayer);
         sceneNeedsUpdate = true;
         e.preventDefault();
