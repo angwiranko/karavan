@@ -96,9 +96,10 @@
 
     #infoPanel {
       display: none;
-	  position: relative;
-      top: 20px;
-      left: 20px;
+	  position: absolute;
+      right: 30px;
+      top: 50%;
+      transform: translateY(-50%);
 	  padding: 16px;
       background: radial-gradient(ellipse at top left, #0f1a2e 60%, #050a14 100%);
       border: 2px solid #666;
@@ -109,6 +110,25 @@
       text-shadow: 0 0 3px #000;
       border-radius: 8px;
       width: auto;
+      z-index: 10;
+      max-width: 300px;
+    }
+    
+    #infoPanel.active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    @media (max-width: 1200px) {
+      #infoPanel {
+        right: auto;
+        bottom: 30px;
+        top: auto;
+        left: 50%;
+        transform: translateX(-50%);
+      }
     }
 	.infoName {
       font-family: "Orbitron", sans-serif;
@@ -129,35 +149,43 @@
 	width: auto;
 	}
 	
-	#rotationPanel {
-	  position: absolute;
-	  right: 30px;
-	  top: 50%;
-	  transform: translateY(-50%);
-	  background: radial-gradient(ellipse at top left, #0f1a2e 60%, #050a14 100%);
-	  border: 2px solid #666;
-	  box-shadow: 0 0 12px rgba(0, 255, 255, 0.4);
-	  padding: 12px;
-	  border-radius: 8px;
-	  z-index: 10;
-	  display: none;
-	  flex-direction: column;
-	  align-items: center;
-	  gap: 8px;
+	.attribute-grid {
+	  display: grid;
+	  grid-template-columns: 1fr 1fr;
+	  gap: 6px;
+	  width: 100%;
+	  margin: 8px 0;
 	}
 	
-	#rotationPanel.active {
+	.attribute-item {
 	  display: flex;
+	  flex-direction: column;
+	  gap: 2px;
 	}
 	
-	@media (max-width: 1200px) {
-	  #rotationPanel {
-	    right: auto;
-	    bottom: 30px;
-	    top: auto;
-	    left: 50%;
-	    transform: translateX(-50%);
-	  }
+	.attribute-label {
+	  font-size: 10px;
+	  color: #00ffff;
+	  font-family: "Share Tech Mono", monospace;
+	}
+	
+	.attribute-input {
+	  background: #0a0a0f;
+	  border: 1px solid #00ffff;
+	  color: #a3d9ff;
+	  padding: 4px;
+	  border-radius: 4px;
+	  font-family: "Share Tech Mono", monospace;
+	  font-size: 12px;
+	  width: 100%;
+	}
+	
+	.section-divider {
+	  width: 100%;
+	  height: 1px;
+	  background: #00ffff;
+	  opacity: 0.3;
+	  margin: 8px 0;
 	}
 	
 	#rotationControls {
@@ -341,35 +369,80 @@
   </div>
 
   <div id="infoPanel">
-  <div id="infoPortraitPanel" style="text-align:center; margin-bottom:8px;">
-    <canvas id="infoPortraitCanvas" width="128" height="128" style="border-radius:12px;"></canvas>
-  </div>
+    <!-- Portrait -->
+    <div id="infoPortraitPanel" style="text-align:center; margin-bottom:8px;">
+      <canvas id="infoPortraitCanvas" width="128" height="128" style="border-radius:12px;"></canvas>
+    </div>
+    
+    <!-- Ship Name and Speed -->
     <div id="infoName" class="infoName">Hajó: -</div>
     <div id="infoHP" class="infoHP">Sebesség: -</div>
+    
+    <div class="section-divider"></div>
+    
+    <!-- Rotation Controls -->
+    <div id="headingDisplay" style="font-family: 'Share Tech Mono', monospace; color: #00ffff; font-size: 12px; text-align: center; min-width: 120px;">Heading: 0°</div>
+    <div id="headingCompass" style="width: 60px; height: 60px; border: 2px solid #00ffff; border-radius: 50%; position: relative; background: rgba(0, 255, 255, 0.05);">
+      <div id="compassNeedle" style="position: absolute; top: 50%; left: 50%; width: 2px; height: 20px; background: #00ffff; transform: translate(-50%, -50%); transform-origin: center 12px; box-shadow: 0 0 5px rgba(0, 255, 255, 0.8);"></div>
+      <div id="compassLabel" style="position: absolute; font-size: 10px; color: #00ffff; font-weight: bold; font-family: 'Share Tech Mono', monospace; top: 2px; left: 50%; transform: translateX(-50%);">N</div>
+    </div>
+    <div id="rotationControls" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-bottom: 8px;">
+      <div style="grid-column: 1/2;"></div>
+      <button class="rotation-button" id="rotateUp"><span class="material-icons">arrow_upward</span></button>
+      <div style="grid-column: 3/4;"></div>
+      <button class="rotation-button" id="rotateLeft"><span class="material-icons">arrow_back</span></button>
+      <button class="rotation-button" id="rotateCenter"><span class="material-icons">adjust</span></button>
+      <button class="rotation-button" id="rotateRight"><span class="material-icons">arrow_forward</span></button>
+      <div style="grid-column: 1/2;"></div>
+      <button class="rotation-button" id="rotateDown"><span class="material-icons">arrow_downward</span></button>
+      <div style="grid-column: 3/4;"></div>
+    </div>
+    <div style="font-size: 10px; color: #666; text-align: center; margin-bottom: 4px;">Arrow Keys or Q/E to rotate</div>
+    <div style="font-size: 10px; color: #666; text-align: center;">WASD to move</div>
+    
+    <div class="section-divider"></div>
+    
+    <!-- Attribute Editing Section -->
+    <div style="font-family: 'Orbitron', sans-serif; color: #00ffff; font-size: 12px; text-align: center; margin-bottom: 4px;">ATTRIBUTES</div>
+    
+    <div class="attribute-grid">
+      <div class="attribute-item">
+        <span class="attribute-label">Size</span>
+        <input type="number" id="editSize" class="attribute-input" min="10" max="200" step="5">
+      </div>
+      <div class="attribute-item">
+        <span class="attribute-label">Speed</span>
+        <input type="number" id="editSpeed" class="attribute-input" min="0" max="100" step="5">
+      </div>
+      <div class="attribute-item">
+        <span class="attribute-label">Shield</span>
+        <input type="number" id="editShield" class="attribute-input" min="0" max="5" step="0.5">
+      </div>
+      <div class="attribute-item">
+        <span class="attribute-label">Radar</span>
+        <input type="number" id="editShortRange" class="attribute-input" min="0" max="200" step="10">
+      </div>
+      <div class="attribute-item">
+        <span class="attribute-label">Weapon Range</span>
+        <input type="number" id="editLongRange" class="attribute-input" min="0" max="300" step="10">
+      </div>
+      <div class="attribute-item">
+        <span class="attribute-label">Front Guns</span>
+        <input type="number" id="editFront" class="attribute-input" min="0" max="5" step="0.1">
+      </div>
+      <div class="attribute-item">
+        <span class="attribute-label">Side Guns</span>
+        <input type="number" id="editSide" class="attribute-input" min="0" max="5" step="0.1">
+      </div>
+      <div class="attribute-item">
+        <span class="attribute-label">Rear Guns</span>
+        <input type="number" id="editRear" class="attribute-input" min="0" max="5" step="0.1">
+      </div>
+    </div>
+    
+    <button id="applyAttributes" class="sci-button" style="width: 100%; margin-top: 8px;">✅ Apply Changes</button>
   </div>
   
-</div>
-
-<!-- Rotation Control Panel -->
-<div id="rotationPanel">
-  <div id="headingDisplay">Heading: 0°</div>
-  <div id="headingCompass">
-    <div id="compassNeedle"></div>
-    <div id="compassLabel" id="compassN">N</div>
-  </div>
-  <div id="rotationControls">
-    <div style="grid-column: 1/2;"></div>
-    <button class="rotation-button" id="rotateUp"><span class="material-icons">arrow_upward</span></button>
-    <div style="grid-column: 3/4;"></div>
-    <button class="rotation-button" id="rotateLeft"><span class="material-icons">arrow_back</span></button>
-    <button class="rotation-button" id="rotateCenter"><span class="material-icons">adjust</span></button>
-    <button class="rotation-button" id="rotateRight"><span class="material-icons">arrow_forward</span></button>
-    <div style="grid-column: 1/2;"></div>
-    <button class="rotation-button" id="rotateDown"><span class="material-icons">arrow_downward</span></button>
-    <div style="grid-column: 3/4;"></div>
-  </div>
-  <div style="font-size: 10px; color: #666; text-align: center;">Arrow Keys or Q/E to rotate</div>
-  <div style="font-size: 10px; color: #666; text-align: center;">WASD to move</div>
 </div>
 
 
@@ -527,7 +600,7 @@
   document.getElementById('undoMove').addEventListener('click', undo);
   
   // Rotation control
-  const rotationPanel = document.getElementById('rotationPanel');
+  const infoPanel = document.getElementById('infoPanel');
   const headingDisplay = document.getElementById('headingDisplay');
   const compassNeedle = document.getElementById('compassNeedle');
   const rotationSpeed = 5; // degrees per click
@@ -581,7 +654,7 @@
         selectedPlayer = null;
         originalMaterial = null;
         originalMaterials = [];
-        rotationPanel.classList.remove('active');
+        infoPanel.classList.remove('active');
         updateInfoPanel(null);
         sceneNeedsUpdate = true;
       }
@@ -730,17 +803,26 @@
   }
   
   // Info panel
-  const infoPanel = document.getElementById('infoPanel');
   const infoName = document.getElementById('infoName');
   const infoHP = document.getElementById('infoHP');
   
+  // Attribute editing inputs
+  const editSize = document.getElementById('editSize');
+  const editSpeed = document.getElementById('editSpeed');
+  const editShield = document.getElementById('editShield');
+  const editShortRange = document.getElementById('editShortRange');
+  const editLongRange = document.getElementById('editLongRange');
+  const editFront = document.getElementById('editFront');
+  const editSide = document.getElementById('editSide');
+  const editRear = document.getElementById('editRear');
+  
   function updateInfoPanel(object) {
     if (!object) {
-      infoPanel.style.display = 'none';
+      infoPanel.classList.remove('active');
       return;
     }
   
-    const { name, size } = object.userData || {};
+    const { name, size, speed, shield, shortRange, longRange, front, side, rear } = object.userData || {};
     
     const portraitCanvas = document.getElementById('infoPortraitCanvas');
     const ctx = portraitCanvas.getContext('2d');
@@ -784,13 +866,70 @@
     };
 	
     infoName.textContent = `Hajó: ${name || '-'}`;
-    infoHP.textContent = `Sebesség: ${size != null ? (size / 5).toFixed(0) : '-'}`;
-    infoPanel.style.display = 'block';
+    infoHP.textContent = `Sebesség: ${speed != null ? speed : (size != null ? (size / 5).toFixed(0) : '-')}`;
+    
+    // Populate attribute editing fields
+    editSize.value = size || 50;
+    editSpeed.value = speed || 20;
+    editShield.value = shield || 3;
+    editShortRange.value = shortRange || 30;
+    editLongRange.value = longRange || 100;
+    editFront.value = front || 0.1;
+    editSide.value = side || 0.1;
+    editRear.value = rear || 3;
+    
+    infoPanel.classList.add('active');
   }
   
   // Popup buttons
   cancelAddBtn.addEventListener('click', () => {
     closePopup();
+  });
+  
+  // Apply attribute changes
+  document.getElementById('applyAttributes').addEventListener('click', () => {
+    if (!selectedPlayer) return;
+    
+    // Update userData with new values
+    selectedPlayer.userData.size = parseFloat(editSize.value);
+    selectedPlayer.userData.speed = parseFloat(editSpeed.value);
+    selectedPlayer.userData.shield = parseFloat(editShield.value);
+    selectedPlayer.userData.shortRange = parseFloat(editShortRange.value);
+    selectedPlayer.userData.longRange = parseFloat(editLongRange.value);
+    selectedPlayer.userData.front = parseFloat(editFront.value);
+    selectedPlayer.userData.side = parseFloat(editSide.value);
+    selectedPlayer.userData.rear = parseFloat(editRear.value);
+    
+    // Update visual scale if size changed
+    const newSize = selectedPlayer.userData.size;
+    const scaleFactor = newSize / 50; // 50 is base size
+    selectedPlayer.scale.set(scaleFactor, scaleFactor, scaleFactor);
+    
+    // Update range visuals if they exist
+    const rangeVisuals = selectedPlayer.children.find(child => child.name === 'RangeVisuals');
+    if (rangeVisuals) {
+      selectedPlayer.remove(rangeVisuals);
+    }
+    
+    // Create new range visuals with updated attributes
+    const attributes = {
+      speed: selectedPlayer.userData.speed,
+      shield: selectedPlayer.userData.shield,
+      shortRange: selectedPlayer.userData.shortRange,
+      longRange: selectedPlayer.userData.longRange,
+      front: selectedPlayer.userData.front,
+      side: selectedPlayer.userData.side,
+      rear: selectedPlayer.userData.rear
+    };
+    const color = selectedPlayer.userData.color || 0x00ffff;
+    const newRangeVisuals = createRangeVisuals(selectedPlayer, attributes, color);
+    selectedPlayer.add(newRangeVisuals);
+    
+    // Update info display
+    updateInfoPanel(selectedPlayer);
+    
+    showToast('✅ Attributes updated', 'success');
+    sceneNeedsUpdate = true;
   });
   
   // Create button
@@ -2178,7 +2317,6 @@
                 originalMaterial = null;
                 originalMaterials = [];
                 updateInfoPanel(null);
-                rotationPanel.classList.remove('active');
                 sceneNeedsUpdate = true;
                 console.log('Deselected ship');
               } else {
@@ -2235,7 +2373,6 @@
                 }
             
                 updateInfoPanel(selectedPlayer);
-                rotationPanel.classList.add('active');
                 updateRotationDisplay();
                 sceneNeedsUpdate = true;
                 console.log('Selected ship:', selectedPlayer);
@@ -2260,7 +2397,6 @@
               originalMaterials = [];
               sceneNeedsUpdate = true;
               updateInfoPanel(null);
-              rotationPanel.classList.remove('active');
           }
       }
   });
