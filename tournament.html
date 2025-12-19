@@ -1042,8 +1042,6 @@
       });
     }
     
-    console.log('Creating new range visuals with attributes:', attributes);
-    
     // Create new range visuals with updated attributes
     const attributes = {
       speed: selectedPlayer.userData.speed,
@@ -1055,6 +1053,8 @@
       rear: selectedPlayer.userData.rear,
       size: selectedPlayer.userData.size
     };
+    
+    console.log('Creating new range visuals with attributes:', attributes);
     const color = selectedPlayer.userData.color || 0x00ffff;
     const newRangeVisuals = createRangeVisuals(selectedPlayer, attributes, color);
     newRangeVisuals.visible = wasVisible;
