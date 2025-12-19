@@ -1296,9 +1296,9 @@
   }
 
   // Hover indicator
-  function createHoverIndicator(size = 20, color = 0x00ffff) {
-    const innerRadius = size * 0.75;
-    const outerRadius = size * 1.25;
+  function createHoverIndicator(isize = 20, color = 0x00ffff) {
+    const innerRadius = isize * 0.75;
+    const outerRadius = isize * 1.25;
     const ringGeometry = new THREE.RingGeometry(innerRadius, outerRadius, 32);
     const ringMaterial = new THREE.MeshBasicMaterial({
       color: color,
@@ -1309,7 +1309,7 @@
     const ring = new THREE.Mesh(ringGeometry, ringMaterial);
     ring.rotation.x = -Math.PI / 2;
     
-    const discRadius = size * 0.6;
+    const discRadius = isize * 0.6;
     const discGeometry = new THREE.CircleGeometry(discRadius, 32);
     const discMaterial = new THREE.MeshBasicMaterial({
       color: color,
@@ -1320,8 +1320,8 @@
     disc.rotation.x = -Math.PI / 2;
     disc.position.y = 0.1;
     
-    const beamRadius = size * 0.4;
-    const beamHeight = size * 2;
+    const beamRadius = isize * 0.4;
+    const beamHeight = isize * 2;
     const beamGeometry = new THREE.CylinderGeometry(beamRadius, beamRadius, beamHeight, 8, 1, true);
     const beamMaterial = new THREE.MeshBasicMaterial({
       color: color,
