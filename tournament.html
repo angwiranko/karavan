@@ -97,11 +97,10 @@
     #infoPanel {
       display: none;
 	  position: fixed;
-      right: -340px;
+      right: -300px;
       top: 50%;
       transform: translateY(-50%);
 	  padding: 16px;
-      padding-left: 56px;
       background: radial-gradient(ellipse at top left, #0f1a2e 60%, #050a14 100%);
       border: 2px solid #666;
       border-right: none;
@@ -111,7 +110,7 @@
       font-weight: 400;
       text-shadow: 0 0 3px #000;
       border-radius: 8px 0 0 8px;
-      width: 340px;
+      width: 300px;
       z-index: 10;
       max-height: 90vh;
       overflow-y: auto;
@@ -123,7 +122,7 @@
       flex-direction: column;
       align-items: center;
       gap: 8px;
-      right: -300px;
+      right: -260px;
     }
     
     #infoPanel.expanded {
@@ -131,8 +130,8 @@
     }
     
     #infoPanelHandle {
-      position: absolute;
-      left: 0;
+      position: fixed;
+      right: 0;
       top: 50%;
       transform: translateY(-50%);
       width: 40px;
@@ -142,13 +141,19 @@
       border-right: none;
       border-radius: 8px 0 0 8px;
       cursor: pointer;
-      display: flex;
+      display: none;
       align-items: center;
       justify-content: center;
       color: #00ffff;
       font-size: 24px;
-      transition: background 0.3s;
-      z-index: 12;
+      transition: all 0.3s;
+      z-index: 9;
+      pointer-events: auto;
+    }
+    
+    #infoPanel.active ~ #infoPanelHandle,
+    #infoPanelHandle.active {
+      display: flex;
     }
     
     #infoPanelHandle:hover {
@@ -158,11 +163,11 @@
     
     @media (max-width: 1200px) {
       #infoPanel {
-        right: -340px;
-        width: 320px;
+        right: -300px;
+        width: 280px;
       }
       #infoPanel.active {
-        right: -280px;
+        right: -240px;
       }
       #infoPanel.expanded {
         right: 0;
@@ -406,10 +411,11 @@
     </div>
   </div>
 
+  <div id="infoPanelHandle" title="Toggle Panel">
+    <span class="material-icons" id="handleIcon">chevron_left</span>
+  </div>
+
   <div id="infoPanel">
-    <div id="infoPanelHandle" title="Toggle Panel">
-      <span class="material-icons" id="handleIcon">chevron_left</span>
-    </div>
     <!-- Portrait -->
     <div id="infoPortraitPanel" style="text-align:center; margin-bottom:8px;">
       <canvas id="infoPortraitCanvas" width="128" height="128" style="border-radius:12px;"></canvas>
@@ -909,11 +915,17 @@
     if (!object) {
       infoPanel.classList.remove('active');
       infoPanel.classList.remove('expanded');
+      infoPanelHandle.classList.remove('active');
+      infoPanelHandle.style.display = 'none';
       handleIcon.textContent = 'chevron_left';
       return;
     }
   
     const { name, size, speed, shield, shortRange, longRange, front, side, rear } = object.userData || {};
+    
+    // Show handle when panel becomes active
+    infoPanelHandle.classList.add('active');
+    infoPanelHandle.style.display = 'flex';
     
     const portraitCanvas = document.getElementById('infoPortraitCanvas');
     const ctx = portraitCanvas.getContext('2d');
