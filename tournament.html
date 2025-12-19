@@ -1787,18 +1787,21 @@
         if (!rangeGroup || !rangeGroup.userData.animatingChildren) return;
         
         rangeGroup.userData.animatingChildren.forEach(child => {
-          if (!child.material || !child.userData.baseOpacity) return;
+          if (!child.material) return;
           
-          if (child.userData.isSpeedRing) {
+          if (child.userData.isSpeedRing && child.userData.baseOpacity) {
             const pulse = Math.sin(time * 0.6) * 0.15 + 0.85;
             child.material.opacity = child.userData.baseOpacity * pulse;
-          } else if (child.userData.isShortRange) {
+          } else if (child.userData.isShortRange && child.userData.baseOpacity) {
             const pulse = Math.sin(time * 0.7) * 0.1 + 0.9;
             child.material.opacity = child.userData.baseOpacity * pulse;
-          } else if (child.userData.isShieldSphere) {
-            const shimmer = Math.sin(time * 0.5) * 0.08 + 0.25;
-            child.material.opacity = shimmer;
-          } else if (child.userData.isRangeArc) {
+          } else if (child.userData.isShieldSphere && child.userData.baseOpacity) {
+            // Shield sphere uses ShaderMaterial with uniforms, not regular opacity
+            const shimmer = Math.sin(time * 0.5) * 0.08 + 0.92;
+            if (child.material.uniforms && child.material.uniforms.baseOpacity) {
+              child.material.uniforms.baseOpacity.value = child.userData.baseOpacity * shimmer;
+            }
+          } else if (child.userData.isRangeArc && child.userData.baseOpacity) {
             const wave = Math.sin(time * 0.5) * 0.15 + 0.85;
             child.material.opacity = child.userData.baseOpacity * wave;
           }
