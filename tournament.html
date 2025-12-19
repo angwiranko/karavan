@@ -799,11 +799,14 @@
         e.preventDefault();
         break;
       case 'r':
-        // Reset heading
-        selectedPlayer.userData.heading = 0;
-        selectedPlayer.rotation.y = 0;
-        updateRotationDisplay();
-        sceneNeedsUpdate = true;
+        // Toggle range visuals
+        const rangeVisuals = selectedPlayer.children.find(child => child.name === 'RangeVisuals');
+        if (rangeVisuals) {
+          rangeVisuals.visible = !rangeVisuals.visible;
+          selectedPlayer.userData.showRanges = rangeVisuals.visible;
+          toggleRanges.checked = rangeVisuals.visible;
+          sceneNeedsUpdate = true;
+        }
         e.preventDefault();
         break;
     }
@@ -1521,6 +1524,9 @@
     const speedScale = 0.4;
     const rangeScale = 0.35;
     
+    // Convert color to THREE.Color if it's a number
+    const shipColor = new THREE.Color(color);
+    
     // Speed circle - thin dashed line
     if (attributes.speed > 0) {
       const speedRadius = attributes.speed * speedScale;
@@ -1541,7 +1547,7 @@
       
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       const material = new THREE.LineBasicMaterial({
-        color: 0x4488ff,
+        color: shipColor,
         transparent: true,
         opacity: 0.4,
         linewidth: 1
@@ -1569,7 +1575,7 @@
       
       const geometry = new THREE.BufferGeometry().setFromPoints(points);
       const material = new THREE.LineBasicMaterial({
-        color: 0xff8800,
+        color: shipColor,
         transparent: true,
         opacity: 0.35,
         linewidth: 1
@@ -1582,25 +1588,27 @@
     
     // Shield - tiny center sphere with gradient opacity (transparent at poles)
     if (attributes.shield > 0) {
-      const shieldColor = attributes.shield >= 3 ? 0x00ff88 : (attributes.shield >= 2 ? 0xffff00 : 0xff8888);
       const baseSize = attributes.size || 50;
       const shieldRadius = Math.max(3, baseSize * 0.04);
+      
+      // Calculate base opacity based on shield value (0-5)
+      // Higher shield = higher opacity, lower shield = lower opacity
+      const baseOpacity = Math.min(1, Math.max(0.1, attributes.shield / 5)); // Normalize 0-5 to 0.1-1.0
       
       const sphereGeometry = new THREE.SphereGeometry(shieldRadius, 32, 32);
       
       // Create vertex colors for gradient opacity effect
       const colors = [];
       const positionAttribute = sphereGeometry.getAttribute('position');
-      const color = new THREE.Color(shieldColor);
       
       for (let i = 0; i < positionAttribute.count; i++) {
         const y = positionAttribute.getY(i);
         // Calculate opacity based on distance from poles (y-axis)
         // Maximum opacity at equator (y=0), minimum at poles (y=±radius)
         const normalizedY = Math.abs(y) / shieldRadius;
-        const opacity = 1 - normalizedY; // 1 at equator, 0 at poles
+        const gradientOpacity = 1 - normalizedY; // 1 at equator, 0 at poles
         
-        colors.push(color.r, color.g, color.b, opacity);
+        colors.push(shipColor.r, shipColor.g, shipColor.b, gradientOpacity);
       }
       
       sphereGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
@@ -1609,7 +1617,8 @@
         transparent: true,
         side: THREE.DoubleSide,
         uniforms: {
-          baseColor: { value: new THREE.Color(shieldColor) }
+          baseColor: { value: shipColor.clone() },
+          baseOpacity: { value: baseOpacity }
         },
         vertexShader: `
           attribute vec4 color;
@@ -1620,9 +1629,10 @@
           }
         `,
         fragmentShader: `
+          uniform float baseOpacity;
           varying vec4 vColor;
           void main() {
-            gl_FragColor = vec4(vColor.rgb, vColor.a * 0.3);
+            gl_FragColor = vec4(vColor.rgb, vColor.a * baseOpacity * 0.3);
           }
         `
       });
@@ -1643,36 +1653,36 @@
       if (attributes.front > 0) {
         const frontScale = Math.min(5, Math.max(0.01, attributes.front)) / 5; // Normalize 0.01-5 to proportional scale
         const frontMaxRadius = baseRadius * frontScale;
-        addFlatArcSegment(group, 0, frontMaxRadius * 0.33, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.25);
-        addFlatArcSegment(group, frontMaxRadius * 0.33, frontMaxRadius * 0.66, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.18);
-        addFlatArcSegment(group, frontMaxRadius * 0.66, frontMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, 0x00ffff, 0.12);
+        addFlatArcSegment(group, 0, frontMaxRadius * 0.33, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, shipColor, 0.25);
+        addFlatArcSegment(group, frontMaxRadius * 0.33, frontMaxRadius * 0.66, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, shipColor, 0.18);
+        addFlatArcSegment(group, frontMaxRadius * 0.66, frontMaxRadius, Math.PI / 2 - arcWidth/2, Math.PI / 2 + arcWidth/2, shipColor, 0.12);
       }
       
       // Left (180°) - scaled by attributes.side (0-5)
       if (attributes.side > 0) {
         const sideScale = Math.min(5, Math.max(0.01, attributes.side)) / 5;
         const sideMaxRadius = baseRadius * sideScale;
-        addFlatArcSegment(group, 0, sideMaxRadius * 0.33, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.25);
-        addFlatArcSegment(group, sideMaxRadius * 0.33, sideMaxRadius * 0.66, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.18);
-        addFlatArcSegment(group, sideMaxRadius * 0.66, sideMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, 0x00ffff, 0.12);
+        addFlatArcSegment(group, 0, sideMaxRadius * 0.33, Math.PI - arcWidth/2, Math.PI + arcWidth/2, shipColor, 0.25);
+        addFlatArcSegment(group, sideMaxRadius * 0.33, sideMaxRadius * 0.66, Math.PI - arcWidth/2, Math.PI + arcWidth/2, shipColor, 0.18);
+        addFlatArcSegment(group, sideMaxRadius * 0.66, sideMaxRadius, Math.PI - arcWidth/2, Math.PI + arcWidth/2, shipColor, 0.12);
       }
       
       // Right (0°) - scaled by attributes.side (0-5)
       if (attributes.side > 0) {
         const sideScale = Math.min(5, Math.max(0.01, attributes.side)) / 5;
         const sideMaxRadius = baseRadius * sideScale;
-        addFlatArcSegment(group, 0, sideMaxRadius * 0.33, -arcWidth/2, arcWidth/2, 0x00ffff, 0.25);
-        addFlatArcSegment(group, sideMaxRadius * 0.33, sideMaxRadius * 0.66, -arcWidth/2, arcWidth/2, 0x00ffff, 0.18);
-        addFlatArcSegment(group, sideMaxRadius * 0.66, sideMaxRadius, -arcWidth/2, arcWidth/2, 0x00ffff, 0.12);
+        addFlatArcSegment(group, 0, sideMaxRadius * 0.33, -arcWidth/2, arcWidth/2, shipColor, 0.25);
+        addFlatArcSegment(group, sideMaxRadius * 0.33, sideMaxRadius * 0.66, -arcWidth/2, arcWidth/2, shipColor, 0.18);
+        addFlatArcSegment(group, sideMaxRadius * 0.66, sideMaxRadius, -arcWidth/2, arcWidth/2, shipColor, 0.12);
       }
       
       // Rear (270°) - scaled by attributes.rear (0-5)
       if (attributes.rear > 0) {
         const rearScale = Math.min(5, Math.max(0.01, attributes.rear)) / 5; // Normalize 0.01-5 to proportional scale
         const rearMaxRadius = baseRadius * rearScale;
-        addFlatArcSegment(group, 0, rearMaxRadius * 0.33, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.25);
-        addFlatArcSegment(group, rearMaxRadius * 0.33, rearMaxRadius * 0.66, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.18);
-        addFlatArcSegment(group, rearMaxRadius * 0.66, rearMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, 0x00ffff, 0.12);
+        addFlatArcSegment(group, 0, rearMaxRadius * 0.33, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, shipColor, 0.25);
+        addFlatArcSegment(group, rearMaxRadius * 0.33, rearMaxRadius * 0.66, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, shipColor, 0.18);
+        addFlatArcSegment(group, rearMaxRadius * 0.66, rearMaxRadius, -Math.PI / 2 - arcWidth/2, -Math.PI / 2 + arcWidth/2, shipColor, 0.12);
       }
     }
     
