@@ -1027,8 +1027,22 @@
     const rangeVisuals = selectedPlayer.children.find(child => child.name === 'RangeVisuals');
     const wasVisible = rangeVisuals ? rangeVisuals.visible : true;
     if (rangeVisuals) {
+      console.log('Removing old range visuals, children count:', rangeVisuals.children.length);
       selectedPlayer.remove(rangeVisuals);
+      // Dispose of geometries and materials to free memory
+      rangeVisuals.traverse((node) => {
+        if (node.geometry) node.geometry.dispose();
+        if (node.material) {
+          if (Array.isArray(node.material)) {
+            node.material.forEach(mat => mat.dispose());
+          } else {
+            node.material.dispose();
+          }
+        }
+      });
     }
+    
+    console.log('Creating new range visuals with attributes:', attributes);
     
     // Create new range visuals with updated attributes
     const attributes = {
