@@ -1021,6 +1021,7 @@
     
     // Update range visuals if they exist
     const rangeVisuals = selectedPlayer.children.find(child => child.name === 'RangeVisuals');
+    const wasVisible = rangeVisuals ? rangeVisuals.visible : true;
     if (rangeVisuals) {
       selectedPlayer.remove(rangeVisuals);
     }
@@ -1038,6 +1039,7 @@
     };
     const color = selectedPlayer.userData.color || 0x00ffff;
     const newRangeVisuals = createRangeVisuals(selectedPlayer, attributes, color);
+    newRangeVisuals.visible = wasVisible;
     selectedPlayer.add(newRangeVisuals);
     
     // Update info display
