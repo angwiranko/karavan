@@ -1912,9 +1912,6 @@
       });
       
       console.log('✅ Player ship model applied (scale: ' + scale.toFixed(2) + ')');
-      
-      // Store Y position in userData
-      shipObject.userData.y = y;
     } else {
       // Fallback to sphere
       const geometry = new THREE.SphereGeometry(size, 16, 16);
