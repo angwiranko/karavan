@@ -380,6 +380,15 @@
       <button class="color-button" style="background-color: #ffffff;" data-color="#ffffff"></button>
     </div>
     <br>
+    <label>Hajó típusa: 
+      <select id="shipModelType" class="nametag" style="width: 100%; padding: 4px;">
+        <option value="gemini3_anim1_draco.glb">Gemini (Alapértelmezett)</option>
+        <option value="cruiser.glb">Cruiser</option>
+        <option value="destroyer.glb">Destroyer</option>
+        <option value="fregatt.glb">Fregatt</option>
+        <option value="squadron.glb">Squadron</option>
+      </select>
+    </label><br><br>
     <label>Méret: <input type="number" id="charSize" class="nametag" value="25"></label><br><br>
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
       <div>
@@ -854,6 +863,7 @@
   // Popup
   const charNameInput = document.getElementById('charName');
   const charSizeInput = document.getElementById('charSize');
+  const shipModelTypeSelect = document.getElementById('shipModelType');
   const confirmAddBtn = document.getElementById('confirmAdd');
   const cancelAddBtn = document.getElementById('cancelAdd');
   
@@ -1084,6 +1094,7 @@
     const name = charNameInput.value;
     const color = selectedColor;
     const size = parseFloat(charSizeInput.value);
+    const modelType = shipModelTypeSelect.value;
     const attributes = {
       speed: parseFloat(shipSpeedInput.value),
       shield: parseFloat(shipShieldInput.value),
@@ -1095,9 +1106,9 @@
     };
   
     if (creatingType === "player") {
-      createPlayer(0, 0, color, name, size, attributes);
+      createPlayer(0, 0, color, name, size, attributes, modelType);
     } else if (creatingType === "enemy") {
-      createEnemy(0, 0, color, name, size, attributes);
+      createEnemy(0, 0, color, name, size, attributes, modelType);
     }
     
     sceneNeedsUpdate = true;
@@ -1214,15 +1225,17 @@
   dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
   gltfLoader.setDRACOLoader(dracoLoader);
   
-  let shipModel = null; // Cache for loaded model
-  let modelLoading = false;
-  let modelLoadError = false;
+  // Cache for multiple model types
+  const shipModels = new Map(); // Map<modelType, loadedModel>
+  const modelLoadingStatus = new Map(); // Map<modelType, boolean>
+  const modelLoadErrors = new Map(); // Map<modelType, boolean>
 
-  async function loadShipModel() {
+  async function loadShipModel(modelType = 'gemini3_anim1_draco.glb') {
     return new Promise((resolve) => {
       // If already loaded, clone and return
-      if (shipModel) {
-        const clonedModel = shipModel.clone();
+      if (shipModels.has(modelType)) {
+        const cachedModel = shipModels.get(modelType);
+        const clonedModel = cachedModel.clone();
         // Deep clone materials to avoid sharing between instances
         clonedModel.traverse((node) => {
           if (node.isMesh && node.material) {
@@ -1234,26 +1247,26 @@
       }
 
       // If already loading, wait a bit and try again
-      if (modelLoading) {
-        setTimeout(() => loadShipModel().then(resolve), 100);
+      if (modelLoadingStatus.get(modelType)) {
+        setTimeout(() => loadShipModel(modelType).then(resolve), 100);
         return;
       }
 
       // If loading failed before, just resolve with null to use fallback
-      if (modelLoadError) {
+      if (modelLoadErrors.get(modelType)) {
         resolve(null);
         return;
       }
 
-      modelLoading = true;
+      modelLoadingStatus.set(modelType, true);
 
       gltfLoader.load(
-        'gemini3_anim1_draco.glb',
+        modelType,
         (gltf) => {
-          shipModel = gltf.scene;
-          modelLoading = false;
-          console.log('✅ Ship model loaded successfully');
-          const clonedModel = shipModel.clone();
+          shipModels.set(modelType, gltf.scene);
+          modelLoadingStatus.set(modelType, false);
+          console.log(`✅ Ship model loaded successfully: ${modelType}`);
+          const clonedModel = gltf.scene.clone();
           // Deep clone materials
           clonedModel.traverse((node) => {
             if (node.isMesh && node.material) {
@@ -1264,13 +1277,13 @@
         },
         (progress) => {
           if (progress.total > 0) {
-            console.log('Loading model:', (progress.loaded / progress.total * 100).toFixed(0) + '%');
+            console.log(`Loading ${modelType}:`, (progress.loaded / progress.total * 100).toFixed(0) + '%');
           }
         },
         (error) => {
-          modelLoading = false;
-          modelLoadError = true;
-          console.warn('⚠️ Could not load ship model:', error);
+          modelLoadingStatus.set(modelType, false);
+          modelLoadErrors.set(modelType, true);
+          console.warn(`⚠️ Could not load ship model ${modelType}:`, error);
           resolve(null);
         }
       );
@@ -1866,7 +1879,7 @@
   }
   
   // Helper: Create a solid circle (line geometry) - already in XZ plane
-  async function createPlayer(x, z, color = 0x0000ff, name = "Player", size = 20, attributes = {}) {
+  async function createPlayer(x, z, color = 0x0000ff, name = "Player", size = 20, attributes = {}, modelType = 'gemini3_anim1_draco.glb') {
     // Set default attributes
     const attrs = {
       speed: attributes.speed || 30,
@@ -1880,7 +1893,7 @@
     };
 
     let shipObject;
-    const model = await loadShipModel();
+    const model = await loadShipModel(modelType);
     
     if (model) {
       shipObject = model;
@@ -1942,6 +1955,7 @@
       name,
       size,
       color: color,
+      modelType: modelType,
       showRanges: true,
       y: correctY,
       ...attrs
@@ -1952,7 +1966,7 @@
   }
   
   // Create enemy ship
-  async function createEnemy(x, z, color = 0xff0000, name = "Enemy", size = 20, attributes = {}) {
+  async function createEnemy(x, z, color = 0xff0000, name = "Enemy", size = 20, attributes = {}, modelType = 'gemini3_anim1_draco.glb') {
     // Set default attributes
     const attrs = {
       speed: attributes.speed || 30,
@@ -1966,7 +1980,7 @@
     };
 
     let shipObject;
-    const model = await loadShipModel();
+    const model = await loadShipModel(modelType);
     
     if (model) {
       shipObject = model;
@@ -2028,6 +2042,7 @@
       name,
       size,
       color: color,
+      modelType: modelType,
       showRanges: true,
       y: correctY,
       ...attrs
@@ -2815,6 +2830,7 @@
           const colorNum = typeof item.color === 'string' && item.color.startsWith('#') 
             ? parseInt(item.color.slice(1), 16) 
             : (typeof item.color === 'number' ? item.color : parseInt(item.color, 16));
+          const modelType = item.modelType || 'gemini3_anim1_draco.glb';
           const ship = await createPlayer(item.position.x, item.position.z, colorNum, item.name, item.size, {
             speed: item.speed,
             shield: item.shield,
@@ -2823,7 +2839,7 @@
             front: item.front,
             side: item.side,
             rear: item.rear
-          });
+          }, modelType);
           if (item.position.y !== undefined) {
             ship.position.y = item.position.y;
             ship.userData.y = item.position.y;
@@ -2845,6 +2861,7 @@
           const colorNum = typeof item.color === 'string' && item.color.startsWith('#') 
             ? parseInt(item.color.slice(1), 16) 
             : (typeof item.color === 'number' ? item.color : parseInt(item.color, 16));
+          const modelType = item.modelType || 'gemini3_anim1_draco.glb';
           const ship = await createEnemy(item.position.x, item.position.z, colorNum, item.name, item.size, {
             speed: item.speed,
             shield: item.shield,
@@ -2853,7 +2870,7 @@
             front: item.front,
             side: item.side,
             rear: item.rear
-          });
+          }, modelType);
           if (item.position.y !== undefined) {
             ship.position.y = item.position.y;
             ship.userData.y = item.position.y;
@@ -2910,6 +2927,7 @@
         name: obj.userData.name,
         size: obj.userData.size,
         color: colorHex,
+        modelType: obj.userData.modelType || 'gemini3_anim1_draco.glb',
         heading: obj.userData.heading || 0,
         speed: obj.userData.speed || 0,
         shield: obj.userData.shield || 0,
@@ -2950,6 +2968,7 @@
         name: obj.userData.name,
         size: obj.userData.size,
         color: colorHex,
+        modelType: obj.userData.modelType || 'gemini3_anim1_draco.glb',
         heading: obj.userData.heading || 0,
         speed: obj.userData.speed || 0,
         shield: obj.userData.shield || 0,
