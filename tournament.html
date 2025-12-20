@@ -782,7 +782,7 @@
         break;
       case 'arrowdown':
         captureState();
-        selectedPlayer.position.y = Math.max(0, selectedPlayer.position.y - 10);
+        selectedPlayer.position.y -= 10;
         selectedPlayer.userData.y = selectedPlayer.position.y;
         updateInfoPanel(selectedPlayer);
         sceneNeedsUpdate = true;
