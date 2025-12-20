@@ -444,8 +444,9 @@
       <button class="rotation-button" id="rotateDown"><span class="material-icons">arrow_downward</span></button>
       <div style="grid-column: 3/4;"></div>
     </div>
-    <div style="font-size: 10px; color: #666; text-align: center; margin-bottom: 4px;">Arrow Keys or Q/E to rotate</div>
-    <div style="font-size: 10px; color: #666; text-align: center;">WASD to move</div>
+    <div style="font-size: 10px; color: #666; text-align: center; margin-bottom: 4px;">Q/E or Left/Right Arrows to rotate</div>
+    <div style="font-size: 10px; color: #666; text-align: center; margin-bottom: 4px;">WASD to move horizontally</div>
+    <div style="font-size: 10px; color: #666; text-align: center;">Up/Down Arrows for altitude</div>
     
     <div class="section-divider"></div>
     
@@ -599,7 +600,8 @@
         id: player.uuid,
         position: { x: player.position.x, y: player.position.y, z: player.position.z },
         heading: player.userData.heading || 0,
-        rotation: { x: player.rotation.x, y: player.rotation.y, z: player.rotation.z }
+        rotation: { x: player.rotation.x, y: player.rotation.y, z: player.rotation.z },
+        y: player.userData.y || player.position.y
       });
     });
     
@@ -609,7 +611,8 @@
         id: enemy.uuid,
         position: { x: enemy.position.x, y: enemy.position.y, z: enemy.position.z },
         heading: enemy.userData.heading || 0,
-        rotation: { x: enemy.rotation.x, y: enemy.rotation.y, z: enemy.rotation.z }
+        rotation: { x: enemy.rotation.x, y: enemy.rotation.y, z: enemy.rotation.z },
+        y: enemy.userData.y || enemy.position.y
       });
     });
     
@@ -628,6 +631,7 @@
       if (player) {
         player.position.set(savedPlayer.position.x, savedPlayer.position.y, savedPlayer.position.z);
         player.userData.heading = savedPlayer.heading;
+        player.userData.y = savedPlayer.y || savedPlayer.position.y;
         player.rotation.y = savedPlayer.heading;
         player.rotation.x = savedPlayer.rotation.x;
         player.rotation.z = savedPlayer.rotation.z;
@@ -640,6 +644,7 @@
       if (enemy) {
         enemy.position.set(savedEnemy.position.x, savedEnemy.position.y, savedEnemy.position.z);
         enemy.userData.heading = savedEnemy.heading;
+        enemy.userData.y = savedEnemy.y || savedEnemy.position.y;
         enemy.rotation.y = savedEnemy.heading;
         enemy.rotation.x = savedEnemy.rotation.x;
         enemy.rotation.z = savedEnemy.rotation.z;
@@ -766,17 +771,24 @@
         sceneNeedsUpdate = true;
         e.preventDefault();
         break;
-      // Arrow keys for rotation
+      // Arrow Up/Down for Y position (altitude)
       case 'arrowup':
-        rotateShip(rotationSpeed);
+        captureState();
+        selectedPlayer.position.y += 10;
+        selectedPlayer.userData.y = selectedPlayer.position.y;
+        updateInfoPanel(selectedPlayer);
         sceneNeedsUpdate = true;
         e.preventDefault();
         break;
       case 'arrowdown':
-        rotateShip(-rotationSpeed);
+        captureState();
+        selectedPlayer.position.y = Math.max(0, selectedPlayer.position.y - 10);
+        selectedPlayer.userData.y = selectedPlayer.position.y;
+        updateInfoPanel(selectedPlayer);
         sceneNeedsUpdate = true;
         e.preventDefault();
         break;
+      // Arrow Left/Right for rotation
       case 'arrowleft':
         rotateShip(rotationSpeed);
         sceneNeedsUpdate = true;
@@ -1519,7 +1531,8 @@
       hoverIndicator = createHoverIndicator(size, color);
     }
     
-    const targetPosition = new THREE.Vector3(x, y, z);
+    // Always keep indicator on grid level (Y=1)
+    const targetPosition = new THREE.Vector3(x, 1, z);
     
     if (!hoverIndicator.visible) {
       hoverIndicator.position.copy(targetPosition);
@@ -1899,6 +1912,9 @@
       });
       
       console.log('✅ Player ship model applied (scale: ' + scale.toFixed(2) + ')');
+      
+      // Store Y position in userData
+      shipObject.userData.y = y;
     } else {
       // Fallback to sphere
       const geometry = new THREE.SphereGeometry(size, 16, 16);
@@ -1930,6 +1946,7 @@
       size,
       color: color,
       showRanges: true,
+      y: correctY,
       ...attrs
     };
 
@@ -2015,6 +2032,7 @@
       size,
       color: color,
       showRanges: true,
+      y: correctY,
       ...attrs
     };
       
@@ -2809,7 +2827,10 @@
             side: item.side,
             rear: item.rear
           });
-          if (item.position.y !== undefined) ship.position.y = item.position.y;
+          if (item.position.y !== undefined) {
+            ship.position.y = item.position.y;
+            ship.userData.y = item.position.y;
+          }
           if (item.heading !== undefined) {
             ship.userData.heading = item.heading;
             ship.rotation.y = item.heading;
@@ -2836,7 +2857,10 @@
             side: item.side,
             rear: item.rear
           });
-          if (item.position.y !== undefined) ship.position.y = item.position.y;
+          if (item.position.y !== undefined) {
+            ship.position.y = item.position.y;
+            ship.userData.y = item.position.y;
+          }
           if (item.heading !== undefined) {
             ship.userData.heading = item.heading;
             ship.rotation.y = item.heading;
