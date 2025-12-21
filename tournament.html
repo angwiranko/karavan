@@ -565,6 +565,9 @@
   renderer.setSize(window.innerWidth, window.innerHeight, true);
   renderer.setPixelRatio(window.devicePixelRatio || 1);
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.0;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
   
   camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
   camera.position.set(0, 400, 400);
@@ -575,6 +578,25 @@
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0a0a0f);
   scene.fog = new THREE.Fog(0x0a0a0f, 1500, 2000);
+  
+  // Create environment map for reflections
+  const pmremGenerator = new THREE.PMREMGenerator(renderer);
+  pmremGenerator.compileEquirectangularShader();
+  
+  // Create a simple gradient environment
+  const envScene = new THREE.Scene();
+  const envGradient = new THREE.Mesh(
+    new THREE.SphereGeometry(500, 32, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0x1a1a2e,
+      side: THREE.BackSide
+    })
+  );
+  envScene.add(envGradient);
+  
+  const envMap = pmremGenerator.fromScene(envScene, 0.04).texture;
+  scene.environment = envMap;
+  pmremGenerator.dispose();
   
   // OrbitControls
   controls = new OrbitControls(camera, renderer.domElement);
@@ -1153,12 +1175,23 @@
   });
   
   // Lights
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
   scene.add(ambientLight);
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
   directionalLight.position.set(200, 300, 200);
+  directionalLight.castShadow = true;
   scene.add(directionalLight);
+  
+  // Add fill light from opposite side for better detail
+  const fillLight = new THREE.DirectionalLight(0x6688ff, 0.3);
+  fillLight.position.set(-200, 100, -200);
+  scene.add(fillLight);
+  
+  // Add rim light for edge definition
+  const rimLight = new THREE.DirectionalLight(0xffffff, 0.4);
+  rimLight.position.set(0, 200, -300);
+  scene.add(rimLight);
 
   // Space Background Plane
   const planeGeometry = new THREE.PlaneGeometry(2000, 2000, 10, 10);
