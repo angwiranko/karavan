@@ -2763,8 +2763,9 @@
               
               if (targetX !== undefined && targetZ !== undefined) {
                   const validPosition = findNearestValidPosition(targetX, targetZ, size);
-                  const targetY = getCorrectYPosition(validPosition.x, validPosition.z, size);
-                  smoothMove(selectedPlayer, validPosition.x, targetY, validPosition.z, 1500);
+                  // Preserve the ship's current Y coordinate (altitude)
+                  const currentY = selectedPlayer.position.y;
+                  smoothMove(selectedPlayer, validPosition.x, currentY, validPosition.z, 1500);
                   updateInfoPanel(null);
                   
                   hideHoverIndicator();
