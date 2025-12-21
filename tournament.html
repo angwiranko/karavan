@@ -1563,9 +1563,12 @@
   }
   
   // Create visual range indicators - Flat 2D Board Game Style
-  function createRangeVisuals(shipObject, attributes, color) {
+  function createRangeVisuals(shipObject, attributes, color, modelScale = 1.0) {
     const group = new THREE.Group();
     group.name = "RangeVisuals";
+    // Counter-scale the group to make it independent of ship model's scale
+    const counterScale = 1.0 / modelScale;
+    group.scale.set(counterScale, counterScale, counterScale);
     group.userData = { 
       time: 0, 
       animatingChildren: [],
@@ -1943,8 +1946,9 @@
     shipObject.add(nameLabel);
     nameLabel.position.set(0, size + 20, 0);
 
-    // Create range visuals
-    const rangeVisuals = createRangeVisuals(shipObject, attrs, color);
+    // Create range visuals (pass scale factor for counter-scaling)
+    const modelScale = model ? scale : 1.0;
+    const rangeVisuals = createRangeVisuals(shipObject, attrs, color, modelScale);
     shipObject.add(rangeVisuals);
 
     const validPosition = findNearestValidPosition(x, z, size);
@@ -2030,8 +2034,9 @@
     shipObject.add(nameLabel);
     nameLabel.position.set(0, size + 20, 0);
 
-    // Create range visuals
-    const rangeVisuals = createRangeVisuals(shipObject, attrs, color);
+    // Create range visuals (pass scale factor for counter-scaling)
+    const modelScale = model ? scale : 1.0;
+    const rangeVisuals = createRangeVisuals(shipObject, attrs, color, modelScale);
     shipObject.add(rangeVisuals);
 
     const validPosition = findNearestValidPosition(x, z, size);
