@@ -1577,8 +1577,8 @@
       attributes: { ...attributes } // Store attributes for comparison later
     };
     
-    const speedScale = 0.4;
-    const rangeScale = 0.35;
+    const speedScale = 4.0;
+    const rangeScale = 3.5;
     
     // Convert color to THREE.Color if it's a number
     const shipColor = new THREE.Color(color);
@@ -1645,7 +1645,7 @@
     // Shield - tiny center sphere with gradient opacity (transparent at poles)
     if (attributes.shield > 0) {
       const baseSize = attributes.size || 50;
-      const shieldRadius = Math.max(3, baseSize * 0.04);
+      const shieldRadius = Math.max(30, baseSize * 0.4);
       
       // Calculate base opacity based on shield value (0-5)
       // Higher shield = higher opacity, lower shield = lower opacity
@@ -1917,15 +1917,26 @@
       // Apply color and material to all meshes
       shipObject.traverse((node) => {
         if (node.isMesh) {
-          // Create new material with proper properties
-          const newMaterial = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(color),
-            metalness: 0.6,
-            roughness: 0.4,
-            emissive: new THREE.Color(color),
-            emissiveIntensity: 0.2
-          });
-          node.material = newMaterial;
+          // Preserve original material if it exists, otherwise create new one
+          if (node.material) {
+            // Keep original material but adjust properties
+            node.material = node.material.clone();
+            // Subtle color tint using emissive instead of base color
+            node.material.emissive = new THREE.Color(color);
+            node.material.emissiveIntensity = 0.15;
+            // Ensure proper lighting response
+            node.material.metalness = Math.min(node.material.metalness || 0.3, 0.3);
+            node.material.roughness = Math.max(node.material.roughness || 0.7, 0.7);
+          } else {
+            // Fallback material with neutral color
+            node.material = new THREE.MeshStandardMaterial({
+              color: 0xcccccc,
+              metalness: 0.3,
+              roughness: 0.7,
+              emissive: new THREE.Color(color),
+              emissiveIntensity: 0.15
+            });
+          }
           node.castShadow = true;
           node.receiveShadow = true;
         }
@@ -2006,15 +2017,26 @@
       // Apply color and material to all meshes
       shipObject.traverse((node) => {
         if (node.isMesh) {
-          // Create new material with proper properties
-          const newMaterial = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(color),
-            metalness: 0.2,
-            roughness: 0.7,
-            emissive: new THREE.Color(color),
-            emissiveIntensity: 0.3
-          });
-          node.material = newMaterial;
+          // Preserve original material if it exists, otherwise create new one
+          if (node.material) {
+            // Keep original material but adjust properties
+            node.material = node.material.clone();
+            // Subtle color tint using emissive instead of base color
+            node.material.emissive = new THREE.Color(color);
+            node.material.emissiveIntensity = 0.15;
+            // Ensure proper lighting response
+            node.material.metalness = Math.min(node.material.metalness || 0.3, 0.3);
+            node.material.roughness = Math.max(node.material.roughness || 0.7, 0.7);
+          } else {
+            // Fallback material with neutral color
+            node.material = new THREE.MeshStandardMaterial({
+              color: 0xcccccc,
+              metalness: 0.3,
+              roughness: 0.7,
+              emissive: new THREE.Color(color),
+              emissiveIntensity: 0.15
+            });
+          }
           node.castShadow = true;
           node.receiveShadow = true;
         }
