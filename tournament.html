@@ -1079,7 +1079,9 @@
     
     console.log('Creating new range visuals with attributes:', attributes);
     const color = selectedPlayer.userData.color || 0x00ffff;
-    const newRangeVisuals = createRangeVisuals(selectedPlayer, attributes, color);
+    // Get the ship's current scale to maintain correct visual proportions
+    const modelScale = selectedPlayer.scale.x; // Use x component as scale is uniform
+    const newRangeVisuals = createRangeVisuals(selectedPlayer, attributes, color, modelScale);
     newRangeVisuals.visible = wasVisible;
     selectedPlayer.add(newRangeVisuals);
     
@@ -2651,7 +2653,9 @@
                       size: selectedPlayer.userData.size
                     };
                     const color = selectedPlayer.userData.color || 0x00ffff;
-                    const newRangeVisuals = createRangeVisuals(selectedPlayer, attributes, color);
+                    // Get the ship's current scale to maintain correct visual proportions
+                    const modelScale = selectedPlayer.scale.x; // Use x component as scale is uniform
+                    const newRangeVisuals = createRangeVisuals(selectedPlayer, attributes, color, modelScale);
                     newRangeVisuals.visible = wasVisible;
                     selectedPlayer.add(newRangeVisuals);
                   }
