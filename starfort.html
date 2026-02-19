@@ -434,13 +434,13 @@
     </div>
     <div class="alert-bar">
       <span class="alert-label">ÍNSÉG</span>
-      <div id="alertLevels" class="alert-levels"></div>
+      <div id="alertLevels-inseg" class="alert-levels"></div>
    
       <span class="alert-label">BOTRÁNY</span>
-      <div id="alertLevels" class="alert-levels"></div>
+      <div id="alertLevels-botran" class="alert-levels"></div>
 
       <span class="alert-label">ANOMÁLIA</span>
-      <div id="alertLevels" class="alert-levels"></div>
+      <div id="alertLevels-anomalia" class="alert-levels"></div>
     </div>
   </header>
 
@@ -470,6 +470,9 @@
           name: 'Tartaros Starfort',
           subtitle: 'Khthonic Gate',
           alertLevel: 0,
+          alertLevelInseg: 0,
+          alertLevelBotran: 0,
+          alertLevelAnomalia: 0,
           sectors: [
             {
               id: 'porta-stygia',
@@ -704,7 +707,11 @@
     const sectorContainer = document.getElementById('sectorContainer');
     const locationTitle = document.getElementById('locationTitle');
     const locationSubtitle = document.getElementById('locationSubtitle');
-    const alertLevelsContainer = document.getElementById('alertLevels');
+    const alertContainers = [
+      { el: document.getElementById('alertLevels-inseg'), key: 'alertLevelInseg' },
+      { el: document.getElementById('alertLevels-botran'), key: 'alertLevelBotran' },
+      { el: document.getElementById('alertLevels-anomalia'), key: 'alertLevelAnomalia' },
+    ];
     const toast = document.getElementById('toast');
 
     function cloneState(obj) {
@@ -742,6 +749,9 @@
 
     function ensureItemIds(targetState) {
       targetState.locations.forEach(location => {
+        if (location.alertLevelInseg === undefined) location.alertLevelInseg = location.alertLevel || 0;
+        if (location.alertLevelBotran === undefined) location.alertLevelBotran = 0;
+        if (location.alertLevelAnomalia === undefined) location.alertLevelAnomalia = 0;
         location.sectors.forEach(sector => {
           sector.categories.forEach(category => {
             category.items.forEach(item => {
@@ -918,6 +928,9 @@
               name: entry.location_title || locationName,
               subtitle: entry.location_subtitle || '',
               alertLevel: Number(entry.riado || entry.alert || 0) || 0,
+              alertLevelInseg: Number(entry.inseg || entry.alertinseg || 0) || 0,
+              alertLevelBotran: Number(entry.botran || entry.alertbotran || 0) || 0,
+              alertLevelAnomalia: Number(entry.anomalia || entry.alertanomalia || 0) || 0,
               sectors: []
             };
             locationMap.set(locationId, location);
@@ -1033,17 +1046,21 @@
     }
 
     function renderAlert(location) {
-      alertLevelsContainer.innerHTML = '';
-      const levels = Array.from({ length: 6 }, (_, index) => index + 1);
-      levels.forEach(level => {
-        const die = document.createElement('div');
-        die.className = 'alert-die';
-        die.textContent = level;
-        die.dataset.level = level;
-        if (location.alertLevel >= level) {
-          die.classList.add('active');
-        }
-        alertLevelsContainer.appendChild(die);
+      alertContainers.forEach(({ el, key }) => {
+        if (!el) return;
+        el.innerHTML = '';
+        const levels = Array.from({ length: 6 }, (_, index) => index + 1);
+        levels.forEach(level => {
+          const die = document.createElement('div');
+          die.className = 'alert-die';
+          die.textContent = level;
+          die.dataset.level = level;
+          die.dataset.alertKey = key;
+          if ((location[key] || 0) >= level) {
+            die.classList.add('active');
+          }
+          el.appendChild(die);
+        });
       });
     }
 
@@ -1235,6 +1252,9 @@
         locationTitle: location.name,
         locationSubtitle: location.subtitle || '',
         alertLevel: toNumberOrEmpty(location.alertLevel),
+        alertLevelInseg: toNumberOrEmpty(location.alertLevelInseg),
+        alertLevelBotran: toNumberOrEmpty(location.alertLevelBotran),
+        alertLevelAnomalia: toNumberOrEmpty(location.alertLevelAnomalia),
         sectorId: sector.id,
         sectorName: sector.name,
         sectorOrder: toNumberOrEmpty(sector.order),
@@ -1374,15 +1394,18 @@
       renderLocation(currentLocationId);
     }
 
-    alertLevelsContainer.addEventListener('click', event => {
-      const die = event.target.closest('.alert-die');
-      if (!die) return;
-      const location = state.locations.find(loc => loc.id === currentLocationId);
-      if (!location) return;
-      const level = Number(die.dataset.level) || 0;
-      location.alertLevel = location.alertLevel === level ? 0 : level;
-      saveState();
-      renderAlert(location);
+    alertContainers.forEach(({ el, key }) => {
+      if (!el) return;
+      el.addEventListener('click', event => {
+        const die = event.target.closest('.alert-die');
+        if (!die) return;
+        const location = state.locations.find(loc => loc.id === currentLocationId);
+        if (!location) return;
+        const level = Number(die.dataset.level) || 0;
+        location[key] = (location[key] || 0) === level ? 0 : level;
+        saveState();
+        renderAlert(location);
+      });
     });
 
     sectorContainer.addEventListener('click', async event => {
