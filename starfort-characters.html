@@ -225,6 +225,21 @@
       color: var(--accent);
     }
 
+    .character-card.blurred .character-image {
+      filter: blur(20px);
+      transition: filter 0.5s ease;
+    }
+
+    .character-card.blurred .character-name {
+      filter: blur(8px);
+      transition: filter 0.5s ease;
+    }
+
+    .character-card.revealed .character-image,
+    .character-card.revealed .character-name {
+      filter: none;
+    }
+
     @media (max-width: 768px) {
       .character-grid {
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -405,9 +420,29 @@
 
     // formatName funkció már nem szükséges - eredeti fájlneveket használjuk
 
+    // Track revealed starfort3 characters in localStorage
+    const revealedKey = 'starfort3-revealed-v1';
+    function getRevealed() {
+      try { return JSON.parse(localStorage.getItem(revealedKey)) || []; } catch { return []; }
+    }
+    function setRevealed(name) {
+      const list = getRevealed();
+      if (!list.includes(name)) { list.push(name); localStorage.setItem(revealedKey, JSON.stringify(list)); }
+    }
+
     function createCharacterCard(character) {
       const card = document.createElement('div');
       card.className = 'character-card';
+
+      const isBlurred = currentLocation === 'starfort3';
+      const alreadyRevealed = isBlurred && getRevealed().includes(character.name);
+
+      if (isBlurred && !alreadyRevealed) {
+        card.classList.add('blurred');
+      }
+      if (alreadyRevealed) {
+        card.classList.add('revealed');
+      }
       
       card.innerHTML = `
         <img class="character-image" src="${character.path}" alt="${character.displayName}" 
@@ -416,9 +451,25 @@
         <p class="character-info">Starfort karakter portré</p>
       `;
 
-      card.addEventListener('click', () => {
-        openModal(character);
-      });
+      if (isBlurred) {
+        // Single click reveals, double click opens modal
+        card.addEventListener('click', () => {
+          if (card.classList.contains('blurred')) {
+            card.classList.remove('blurred');
+            card.classList.add('revealed');
+            setRevealed(character.name);
+          }
+        });
+        card.addEventListener('dblclick', () => {
+          if (card.classList.contains('revealed')) {
+            openModal(character);
+          }
+        });
+      } else {
+        card.addEventListener('click', () => {
+          openModal(character);
+        });
+      }
 
       return card;
     }
