@@ -231,7 +231,7 @@
     }
 
     .character-card.blurred .character-name {
-      filter: blur(8px);
+      filter: blur(4px);
       transition: filter 0.5s ease;
     }
 
@@ -420,28 +420,14 @@
 
     // formatName funkció már nem szükséges - eredeti fájlneveket használjuk
 
-    // Track revealed starfort3 characters in localStorage
-    const revealedKey = 'starfort3-revealed-v1';
-    function getRevealed() {
-      try { return JSON.parse(localStorage.getItem(revealedKey)) || []; } catch { return []; }
-    }
-    function setRevealed(name) {
-      const list = getRevealed();
-      if (!list.includes(name)) { list.push(name); localStorage.setItem(revealedKey, JSON.stringify(list)); }
-    }
-
     function createCharacterCard(character) {
       const card = document.createElement('div');
       card.className = 'character-card';
 
       const isBlurred = currentLocation === 'starfort3';
-      const alreadyRevealed = isBlurred && getRevealed().includes(character.name);
 
-      if (isBlurred && !alreadyRevealed) {
+      if (isBlurred) {
         card.classList.add('blurred');
-      }
-      if (alreadyRevealed) {
-        card.classList.add('revealed');
       }
       
       card.innerHTML = `
@@ -452,12 +438,14 @@
       `;
 
       if (isBlurred) {
-        // Single click reveals, double click opens modal
+        // Single click toggles blur, double click opens modal when revealed
         card.addEventListener('click', () => {
           if (card.classList.contains('blurred')) {
             card.classList.remove('blurred');
             card.classList.add('revealed');
-            setRevealed(character.name);
+          } else {
+            card.classList.remove('revealed');
+            card.classList.add('blurred');
           }
         });
         card.addEventListener('dblclick', () => {
