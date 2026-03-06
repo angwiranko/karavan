@@ -231,7 +231,7 @@
     }
 
     .character-card.blurred .character-name {
-      filter: blur(4px);
+      filter: blur(3px);
       transition: filter 0.5s ease;
     }
 
@@ -371,6 +371,15 @@
       ]
     };
 
+    // Display name overrides — only add entries you want to rename
+    const displayNameOverrides = {
+      // '01_galilei.jpg': 'Galilei',
+      // '02_tituscornelius.jpg': 'Titus Cornelius',
+        'E_ghostwarrior.jpg',: 'E_GW',
+        'E_kapu.jpg',: 'Kapu',
+        'E_warpspider.jpg',: 'E_WP',
+    };
+
     let currentLocation = 'starfort';
 
     const characterGrid = document.getElementById('characterGrid');
@@ -394,7 +403,7 @@
           const character = {
             name: imageName,
             path: imagePath,
-            displayName: imageName.replace(/\.(png|jpg|jpeg|gif|webp)$/i, '') // Kiterjesztés eltávolítása
+            displayName: displayNameOverrides[imageName] || imageName.replace(/\.(png|jpg|jpeg|gif|webp)$/i, '')
           };
           
           const card = createCharacterCard(character);
@@ -434,7 +443,7 @@
         <img class="character-image" src="${character.path}" alt="${character.displayName}" 
              onerror="this.parentElement.style.display='none';">
         <h3 class="character-name">${character.displayName}</h3>
-        <p class="character-info">Starfort karakter portré</p>
+        <p class="character-info"></p>
       `;
 
       if (isBlurred) {
