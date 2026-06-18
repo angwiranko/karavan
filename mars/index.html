@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mars Cogitator Map</title>
+
+  <link rel="apple-touch-icon" sizes="180x180" href="images/favicon/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="images/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="images/favicon/favicon-16x16.png">
+  <link rel="manifest" href="images/favicon/site.webmanifest">
+  <link rel="mask-icon" href="images/favicon/safari-pinned-tab.svg" color="#5bbad5">
+  <link rel="shortcut icon" href="images/favicon/favicon.ico">
+  <meta name="theme-color" content="#110705">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Share+Tech+Mono&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #050505;
+      --panel: rgba(10, 10, 9, 0.9);
+      --panel-strong: rgba(13, 12, 10, 0.97);
+      --panel-soft: rgba(28, 18, 12, 0.62);
+      --border: rgba(122, 101, 32, 0.54);
+      --border-red: rgba(139, 37, 0, 0.64);
+      --gold: #c5a844;
+      --gold-bright: #e8c96a;
+      --red: #8b2500;
+      --red-bright: #c0341a;
+      --green: #5f8f63;
+      --cyan: #7f907f;
+      --muted: #7a6b49;
+      --text: #d4c89a;
+      --shadow: rgba(0, 0, 0, 0.78);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 32%, rgba(92, 25, 0, 0.22), transparent 42%),
+        linear-gradient(135deg, #050505, #0b0907 48%, #010101);
+      color: var(--text);
+      font-family: "Orbitron", "Share Tech Mono", monospace;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      scrollbar-color: #7a6520 #080808;
+      scrollbar-width: thin;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+      background: #080808;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #080808;
+      border-left: 1px solid rgba(122, 101, 32, 0.22);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #3a2d10, #7a6520);
+      border: 1px solid #0b0b0b;
+      border-radius: 0;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #c5a844;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .material-symbols-outlined {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      line-height: 1;
+    }
+
+    #webgl {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    #labelLayer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .map-label {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      max-width: 180px;
+      padding: 5px 8px;
+      border: 1px solid rgba(122, 101, 32, 0.62);
+      background: rgba(8, 8, 7, 0.82);
+      color: var(--gold);
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.72rem;
+      line-height: 1.05;
+      text-transform: uppercase;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      box-shadow: 0 0 6px rgba(197, 168, 68, 0.18);
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
+    .map-label.restricted {
+      filter: blur(2px);
+      border-color: rgba(139, 37, 0, 0.64);
+      color: var(--red-bright);
+    }
+
+    .map-label.active {
+      color: #090604;
+      background: var(--gold-bright);
+      border-color: var(--gold-bright);
+      box-shadow: 0 0 10px rgba(197, 168, 68, 0.36);
+      filter: none;
+    }
+
+    .map-label.restricted.active {
+      color: var(--red-bright);
+      background: rgba(8, 8, 7, 0.92);
+      border-color: rgba(139, 37, 0, 0.82);
+      filter: blur(2px);
+    }
+
+    .top-bar,
+    .side-panel,
+    .bottom-strip {
+      position: fixed;
+      z-index: 5;
+      border: 1px solid var(--border);
+      background:
+        linear-gradient(160deg, var(--panel-strong), rgba(5, 5, 5, 0.86)),
+        repeating-linear-gradient(90deg, rgba(197, 168, 68, 0.025) 0 1px, transparent 1px 8px);
+      box-shadow: 0 18px 40px var(--shadow), inset 0 0 12px rgba(197, 168, 68, 0.035);
+      backdrop-filter: blur(6px);
+    }
+
+    .top-bar {
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      min-height: 66px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 12px 14px;
+      clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px));
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.1rem, 2.5vw, 1.7rem);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--gold);
+      text-shadow: 0 0 8px rgba(197, 168, 68, 0.22);
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.82rem;
+    }
+
+    .top-actions,
+    .panel-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .hud-button {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 11px;
+      border: 1px solid rgba(122, 101, 32, 0.66);
+      border-radius: 4px;
+      background: linear-gradient(145deg, rgba(21, 17, 12, 0.95), rgba(6, 6, 6, 0.96));
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+    }
+
+    .hud-button:hover,
+    .hud-button.active {
+      border-color: rgba(197, 168, 68, 0.82);
+      box-shadow: 0 0 8px rgba(197, 168, 68, 0.2);
+    }
+
+    .hud-button.danger {
+      color: #ff9582;
+      border-color: rgba(139, 37, 0, 0.62);
+    }
+
+    .side-panel {
+      top: 96px;
+      bottom: 52px;
+      width: min(360px, calc(100vw - 28px));
+      padding: 14px;
+      overflow: hidden;
+    }
+
+    .left-panel {
+      left: 14px;
+    }
+
+    .right-panel {
+      right: 14px;
+    }
+
+    .panel-scroll {
+      height: 100%;
+      overflow: auto;
+      padding-right: 6px;
+    }
+
+    .section {
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(122, 101, 32, 0.28);
+    }
+
+    .section:first-child {
+      padding-top: 0;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 0 0 10px;
+      color: var(--gold);
+      font-size: 0.85rem;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    .search-box {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .search-box input {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid rgba(122, 101, 32, 0.42);
+      border-radius: 4px;
+      background: rgba(3, 3, 3, 0.82);
+      color: var(--text);
+      padding: 9px 10px;
+      outline: none;
+      font-family: "Share Tech Mono", monospace;
+    }
+
+    .layer-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .layer-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid rgba(122, 101, 32, 0.22);
+      border-radius: 4px;
+      background: rgba(10, 10, 9, 0.68);
+      color: var(--muted);
+      padding: 8px 10px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .layer-toggle.active {
+      color: var(--text);
+      border-color: var(--layer-color);
+      box-shadow: inset 3px 0 0 var(--layer-color);
+    }
+
+    .location-list {
+      display: grid;
+      gap: 7px;
+    }
+
+    .location-chip {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border: 1px solid rgba(122, 101, 32, 0.28);
+      border-radius: 4px;
+      background: rgba(8, 8, 7, 0.72);
+      color: var(--text);
+      padding: 8px 9px;
+      cursor: pointer;
+      text-align: left;
+      font-family: "Share Tech Mono", monospace;
+    }
+
+    .location-chip.hidden {
+      display: none;
+    }
+
+    .location-chip.active {
+      border-color: var(--gold);
+      background: rgba(122, 101, 32, 0.22);
+    }
+
+    .location-chip.restricted .chip-name {
+      filter: blur(2px);
+    }
+
+    .chip-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .dossier {
+      display: grid;
+      gap: 12px;
+    }
+
+    .dossier h2 {
+      margin: 0;
+      color: var(--gold);
+      font-size: clamp(1rem, 1.6vw, 1.3rem);
+      line-height: 1.18;
+      text-transform: uppercase;
+    }
+
+    .dossier .subtitle {
+      margin: -6px 0 0;
+      color: var(--green);
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.9rem;
+    }
+
+    .dossier-text {
+      color: var(--text);
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+
+    .language-label {
+      display: inline-flex;
+      margin-bottom: 6px;
+      padding: 2px 6px;
+      border: 1px solid rgba(122, 101, 32, 0.4);
+      color: var(--gold);
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+    }
+
+    .classified-copy {
+      border: 1px solid var(--border-red);
+      background: rgba(139, 37, 0, 0.14);
+      color: #b9624d;
+      padding: 12px;
+      font-family: "Share Tech Mono", monospace;
+      line-height: 1.4;
+    }
+
+    .dossier-section {
+      border-top: 1px solid rgba(122, 101, 32, 0.28);
+      border-bottom: 1px solid rgba(122, 101, 32, 0.14);
+      background: linear-gradient(90deg, rgba(122, 101, 32, 0.08), rgba(8, 8, 7, 0));
+      padding: 10px 0 11px;
+      font-family: "Share Tech Mono", monospace;
+    }
+
+    .dossier-section h3 {
+      margin: 0 0 8px;
+      color: var(--gold);
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .etymology-copy {
+      margin: 0;
+      color: var(--text);
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .notable-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .notable-list li {
+      display: grid;
+      gap: 3px;
+      padding-left: 10px;
+      border-left: 2px solid rgba(197, 168, 68, 0.42);
+    }
+
+    .notable-name {
+      color: var(--text);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+    }
+
+    .notable-role {
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.35;
+    }
+
+    .restricted-content {
+      filter: blur(3px);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .meta-grid {
+      display: grid;
+      gap: 8px;
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.82rem;
+    }
+
+    .meta-row {
+      display: grid;
+      grid-template-columns: 116px 1fr;
+      gap: 10px;
+      padding: 7px 0;
+      border-bottom: 1px dashed rgba(122, 101, 32, 0.24);
+    }
+
+    .meta-key {
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .tag {
+      border: 1px solid rgba(122, 101, 32, 0.38);
+      border-radius: 999px;
+      padding: 4px 8px;
+      color: var(--muted);
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.76rem;
+      text-transform: uppercase;
+    }
+
+    .source-list {
+      display: grid;
+      gap: 6px;
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.82rem;
+    }
+
+    .source-list a {
+      color: var(--cyan);
+      overflow-wrap: anywhere;
+    }
+
+    .bottom-strip {
+      left: 14px;
+      right: 14px;
+      bottom: 12px;
+      min-height: 34px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+      font-family: "Share Tech Mono", monospace;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+
+    .status-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      padding: 8px 10px;
+      background: rgba(8, 8, 7, 0.72);
+      color: var(--muted);
+    }
+
+    .status-cell strong {
+      color: var(--gold);
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .scanline {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 4;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(197, 168, 68, 0.018),
+        rgba(197, 168, 68, 0.018) 1px,
+        transparent 1px,
+        transparent 5px
+      );
+      mix-blend-mode: screen;
+    }
+
+    .toast {
+      position: fixed;
+      z-index: 8;
+      left: 50%;
+      bottom: 60px;
+      transform: translate(-50%, 16px);
+      opacity: 0;
+      pointer-events: none;
+      border: 1px solid rgba(122, 101, 32, 0.62);
+      background: rgba(18, 8, 5, 0.94);
+      color: var(--gold);
+      padding: 10px 14px;
+      font-family: "Share Tech Mono", monospace;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    @media (max-width: 1040px) {
+      .top-bar {
+        align-items: flex-start;
+      }
+
+      .side-panel {
+        top: auto;
+        bottom: 52px;
+        height: min(38vh, 330px);
+      }
+
+      .left-panel {
+        left: 10px;
+        width: calc(50vw - 16px);
+      }
+
+      .right-panel {
+        right: 10px;
+        width: calc(50vw - 16px);
+      }
+    }
+
+    @media (max-width: 720px) {
+      .top-bar {
+        left: 8px;
+        right: 8px;
+        top: 8px;
+        display: grid;
+      }
+
+      .top-actions {
+        justify-content: stretch;
+      }
+
+      .hud-button {
+        flex: 1 1 auto;
+        justify-content: center;
+        padding: 8px;
+        font-size: 0.72rem;
+      }
+
+      .left-panel,
+      .right-panel {
+        left: 8px;
+        right: 8px;
+        width: auto;
+        height: 28vh;
+      }
+
+      .left-panel {
+        bottom: calc(28vh + 58px);
+      }
+
+      .right-panel {
+        bottom: 48px;
+      }
+
+      .bottom-strip {
+        left: 8px;
+        right: 8px;
+        bottom: 6px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        font-size: 0.68rem;
+      }
+
+      .map-label {
+        max-width: 118px;
+        font-size: 0.62rem;
+      }
+    }
+  </style>
+
+  <script>
+    document.addEventListener("gesturestart", function(e) { e.preventDefault(); });
+    document.addEventListener("gesturechange", function(e) { e.preventDefault(); });
+    document.addEventListener("gestureend", function(e) { e.preventDefault(); });
+  </script>
+</head>
+<body>
+  <div id="webgl" aria-hidden="true"></div>
+  <div id="labelLayer" aria-hidden="false"></div>
+  <div class="scanline" aria-hidden="true"></div>
+
+  <header class="top-bar">
+    <div class="brand">
+      <h1>Mars Cogitator Map</h1>
+      <p>Sacred Mars / Segmentum Solar / Mechanicus operational theatre</p>
+    </div>
+    <div class="top-actions">
+      <a class="hud-button" href="../starfort.html">
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+        Starfort
+      </a>
+      <button id="classifiedButton" class="hud-button danger" type="button">
+        <span class="material-symbols-outlined" aria-hidden="true">encrypted</span>
+        Classified
+      </button>
+      <button id="lockButton" class="hud-button" type="button">
+        <span class="material-symbols-outlined" aria-hidden="true">lock</span>
+        Lock
+      </button>
+    </div>
+  </header>
+
+  <aside class="side-panel left-panel">
+    <div class="panel-scroll">
+      <section class="section">
+        <h2 class="section-title">
+          <span>Layer Rites</span>
+          <span id="layerCounter">7/7</span>
+        </h2>
+        <div id="layerControls" class="layer-grid"></div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">Location Search</h2>
+        <div class="search-box">
+          <input id="locationSearch" type="search" placeholder="Kereses / search">
+          <button id="clearSearch" class="hud-button" type="button" aria-label="Clear search">
+            <span class="material-symbols-outlined" aria-hidden="true">close</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">Verified Sites</h2>
+        <div id="locationList" class="location-list"></div>
+      </section>
+    </div>
+  </aside>
+
+  <aside class="side-panel right-panel">
+    <div class="panel-scroll">
+      <section class="section">
+        <h2 class="section-title">Cogitator Dossier</h2>
+        <div id="dossier" class="dossier"></div>
+      </section>
+    </div>
+  </aside>
+
+  <footer class="bottom-strip">
+    <div class="status-cell">
+      <span class="material-symbols-outlined" aria-hidden="true">my_location</span>
+      <strong id="coordReadout">lat -- / lon --</strong>
+    </div>
+    <div class="status-cell">
+      <span class="material-symbols-outlined" aria-hidden="true">layers</span>
+      <strong id="activeLayerReadout">7 layers</strong>
+    </div>
+    <div class="status-cell">
+      <span class="material-symbols-outlined" aria-hidden="true">place</span>
+      <strong id="selectedReadout">No site selected</strong>
+    </div>
+    <div class="status-cell">
+      <span class="material-symbols-outlined" aria-hidden="true">verified</span>
+      <strong id="confidenceReadout">Lore verified</strong>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/three.js"></script>
+  <script src="js/TrackballControls.js"></script>
+  <script src="js/Detector.js"></script>
+  <script src="js/mars_locations.js"></script>
+  <script src="js/mars.js"></script>
+</body>
+</html>
