@@ -141,6 +141,8 @@
   let markerGroup;
   let selectedLocation = data.locations[0];
   let classifiedUnlocked = sessionStorage.getItem("mars-classified-unlocked") === "true";
+  let cameraFocusAnimation = null;
+  const CAMERA_FOCUS_DURATION = 1.2;
   let width = window.innerWidth;
   let height = window.innerHeight;
 
@@ -620,9 +622,15 @@
   function focusLocation(location) {
     const distance = camera.position.length();
     const target = latLonToVector(location.lat, location.lon, Math.max(distance, 3.2));
-    camera.position.copy(target);
+
+    cameraFocusAnimation = {
+      from: camera.position.clone(),
+      to: target,
+      startTime: clock.getElapsedTime(),
+      duration: CAMERA_FOCUS_DURATION
+    };
+
     controls.target.set(0, 0, 0);
-    controls.update();
   }
 
   function toggleLayer(layerId) {
@@ -709,6 +717,9 @@
   function animate() {
     requestAnimationFrame(animate);
     const elapsed = clock.getElapsedTime();
+
+    updateCameraFocusAnimation(elapsed);
+
     markerGroup.children.forEach((marker, index) => {
       const pulse = 1 + Math.sin(elapsed * 2.4 + index) * 0.08;
       marker.scale.set(0.105 * pulse, 0.105 * pulse, 0.105 * pulse);
@@ -716,6 +727,30 @@
     if (controls.update) controls.update();
     renderer.render(scene, camera);
     updateLabels();
+  }
+
+
+
+  function updateCameraFocusAnimation(elapsed) {
+    if (!cameraFocusAnimation) return;
+
+    const progress = Math.min(
+      (elapsed - cameraFocusAnimation.startTime) / cameraFocusAnimation.duration,
+      1
+    );
+
+    // Smoothstep easing: slow start, smooth stop.
+    const eased = progress * progress * (3 - 2 * progress);
+
+camera.position.copy(cameraFocusAnimation.from);
+camera.position.lerp(cameraFocusAnimation.to, eased);
+
+    controls.target.set(0, 0, 0);
+
+    if (progress >= 1) {
+      camera.position.copy(cameraFocusAnimation.to);
+      cameraFocusAnimation = null;
+    }
   }
 
   function updateLabels() {
