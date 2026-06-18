@@ -272,6 +272,8 @@
       const group = new THREE.Object3D();
       patternGroups.set(layer.id, group);
       globeGroup.add(group);
+      const civilizationOverlay = createCivilizationOverlay(layer);
+      if (civilizationOverlay) group.add(civilizationOverlay);
     });
 
     data.patterns.forEach((pattern) => {
@@ -298,6 +300,11 @@
     const ring = new THREE.Mesh(ringGeometry, ringMaterial);
     ring.rotation.x = Math.PI / 2;
     return ring;
+  }
+
+  function createCivilizationOverlay(layer) {
+    void layer;
+    return null;
   }
 
   function createSurfacePattern(pattern) {
