@@ -35,6 +35,102 @@
   const pointer = new THREE.Vector2();
   const projector = new THREE.Projector();
   const clock = new THREE.Clock();
+  const hungarianTextById = {
+    "olympus-mons": "A Nagy Hegy Sacred Mars legszentebb tengelye: kohóváros, trón-templom és a Fabricator-General székhelye. A hatalom liturgiái binharikus mennydörgésként gördülnek végig oldalain.",
+    "temple-all-knowledge": "A Machine Cult tudásának hatalmas és ősi tárháza. Minden új felfedezést ennek oltárán ajánlanak fel, ahol dugattyú-páncéltermek és nooszférikus kórusok őrzik a vas emlékezetét.",
+    "ring-of-iron": "Mars egyenlítői hajógyár-glóriája. Void-liftek kapaszkodnak fel a rozsdás felszínről dokkjaihoz, és hadihajók épülnek vákuum- és plazmaimák alatt.",
+    "collegia-titanica": "Parancsnoki nexus Mars isten-gépeinek. Itt a princeps-vaultok és moderati kórusok bolygószintű fenyegetést fordítanak titánléptékű haraggá.",
+    "glaivid-hive": "Vörös porból és réz nyomáskapukból álló hive-spire labirintus. A menialok tized, augmentáció és a géplitánia iránti engedelmesség útján emelkednek.",
+    "oxygos-hive": "Oxygos az északi ipari fényből emelkedik ki: lezárt habszintek, oxigén-tized páncéltermek és katekizmus-kódolt tranzitaknák rétegzett hive-ja.",
+    "olympus-undae-hive": "Poláris hive az Olympus északi dűnetengereihez horgonyozva. Külső burkai elektrosztatikus viharok és eltemetett manufactorum-hő alatt recsegnek.",
+    "tantalus-hive": "Tantalus munka-kohorszokból és lezárt factorum klánokból álló éhséggép. Liftjei mélyebbre ereszkednek, mint amilyen magasra tornyai nőnek.",
+    "nilosyrtis-hive": "Hive-háló a régi Nilosyrtis peremvidékén. A cogitator népszámláló-szellemek lakosságát ingadozónak, engedelmesnek és hasznosnak jelölik.",
+    "milancovic-reactor": "Fúziós szív az északi szirtek alatt. Karbantartó kórusai csillagsűrítési rítusokat recitálnak, miközben a plazmaszelepek ketrecbe zárt hajnalokként izzanak.",
+    "arcadia-solar": "Kilométereken át húzódó arany-fekete kollektorlapátok isszák a gyenge marsi napfényt, majd megszentelt földalatti vezetékeken táplálják a forge-templomokat.",
+    "omnid-apertura": "Küklopszi adat-torok és rituális belépési csomópont. Belső zsalui csak jóváhagyott nooszférikus aláírásokra nyílnak meg.",
+    "mareotis-forge": "Kohótemplom-komplexum, amelynek külső udvarai hővirágzással és szmoggal derengenek. Termékkódjait papi rangpecsétek zárják el.",
+    "acheron-fosse-forges": "Kohótemplomok az ősi törések két oldalán. Servo-szállítók ereszkednek a szirtek közé ércet, fegyvert és csendet hordozva.",
+    "deep-core-mines": "Bolygóméretű seb aknákból és nyomáskriptákból. Érc, relikvia-ötvözet és tiltott hőszignatúra emelkedik fel a vörös magból.",
+    "navis-assembly-yards": "Felszínről orbitra dolgozó építőudvarok, ahol hajótest-bordákat áldanak meg, mielőtt a Ring of Iron felé emelnék őket.",
+    "esperanos-space-port": "Vörösen világító daruk és void-lift horgonyok indító síksága. Forgalmát zarándokhajókban, tömegszállítókban és hadianyagban mérik.",
+    "deus-manus-space-port": "Szent kikötő a nehéz void-forgalom számára. Gépszellemei minden hajtóműgyújtás előtt tömjént követelnek.",
+    "mars-docks": "A bolygófelszíni dokk-interface az orbitális gyűrű alatt. Rakományimák, plazmafigyelmeztetések és battlefleet prioritási parancsok zsúfolják a voxot.",
+    "mondus-terrawatt": "Titáni energiarendszer, amely kohó- és hive-negyedeket táplál. Biztonsági tartalékait nem mérnöki adatként, hanem doktrínaként recitálják.",
+    "lybia-montes-forges": "Régi magasföldek között szétszórt kohótemplomok. Manufactoriáik hegyek mélyén fekvő gépszentélyeknek felelnek.",
+    "lethe-zone": "Emlékezetárnyékos adminisztratív és adatnegyed. A zónát elhagyó servitorokat rutinszerűen megtisztítják útvonal-ismereteiktől.",
+    "mondus-gamma": "Erős tharsisi kohótemplom, amelyre Heresy-kori termelése és Techmarine-képzésének minősége miatt emlékeznek. Jelenlegi feljegyzései hiányosak.",
+    "mechavitae-forge": "Bio-mechanikus processziókhoz és megszentelt gyártási rítusokhoz kötött kohótemplom. Mélyebb páncéltermei nem szerepelnek a nyilvános tranzitsémákon.",
+    "noctis-labyrinthus": "A Labyrinth of Night hivatalosan ellenséges, szennyezett és spirituálisan veszélyes zóna. Mélyebb igazság: a Dragon of Mars a labirintus alatt van megkötve, és a kitakart őrök nem alszanak.",
+    "vaults-moravec": "Tiltott páncélterem-rendszer, amelyet Primus Moravec alapított. Megnyitása korrupt scrapcode-ot szabadított fel a Schism of Mars idején, és segített világra hozni a Dark Mechanicumot.",
+    "magma-city": "Koriel Zeth egykori void-pajzsos városa, lávazsilipekkel és nooszférikus csodákkal. Heresy-tűzben és saját felszabadított magmájában pusztult el, Vulkan Gate-et hagyva emlékül.",
+    "ascraeus-mons": "Tharsisi vulkán és a Legio Tempestus egykori erődje. A hűséges gépbüszkeség még mindig visszhangzik hamuja alatti rom-voxban.",
+    "pavonis-mons": "Pavonis Mons adott otthont a Legio Mortis Heresy-kori erődjének. Neve vörös adatként maradt fenn a Titanicus archívumokban: itt a halál géptestben járt.",
+    "aries-primus": "Egykor Mars második nagyvárosa és óriási hadianyag-forrása volt. Ring of Death védművei Heresy-feljegyzésekhez tartoznak; M41-es állapota bizonytalan."
+  };
+  const etymologyById = {
+    "olympus-mons": "HU: Olympus a görög istenek hegye; Mons latinul hegy. EN: the name frames Mars as a divine machine-mountain. LAT: Mons Olympus, axis ferri et imperii.",
+    "temple-all-knowledge": "HU: A név nem földrajzi, hanem liturgikus rang: minden tudás oltára. EN: a total archive-title, more creed than address. LAT: Templum Omnis Scientiae.",
+    "ring-of-iron": "HU: Az Iron Ring név szó szerint vasgyűrű, Mars orbitális ipari koronája. EN: a shipyard-halo around the red world. LAT: Corona Ferri Martis.",
+    "collegia-titanica": "HU: Collegia a római testület, Titanica az isten-gépek rendje. EN: an institutional name for Titan command authority. LAT: Collegia Titanica, ordo deorum machinae.",
+    "glaivid-hive": "HU: A Glaivid név sötét, fegyveres hangzású hive-toponima. EN: treated as a Martian hive designation rather than a classical root. LAT: Civitas Glaivid, alvearium ferri.",
+    "oxygos-hive": "HU: Oxygos a levegőre, oxidációra és túlélésre utaló ipari névként olvasható. EN: a hive-name tied to sealed atmosphere and oxygen tithe. LAT: Oxygos, domus aeris clausi.",
+    "olympus-undae-hive": "HU: Undae latinul hullámok vagy dűnék; itt az Olympus körüli homoktenger hive-ja. EN: the hive of the rust-dune waves. LAT: Undae Olympicae.",
+    "tantalus-hive": "HU: Tantalus a kielégíthetetlen éhség és elérhetetlen bőség mitológiai neve. EN: fitting for a hive that consumes labor and gives little back. LAT: Civitas Tantali.",
+    "nilosyrtis-hive": "HU: Nilo-Syrtis klasszikus marsi albedó/topográfiai név; a hive a régi régiónév ipari örököse. EN: a cartographic name turned hab-engine. LAT: Nilo-Syrtis Habitatio.",
+    "milancovic-reactor": "HU: Milankovic/Milancovic a valós marsi régiónévből jön; a reaktor név a csillagászati ciklusok hideg rendjét idézi. EN: orbital mathematics recast as fusion doctrine. LAT: Reactor Milancovic.",
+    "arcadia-solar": "HU: Arcadia eredetileg idilli föld; Marson ironikus név a kietlen napmezőknek. EN: paradise reduced to solar extraction. LAT: Campi Solis Arcadiae.",
+    "omnid-apertura": "HU: Apertura latinul nyílás; Omnid az omni/adatkapu érzetét hordozza. EN: the all-mouth, a ritual aperture into data. LAT: Apertura Omnid.",
+    "mareotis-forge": "HU: Mareotis ókori földrajzi visszhang, itt forge-temple rangra emelve. EN: antique map-name recast as Mechanicus shrine. LAT: Templum Mareoticum.",
+    "acheron-fosse-forges": "HU: Acheron az alvilág folyója, Fosse/Fossae árkokat jelent. EN: underworld trenches made into forge arteries. LAT: Fossae Acherontis.",
+    "deep-core-mines": "HU: A név funkcionális: a bolygó mélymagjának bányái. EN: no ornament, only extraction. LAT: Fodinae Cordis Rubri.",
+    "navis-assembly-yards": "HU: Navis Imperialis: császári flotta; assembly yards: hajótest-összeállító udvarok. EN: a logistical name, brutally exact. LAT: Navalia Imperialis.",
+    "esperanos-space-port": "HU: Esperanos reményre és indulásra utaló portus-név. EN: a launch name for pilgrims and cargo. LAT: Portus Esperanos.",
+    "deus-manus-space-port": "HU: Deus Manus, Isten Keze; kikötőnévként szentített emelőerőt jelent. EN: the hand that lifts vessels into void. LAT: Portus Manus Dei.",
+    "mars-docks": "HU: Egyszerű haditengerészeti megnevezés: Mars dokkjai. EN: dry bureaucratic name for a sacred void interface. LAT: Doca Martis.",
+    "mondus-terrawatt": "HU: Mondus a mundus/mondus gépiesített visszhangja, Terrawatt pedig nyers energiamérték. EN: world-scale power made title. LAT: Complexus Terrawatt.",
+    "lybia-montes-forges": "HU: Lybia/Libya Montes valós magasföldi név; a forge-templomok hegyvidéki szentélyekké teszik. EN: mountains converted into machine chapels. LAT: Montes Lybiae.",
+    "lethe-zone": "HU: Lethe a feledés folyója; adatnegyedként memóriatörlést és titkolást sugall. EN: a zone named for forgetting. LAT: Zona Lethes.",
+    "mondus-gamma": "HU: Gamma a harmadik jel, katonai-ipari kódrang; Mondus a világ-kohó érzetét hordozza. EN: a coded forge-world name. LAT: Mondus Gamma.",
+    "mechavitae-forge": "HU: Mecha + vitae, gép és élet. EN: a name for biotechnical manufacture. LAT: Machina Vitae.",
+    "noctis-labyrinthus": "HU: Noctis Labyrinthus: az éjszaka labirintusa. EN: a real Martian maze-name made perfect for sealed heresy. LAT: Labyrinthus Noctis.",
+    "vaults-moravec": "HU: Moravec személynév; vaults páncéltermeket jelent. EN: the founder's name became a warning label. LAT: Camerae Moravec.",
+    "magma-city": "HU: Magma City szó szerint lávaváros. EN: an honest name for a city built over molten death. LAT: Civitas Magma.",
+    "ascraeus-mons": "HU: Ascraeus Mons valós vulkánnév; a Heresy után a Tempestus-romokkal azonosul. EN: a volcano made Titan-fortress. LAT: Mons Ascraeus.",
+    "pavonis-mons": "HU: Pavonis a páva latin alakja; ironikus név a Legio Mortis sötét erődjének. EN: the peacock mountain stained by traitor engines. LAT: Mons Pavonis.",
+    "aries-primus": "HU: Aries a kos csillagjegye, Primus az első; harcias, elsődleges hadianyag-városnév. EN: ram-first, a munitions title. LAT: Aries Primus."
+  };
+  const notableById = {
+    "olympus-mons": [{ name: "Xasandera Valdet", role: "Fabricator-General of Mars" }, { name: "Martian Synod", role: "supreme Mechanicus governing body" }],
+    "temple-all-knowledge": [{ name: "Fabricator-General's data conclave", role: "custodians of sacred archives" }, { name: "Lexmechanic Magi Collegium", role: "ritual indexing and doctrinal audit" }],
+    "ring-of-iron": [{ name: "Battlefleet Solar liaison board", role: "orbital dock authority" }, { name: "Magos Navis Fabricatorum", role: "void-yard production overseers" }],
+    "collegia-titanica": [{ name: "Collegia Titanica", role: "Titan Legions command institution" }, { name: "Princeps Senioris Council", role: "god-engine strategic authority" }],
+    "glaivid-hive": [{ name: "Hive Prefecture Glaivid", role: "hab-stack civil directorate" }, { name: "Skitarii Provost Cohort", role: "industrial order and tithe enforcement" }],
+    "oxygos-hive": [{ name: "Oxygos Atmospheric Board", role: "oxygen tithe and seal integrity directors" }, { name: "Magos Biologis Aer-Vitae", role: "hab-survival and respirator doctrine" }],
+    "olympus-undae-hive": [{ name: "Olympus Undae Dune Prefecture", role: "polar hive administration" }, { name: "Enginseer Sand-Seal Covenant", role: "outer-shell storm maintenance" }],
+    "tantalus-hive": [{ name: "Tantalus Factorum Synod", role: "labor cohort allocation board" }, { name: "Magos Logis Famulorum", role: "population and production forecast director" }],
+    "nilosyrtis-hive": [{ name: "Nilosyrtis Census Engine", role: "cogitator population authority" }, { name: "Hab-Magos Praefectus", role: "hive grid civil director" }],
+    "milancovic-reactor": [{ name: "Magos Energetic Milancovic", role: "fusion rectorate title" }, { name: "Plasma Liturgist Choir", role: "reactor safety and ignition rites" }],
+    "arcadia-solar": [{ name: "Arcadia Solar Rectorate", role: "collector-field authority" }, { name: "Magos Solis", role: "photonic yield and conduit sanctification" }],
+    "omnid-apertura": [{ name: "Omnid Gate Conclave", role: "aperture access authority" }, { name: "Noospheric Signator Board", role: "identity and signal approval" }],
+    "mareotis-forge": [{ name: "Mareotis Forge Temple Synod", role: "local forge command" }, { name: "Magos Manufactorum Mareoticus", role: "production seal and output director" }],
+    "acheron-fosse-forges": [{ name: "Acheron Fosse Forge Synod", role: "fracture-zone forge authority" }, { name: "Servo-Hauler Dominus", role: "ore convoy and scar route director" }],
+    "deep-core-mines": [{ name: "Deep Core Extraction Collegium", role: "mine network board" }, { name: "Magos Geologis Rubri Cordis", role: "sub-crustal survey and ore tithe" }],
+    "navis-assembly-yards": [{ name: "Navis Imperialis Yard Masters", role: "hull assembly directorate" }, { name: "Magos Hullwright", role: "void-rib blessing and lift schedule" }],
+    "esperanos-space-port": [{ name: "Portus Esperanos Traffic Synod", role: "launch corridor authority" }, { name: "Master of Pilgrim Conveyors", role: "civilian and cargo embarkation director" }],
+    "deus-manus-space-port": [{ name: "Deus Manus Port Rectorate", role: "heavy void traffic command" }, { name: "Enginseer Dominus Ignitionis", role: "engine-spirit ignition rites" }],
+    "mars-docks": [{ name: "Mars Dock Admiralty Liaison", role: "surface-orbital dock coordination" }, { name: "Cargo Prayer Office", role: "manifest sanctification and priority orders" }],
+    "mondus-terrawatt": [{ name: "Terrawatt Rectorate II", role: "planetary power distribution board" }, { name: "Magos Energetic Dominus", role: "load doctrine and failure containment" }],
+    "lybia-montes-forges": [{ name: "Lybia Montes Forge Synod", role: "highland forge authority" }, { name: "Mountain Shrine Enginseers", role: "deep chapel manufactorum maintenance" }],
+    "lethe-zone": [{ name: "Lethe Memory Office", role: "data redaction and route scrubbing" }, { name: "Magos Mnemosyne", role: "servitor memory erasure director" }],
+    "mondus-gamma": [{ name: "Lukas Chrom", role: "Heresy-era forge master of Mondus Gamma" }, { name: "Mondus Gamma War-Output Board", role: "munitions and Techmarine training authority" }],
+    "mechavitae-forge": [{ name: "Mechavitae Genetor Synod", role: "bio-mechanical production board" }, { name: "Magos Biologis Augmenta", role: "life-machine processions and vat doctrine" }],
+    "noctis-labyrinthus": [{ name: "Noctis Quarantine Synod", role: "sealed-zone authority" }, { name: "Dragon Warden Conclave", role: "classified custodial office" }],
+    "vaults-moravec": [{ name: "Primus Moravec", role: "founder, Brotherhood of Singularitarianism" }, { name: "Adept Regulus", role: "opened the Vaults during the Schism of Mars" }],
+    "magma-city": [{ name: "Koriel Zeth", role: "Forge-Mistress and Adept of Magma City" }, { name: "Dalia Cythera", role: "Zeth's protege, Akashic Reader participant" }],
+    "ascraeus-mons": [{ name: "Legio Tempestus Princeps Council", role: "Heresy-era loyalist Titan command" }, { name: "Tempestus Moderati Choir", role: "god-engine battlefield coordination" }],
+    "pavonis-mons": [{ name: "Legio Mortis", role: "Heresy-era traitor Titan Legion authority" }, { name: "Kelbor-Hal", role: "Fabricator-General during the Schism of Mars" }],
+    "aries-primus": [{ name: "Aries Primus Munitions Directorate", role: "Heresy-era war materiel board" }, { name: "Ring of Death Command", role: "city defence authority" }]
+  };
 
   let scene;
   let camera;
@@ -444,14 +540,20 @@
       .map((key) => ({ key, url: data.sources[key] }))
       .filter((source) => source.url);
 
+    const restrictedClass = restricted ? " restricted-content" : "";
+    const hungarianText = hungarianTextById[location.id] || location.text;
     const textMarkup = restricted
-      ? `<div class="classified-copy">+++ ACCESS DENIED +++<br>Passkey required. Martian Synod authorization or Inquisitorial override only.</div>`
-      : `<div class="dossier-text">${escapeHtml(location.text)}</div>`;
+      ? renderBilingualText(location, hungarianText, restrictedClass, true)
+      : renderBilingualText(location, hungarianText, "", false);
+    const etymologyMarkup = renderEtymology(location, restrictedClass);
+    const notableMarkup = renderNotables(location, restrictedClass);
 
     dossierEl.innerHTML = `
-      <h2>${escapeHtml(restricted ? "REDACTED DOSSIER" : location.name)}</h2>
-      <p class="subtitle">${escapeHtml(restricted ? "Data-vault sealed" : location.subtitle)}</p>
+      <h2 class="${restricted ? "restricted-content" : ""}">${escapeHtml(location.name)}</h2>
+      <p class="subtitle${restrictedClass}">${escapeHtml(location.subtitle)}</p>
       ${textMarkup}
+      ${etymologyMarkup}
+      ${notableMarkup}
       <div class="tag-row">
         <span class="tag">${escapeHtml(layer ? layer.name : location.layer)}</span>
         <span class="tag">${escapeHtml(location.status)}</span>
@@ -461,11 +563,56 @@
       <div class="meta-grid">
         <div class="meta-row"><span class="meta-key">Coordinates</span><span>${formatLat(location.lat)} / ${formatLon(location.lon)}</span></div>
         <div class="meta-row"><span class="meta-key">Precision</span><span>${escapeHtml(location.coordinateConfidence)}</span></div>
-        <div class="meta-row"><span class="meta-key">Faction</span><span>${escapeHtml(restricted ? "REDACTED" : location.faction)}</span></div>
-        <div class="meta-row"><span class="meta-key">Lore</span><span>${escapeHtml(location.loreConfidence)}</span></div>
+        <div class="meta-row"><span class="meta-key">Faction</span><span class="${restricted ? "restricted-content" : ""}">${escapeHtml(location.faction)}</span></div>
+        <div class="meta-row"><span class="meta-key">Lore</span><span class="${restricted ? "restricted-content" : ""}">${escapeHtml(location.loreConfidence)}</span></div>
       </div>
       <div class="source-list">
         ${sources.map((source) => `<a href="${source.url}" target="_blank" rel="noreferrer">${escapeHtml(source.key)}</a>`).join("")}
+      </div>
+    `;
+  }
+
+  function renderEtymology(location, restrictedClass) {
+    const etymology = etymologyById[location.id];
+    if (!etymology) return "";
+
+    return `
+      <section class="dossier-section${restrictedClass}">
+        <h3>Nomen / Etymologia</h3>
+        <p class="etymology-copy">${escapeHtml(etymology)}</p>
+      </section>
+    `;
+  }
+
+  function renderNotables(location, restrictedClass) {
+    const notables = notableById[location.id] || [];
+    if (!notables.length) return "";
+
+    return `
+      <section class="dossier-section${restrictedClass}">
+        <h3>Notable Personae / Directorate</h3>
+        <ul class="notable-list">
+          ${notables.map((person) => `
+            <li>
+              <span class="notable-name">${escapeHtml(person.name)}</span>
+              <span class="notable-role">${escapeHtml(person.role)}</span>
+            </li>
+          `).join("")}
+        </ul>
+      </section>
+    `;
+  }
+
+  function renderBilingualText(location, hungarianText, restrictedClass, classifiedStyle) {
+    const blockClass = classifiedStyle ? "classified-copy" : "dossier-text";
+    return `
+      <div class="${blockClass}${restrictedClass}">
+        <div class="language-label">HU</div>
+        <div>${escapeHtml(hungarianText)}</div>
+      </div>
+      <div class="${blockClass}${restrictedClass}">
+        <div class="language-label">EN</div>
+        <div>${escapeHtml(location.text)}</div>
       </div>
     `;
   }
@@ -554,8 +701,8 @@
       const restricted = isRestricted(location);
       const label = labelsById.get(location.id);
       const item = listItemById.get(location.id);
-      if (label) label.classList.toggle("restricted", restricted);
-      if (item) item.classList.toggle("restricted", restricted);
+      setClass(label, "restricted", restricted);
+      setClass(item, "restricted", restricted);
     });
   }
 
@@ -663,7 +810,16 @@
   }
 
   function isRestricted(location) {
-    return !classifiedUnlocked && (location.classified || location.traitorSensitive);
+    return Boolean(!classifiedUnlocked && (location.classified || location.traitorSensitive));
+  }
+
+  function setClass(element, className, enabled) {
+    if (!element) return;
+    if (enabled) {
+      element.classList.add(className);
+    } else {
+      element.classList.remove(className);
+    }
   }
 
   function formatLat(lat) {

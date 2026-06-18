@@ -144,6 +144,13 @@
       filter: none;
     }
 
+    .map-label.restricted.active {
+      color: var(--red-bright);
+      background: rgba(8, 8, 7, 0.92);
+      border-color: rgba(139, 37, 0, 0.82);
+      filter: blur(2px);
+    }
+
     .top-bar,
     .side-panel,
     .bottom-strip {
@@ -379,6 +386,16 @@
       line-height: 1.45;
     }
 
+    .language-label {
+      display: inline-flex;
+      margin-bottom: 6px;
+      padding: 2px 6px;
+      border: 1px solid rgba(122, 101, 32, 0.4);
+      color: var(--gold);
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+    }
+
     .classified-copy {
       border: 1px solid var(--border-red);
       background: rgba(139, 37, 0, 0.14);
@@ -386,7 +403,62 @@
       padding: 12px;
       font-family: "Share Tech Mono", monospace;
       line-height: 1.4;
-      filter: blur(2px);
+    }
+
+    .dossier-section {
+      border-top: 1px solid rgba(122, 101, 32, 0.28);
+      border-bottom: 1px solid rgba(122, 101, 32, 0.14);
+      background: linear-gradient(90deg, rgba(122, 101, 32, 0.08), rgba(8, 8, 7, 0));
+      padding: 10px 0 11px;
+      font-family: "Share Tech Mono", monospace;
+    }
+
+    .dossier-section h3 {
+      margin: 0 0 8px;
+      color: var(--gold);
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .etymology-copy {
+      margin: 0;
+      color: var(--text);
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .notable-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .notable-list li {
+      display: grid;
+      gap: 3px;
+      padding-left: 10px;
+      border-left: 2px solid rgba(197, 168, 68, 0.42);
+    }
+
+    .notable-name {
+      color: var(--text);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+    }
+
+    .notable-role {
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.35;
+    }
+
+    .restricted-content {
+      filter: blur(3px);
+      user-select: none;
+      pointer-events: none;
     }
 
     .meta-grid {
