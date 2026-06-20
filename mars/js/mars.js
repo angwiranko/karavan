@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const data = window.MARS_RPG_DATA;
+  const data = window.PLANET_RPG_DATA || window.MARS_RPG_DATA;
   const webglEl = document.getElementById("webgl");
   const labelLayer = document.getElementById("labelLayer");
   const dossierEl = document.getElementById("dossier");
@@ -19,7 +19,7 @@
   const toast = document.getElementById("toast");
 
   if (!window.THREE || !data) {
-    webglEl.innerHTML = '<div class="webgl-error">Mars cogitator failed to load required scripts.</div>';
+    webglEl.innerHTML = '<div class="webgl-error">Planetary cogitator failed to load required scripts.</div>';
     return;
   }
 
@@ -35,7 +35,9 @@
   const pointer = new THREE.Vector2();
   const projector = new THREE.Projector();
   const clock = new THREE.Clock();
-  const hungarianTextById = {
+  const appName = data.appName || "Mars Cogitator Map";
+  const classifiedStorageKey = data.classifiedStorageKey || "mars-classified-unlocked";
+  const defaultHungarianTextById = {
     "olympus-mons": "A Nagy Hegy Sacred Mars legszentebb tengelye: kohóváros, trón-templom és a Fabricator-General székhelye. A hatalom liturgiái binharikus mennydörgésként gördülnek végig oldalain.",
     "temple-all-knowledge": "A Machine Cult tudásának hatalmas és ősi tárháza. Minden új felfedezést ennek oltárán ajánlanak fel, ahol dugattyú-páncéltermek és nooszférikus kórusok őrzik a vas emlékezetét.",
     "ring-of-iron": "Mars egyenlítői hajógyár-glóriája. Void-liftek kapaszkodnak fel a rozsdás felszínről dokkjaihoz, és hadihajók épülnek vákuum- és plazmaimák alatt.",
@@ -67,7 +69,7 @@
     "pavonis-mons": "Pavonis Mons adott otthont a Legio Mortis Heresy-kori erődjének. Neve vörös adatként maradt fenn a Titanicus archívumokban: itt a halál géptestben járt.",
     "aries-primus": "Egykor Mars második nagyvárosa és óriási hadianyag-forrása volt. Ring of Death védművei Heresy-feljegyzésekhez tartoznak; M41-es állapota bizonytalan."
   };
-  const etymologyById = {
+  const defaultEtymologyById = {
     "olympus-mons": "HU: Olympus a görög istenek hegye; Mons latinul hegy. EN: the name frames Mars as a divine machine-mountain. LAT: Mons Olympus, axis ferri et imperii.",
     "temple-all-knowledge": "HU: A név nem földrajzi, hanem liturgikus rang: minden tudás oltára. EN: a total archive-title, more creed than address. LAT: Templum Omnis Scientiae.",
     "ring-of-iron": "HU: Az Iron Ring név szó szerint vasgyűrű, Mars orbitális ipari koronája. EN: a shipyard-halo around the red world. LAT: Corona Ferri Martis.",
@@ -99,7 +101,7 @@
     "pavonis-mons": "HU: Pavonis a páva latin alakja; ironikus név a Legio Mortis sötét erődjének. EN: the peacock mountain stained by traitor engines. LAT: Mons Pavonis.",
     "aries-primus": "HU: Aries a kos csillagjegye, Primus az első; harcias, elsődleges hadianyag-városnév. EN: ram-first, a munitions title. LAT: Aries Primus."
   };
-  const notableById = {
+  const defaultNotableById = {
     "olympus-mons": [{ name: "Xasandera Valdet", role: "Fabricator-General of Mars" }, { name: "Martian Synod", role: "supreme Mechanicus governing body" }],
     "temple-all-knowledge": [{ name: "Fabricator-General's data conclave", role: "custodians of sacred archives" }, { name: "Lexmechanic Magi Collegium", role: "ritual indexing and doctrinal audit" }],
     "ring-of-iron": [{ name: "Battlefleet Solar liaison board", role: "orbital dock authority" }, { name: "Magos Navis Fabricatorum", role: "void-yard production overseers" }],
@@ -139,8 +141,12 @@
   let globe;
   let globeGroup;
   let markerGroup;
+  const hungarianTextById = data.hungarianTextById || defaultHungarianTextById;
+  const etymologyById = data.etymologyById || defaultEtymologyById;
+  const notableById = data.notableById || defaultNotableById;
+
   let selectedLocation = data.locations[0];
-  let classifiedUnlocked = sessionStorage.getItem("mars-classified-unlocked") === "true";
+  let classifiedUnlocked = sessionStorage.getItem(classifiedStorageKey) === "true";
   let cameraFocusAnimation = null;
   const CAMERA_FOCUS_DURATION = 1.2;
   let width = window.innerWidth;
@@ -177,10 +183,14 @@
     controls.maxDistance = 8.5;
     controls.handleResize();
 
-    scene.add(new THREE.AmbientLight(0x5a5143));
+    const materialConfig = data.material || {};
+    scene.add(new THREE.AmbientLight(materialConfig.ambientLight || 0x5a5143));
 
-    const sun = new THREE.DirectionalLight(0xffe0a8, 1.12);
-    sun.position.set(5, -4, 2.2);
+    const sun = new THREE.DirectionalLight(
+      materialConfig.sunColor || 0xffe0a8,
+      materialConfig.sunIntensity === undefined ? 1.12 : materialConfig.sunIntensity
+    );
+    positionSunLight(sun, materialConfig);
     scene.add(sun);
 
     const redRim = new THREE.PointLight(0x8b2500, 0.35, 12);
@@ -205,32 +215,42 @@
   }
 
   function createGlobe() {
+    const textures = data.textures || {};
+    const materialConfig = data.material || {};
     const geometry = new THREE.SphereGeometry(GLOBE_RADIUS, 96, 64);
-    const material = new THREE.MeshPhongMaterial({
-      color: 0xffffff,
-      ambient: 0x8a7a63,
-      emissive: 0x050302,
-      specular: 0x080604,
-      shininess: 8,
-      bumpScale: 0.035
-    });
+    const material = createGlobeMaterial(textures, materialConfig);
 
     globe = new THREE.Mesh(geometry, material);
     globe.rotateX(Math.PI / 2);
     globeGroup.add(globe);
 
-    material.map = loadGlobeTexture("images/color_map_mgs_2k.jpg");
-    material.bumpMap = loadGlobeTexture("images/mars_bump_map_4k_adj.jpg");
-
     const haloGeometry = new THREE.SphereGeometry(GLOBE_RADIUS * 1.035, 96, 48);
     const haloMaterial = new THREE.MeshBasicMaterial({
-      color: 0xc5a844,
+      color: materialConfig.haloColor || 0xc5a844,
       transparent: true,
-      opacity: 0.055,
+      opacity: materialConfig.haloOpacity === undefined ? 0.055 : materialConfig.haloOpacity,
       side: THREE.BackSide,
       blending: THREE.AdditiveBlending
     });
     globeGroup.add(new THREE.Mesh(haloGeometry, haloMaterial));
+
+    const nightOverlay = createNightColorOverlay(textures, materialConfig);
+    if (nightOverlay) globeGroup.add(nightOverlay);
+
+    if (textures.cloudMap) {
+      const cloudGeometry = new THREE.SphereGeometry(GLOBE_RADIUS * 1.018, 96, 64);
+      const cloudMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        map: loadGlobeTexture(textures.cloudMap),
+        transparent: true,
+        opacity: materialConfig.cloudOpacity === undefined ? 0.22 : materialConfig.cloudOpacity,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const cloudMesh = new THREE.Mesh(cloudGeometry, cloudMaterial);
+      cloudMesh.rotateX(Math.PI / 2);
+      globeGroup.add(cloudMesh);
+    }
   }
 
   function createStars() {
@@ -265,6 +285,142 @@
     });
     texture.anisotropy = renderer.getMaxAnisotropy();
     return texture;
+  }
+
+  function createGlobeMaterial(textures, materialConfig) {
+    const material = new THREE.MeshPhongMaterial({
+      color: 0xffffff,
+      ambient: materialConfig.ambient === undefined ? 0x8a7a63 : materialConfig.ambient,
+      emissive: materialConfig.emissive === undefined ? 0x050302 : materialConfig.emissive,
+      specular: materialConfig.specular === undefined ? 0x080604 : materialConfig.specular,
+      shininess: materialConfig.shininess === undefined ? 8 : materialConfig.shininess,
+      bumpScale: materialConfig.bumpScale === undefined ? 0.035 : materialConfig.bumpScale,
+      normalScale: materialConfig.normalScale ? new THREE.Vector2(materialConfig.normalScale, materialConfig.normalScale) : undefined
+    });
+
+    material.map = loadGlobeTexture(resolveSurfaceMap(textures, materialConfig));
+    if (textures.bumpMap) {
+      material.bumpMap = loadGlobeTexture(textures.bumpMap);
+    } else if (textures.normalMap) {
+      material.normalMap = loadGlobeTexture(textures.normalMap);
+    } else {
+      material.bumpMap = loadGlobeTexture("images/mars_bump_map_4k_adj.jpg");
+    }
+    if (textures.specularMap) {
+      material.specularMap = loadGlobeTexture(textures.specularMap);
+    }
+
+    return material;
+  }
+
+  function createNightColorOverlay(textures, materialConfig) {
+    if (!isDayNightSurface(materialConfig) || !textures.nightMap) return null;
+
+    const overlayConfig = materialConfig.nightOverlay || {};
+    const mode = normalizeOverlayMode(overlayConfig.mode);
+    const opacity = overlayConfig.opacity === undefined ? 0.72 : overlayConfig.opacity;
+    const overlayGeometry = new THREE.SphereGeometry(GLOBE_RADIUS * (overlayConfig.radiusScale || 1.002), 96, 64);
+    const nightTexture = loadGlobeTexture(textures.nightMap);
+    let overlayMaterial;
+
+    if (mode === "full") {
+      overlayMaterial = new THREE.MeshBasicMaterial({
+        map: nightTexture,
+        transparent: true,
+        opacity,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+    } else {
+      overlayMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        nightMap: { type: "t", value: nightTexture },
+        nightOpacity: { type: "f", value: opacity },
+        sunDirection: { type: "v3", value: getSunDirection(materialConfig) },
+        edgeSoftness: { type: "f", value: overlayConfig.edgeSoftness === undefined ? 0 : overlayConfig.edgeSoftness }
+      },
+      vertexShader: [
+        "varying vec2 vUv;",
+        "varying vec3 vWorldNormal;",
+        "void main() {",
+        "  vUv = uv;",
+        "  vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);",
+        "  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);",
+        "}"
+      ].join("\n"),
+      fragmentShader: [
+        "uniform sampler2D nightMap;",
+        "uniform float nightOpacity;",
+        "uniform vec3 sunDirection;",
+        "uniform float edgeSoftness;",
+        "varying vec2 vUv;",
+        "varying vec3 vWorldNormal;",
+        "void main() {",
+        "  vec4 nightColor = texture2D(nightMap, vUv);",
+        "  float dayAmount = dot(normalize(vWorldNormal), normalize(sunDirection));",
+        "  float softDay = smoothstep(-edgeSoftness, edgeSoftness, dayAmount);",
+        "  float hardNight = 1.0 - step(0.0, dayAmount);",
+        "  float nightMask = mix(hardNight, 1.0 - softDay, step(0.001, edgeSoftness));",
+        "  gl_FragColor = vec4(nightColor.rgb, nightColor.a * nightOpacity * nightMask);",
+        "}"
+      ].join("\n"),
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+      });
+    }
+
+    const overlay = new THREE.Mesh(overlayGeometry, overlayMaterial);
+    overlay.rotateX(Math.PI / 2);
+    return overlay;
+  }
+
+  function resolveSurfaceMap(textures, materialConfig) {
+    const surfaceMap = materialConfig.surfaceMap || "day";
+    if (isDayNightSurface(materialConfig)) {
+      return textures.dayMap || textures.colorMap || "images/color_map_mgs_2k.jpg";
+    }
+    const namedMap = textures[`${surfaceMap}Map`] || textures[surfaceMap];
+    return namedMap || textures.colorMap || "images/color_map_mgs_2k.jpg";
+  }
+
+  function getSunDirection(materialConfig) {
+    const focus = materialConfig.sunFocus;
+    if (focus && typeof focus.lat === "number" && typeof focus.lon === "number") {
+      return latLonToVector(focus.lat, focus.lon, 1).normalize();
+    }
+
+    const position = materialConfig.sunPosition;
+    if (position) {
+      return new THREE.Vector3(position.x || 0, position.y || 0, position.z || 0).normalize();
+    }
+
+    return new THREE.Vector3(5, -4, 2.2).normalize();
+  }
+
+  function isDayNightSurface(materialConfig) {
+    const surfaceMap = String(materialConfig.surfaceMap || "").toLowerCase();
+    return surfaceMap === "daynight" || surfaceMap === "overlap";
+  }
+
+  function normalizeOverlayMode(mode) {
+    return String(mode || "nightoverlap").toLowerCase() === "full" ? "full" : "nightoverlap";
+  }
+
+  function positionSunLight(sun, materialConfig) {
+    const focus = materialConfig.sunFocus;
+    if (focus && typeof focus.lat === "number" && typeof focus.lon === "number") {
+      sun.position.copy(latLonToVector(focus.lat, focus.lon, focus.distance || 8));
+      return;
+    }
+
+    const position = materialConfig.sunPosition;
+    if (position) {
+      sun.position.set(position.x || 0, position.y || 0, position.z || 0);
+      return;
+    }
+
+    sun.position.set(5, -4, 2.2);
   }
 
   function createPatterns() {
@@ -686,12 +842,12 @@
   }
 
   function unlockClassified() {
-    const response = window.prompt("Enter Mars classified passkey:");
+    const response = window.prompt(`Enter ${appName} classified passkey:`);
     if (!response) return;
 
     if (response.trim().toUpperCase() === data.CLASSIFIED_PASSKEY) {
       classifiedUnlocked = true;
-      sessionStorage.setItem("mars-classified-unlocked", "true");
+      sessionStorage.setItem(classifiedStorageKey, "true");
       showToast("Classified mode unlocked.");
       updateClassifiedState();
       renderDossier(selectedLocation);
@@ -702,7 +858,7 @@
 
   function lockClassified() {
     classifiedUnlocked = false;
-    sessionStorage.removeItem("mars-classified-unlocked");
+    sessionStorage.removeItem(classifiedStorageKey);
     showToast("Classified mode sealed.");
     updateClassifiedState();
     renderDossier(selectedLocation);
@@ -869,7 +1025,12 @@ camera.position.lerp(cameraFocusAnimation.to, eased);
   }
 
   function formatLon(lon) {
-    return `${normalizeLon(lon).toFixed(1)}W`;
+    const normalized = normalizeLon(lon);
+    if (data.longitudeLabels === "eastWest") {
+      if (normalized <= 180) return `${normalized.toFixed(1)}W`;
+      return `${(360 - normalized).toFixed(1)}E`;
+    }
+    return `${normalized.toFixed(1)}W`;
   }
 
   function escapeHtml(value) {

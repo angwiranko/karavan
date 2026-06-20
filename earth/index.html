@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Mars Cogitator Map</title>
+  <title>Earth Cogitator Map</title>
 
-  <link rel="apple-touch-icon" sizes="180x180" href="images/favicon/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="images/favicon/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="images/favicon/favicon-16x16.png">
-  <link rel="manifest" href="images/favicon/site.webmanifest">
-  <link rel="mask-icon" href="images/favicon/safari-pinned-tab.svg" color="#5bbad5">
-  <link rel="shortcut icon" href="images/favicon/favicon.ico">
-  <meta name="theme-color" content="#110705">
+  <link rel="apple-touch-icon" sizes="180x180" href="../mars/images/favicon/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../mars/images/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../mars/images/favicon/favicon-16x16.png">
+  <link rel="manifest" href="../mars/images/favicon/site.webmanifest">
+  <link rel="mask-icon" href="../mars/images/favicon/safari-pinned-tab.svg" color="#5bbad5">
+  <link rel="shortcut icon" href="../mars/images/favicon/favicon.ico">
+  <meta name="theme-color" content="#061318">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,19 +20,19 @@
   <style>
     :root {
       --bg: #050505;
-      --panel: rgba(10, 10, 9, 0.9);
-      --panel-strong: rgba(13, 12, 10, 0.97);
-      --panel-soft: rgba(28, 18, 12, 0.62);
-      --border: rgba(122, 101, 32, 0.54);
-      --border-red: rgba(139, 37, 0, 0.64);
-      --gold: #c5a844;
-      --gold-bright: #e8c96a;
-      --red: #8b2500;
-      --red-bright: #c0341a;
-      --green: #5f8f63;
-      --cyan: #7f907f;
-      --muted: #7a6b49;
-      --text: #d4c89a;
+      --panel: rgba(7, 16, 18, 0.9);
+      --panel-strong: rgba(8, 20, 23, 0.97);
+      --panel-soft: rgba(12, 34, 38, 0.62);
+      --border: rgba(88, 166, 170, 0.54);
+      --border-red: rgba(138, 57, 41, 0.64);
+      --gold: #78c6c8;
+      --gold-bright: #b5f3ef;
+      --red: #8a3929;
+      --red-bright: #e06b55;
+      --green: #7dbb7e;
+      --cyan: #9ccfff;
+      --muted: #7ea0a4;
+      --text: #d7eeed;
       --shadow: rgba(0, 0, 0, 0.78);
     }
 
@@ -47,8 +47,8 @@
       margin: 0;
       overflow: hidden;
       background:
-        radial-gradient(circle at 50% 32%, rgba(92, 25, 0, 0.22), transparent 42%),
-        linear-gradient(135deg, #050505, #0b0907 48%, #010101);
+        radial-gradient(circle at 50% 32%, rgba(42, 116, 146, 0.22), transparent 42%),
+        linear-gradient(135deg, #030607, #061318 48%, #010303);
       color: var(--text);
       font-family: "Orbitron", "Share Tech Mono", monospace;
       user-select: none;
@@ -70,7 +70,7 @@
     }
 
     ::-webkit-scrollbar-thumb {
-      background: linear-gradient(180deg, #3a2d10, #7a6520);
+      background: linear-gradient(180deg, #12343a, #3e8a8e);
       border: 1px solid #0b0b0b;
       border-radius: 0;
     }
@@ -662,21 +662,21 @@
 
   <header class="top-bar">
     <div class="brand">
-      <h1>Mars Cogitator Map</h1>
-      <p>Sacred Mars / Segmentum Solar / Mechanicus operational theatre</p>
+      <h1>Earth Cogitator Map</h1>
+      <p>Holy Terra / Segmentum Solar / Imperial command theatre</p>
     </div>
     <div class="top-actions">
       <a class="hud-button" href="../starfort.html">
         <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
         Starfort
       </a>
-      <a class="hud-button" href="../earth/index.html">
+      <a class="hud-button" href="../mars/index.html">
         <span class="material-symbols-outlined" aria-hidden="true">public</span>
-        Earth
+        Mars
       </a>
       <button id="classifiedButton" class="hud-button danger" type="button">
         <span class="material-symbols-outlined" aria-hidden="true">encrypted</span>
-        Classified
+        Restricted
       </button>
       <button id="lockButton" class="hud-button" type="button">
         <span class="material-symbols-outlined" aria-hidden="true">lock</span>
@@ -689,7 +689,7 @@
     <div class="panel-scroll">
       <section class="section">
         <h2 class="section-title">
-          <span>Layer Rites</span>
+          <span>Terran Layers</span>
           <span id="layerCounter">7/7</span>
         </h2>
         <div id="layerControls" class="layer-grid"></div>
@@ -706,7 +706,7 @@
       </section>
 
       <section class="section">
-        <h2 class="section-title">Verified Sites</h2>
+        <h2 class="section-title">Strategic Sites</h2>
         <div id="locationList" class="location-list"></div>
       </section>
     </div>
@@ -715,7 +715,7 @@
   <aside class="side-panel right-panel">
     <div class="panel-scroll">
       <section class="section">
-        <h2 class="section-title">Cogitator Dossier</h2>
+        <h2 class="section-title">Terran Dossier</h2>
         <div id="dossier" class="dossier"></div>
       </section>
     </div>
@@ -742,10 +742,10 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="js/three.js"></script>
-  <script src="js/TrackballControls.js"></script>
-  <script src="js/Detector.js"></script>
-  <script src="js/mars_locations.js"></script>
-  <script src="js/mars.js"></script>
+  <script src="../mars/js/three.js"></script>
+  <script src="../mars/js/TrackballControls.js"></script>
+  <script src="../mars/js/Detector.js"></script>
+  <script src="js/earth_locations.js"></script>
+  <script src="../mars/js/mars.js"></script>
 </body>
 </html>
