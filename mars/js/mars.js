@@ -141,6 +141,8 @@
   let globe;
   let globeGroup;
   let markerGroup;
+  let structureGroup;
+  const pulsingStructures = [];
   const hungarianTextById = data.hungarianTextById || defaultHungarianTextById;
   const etymologyById = data.etymologyById || defaultEtymologyById;
   const notableById = data.notableById || defaultNotableById;
@@ -199,12 +201,15 @@
 
     globeGroup = new THREE.Object3D();
     markerGroup = new THREE.Object3D();
+    structureGroup = new THREE.Object3D();
     scene.add(globeGroup);
     createGlobe();
     createStars();
     createPatterns();
     createMarkersAndLabels();
+    createStructures();
     globeGroup.add(markerGroup);
+    globeGroup.add(structureGroup);
 
     buildLayerControls();
     buildLocationList();
@@ -299,10 +304,11 @@
     });
 
     material.map = loadGlobeTexture(resolveSurfaceMap(textures, materialConfig));
+    const normalMapPath = resolveNormalMap(textures, materialConfig);
     if (textures.bumpMap) {
       material.bumpMap = loadGlobeTexture(textures.bumpMap);
-    } else if (textures.normalMap) {
-      material.normalMap = loadGlobeTexture(textures.normalMap);
+    } else if (normalMapPath) {
+      material.normalMap = loadGlobeTexture(normalMapPath);
     } else {
       material.bumpMap = loadGlobeTexture("images/mars_bump_map_4k_adj.jpg");
     }
@@ -378,10 +384,19 @@
   function resolveSurfaceMap(textures, materialConfig) {
     const surfaceMap = materialConfig.surfaceMap || "day";
     if (isDayNightSurface(materialConfig)) {
-      return textures.dayMap || textures.colorMap || "images/color_map_mgs_2k.jpg";
+      const baseMap = materialConfig.dayNightBaseMap || "day";
+      return textures[`${baseMap}Map`] || textures[baseMap] || textures.dayMap || textures.colorMap || "images/color_map_mgs_2k.jpg";
     }
     const namedMap = textures[`${surfaceMap}Map`] || textures[surfaceMap];
     return namedMap || textures.colorMap || "images/color_map_mgs_2k.jpg";
+  }
+
+  function resolveNormalMap(textures, materialConfig) {
+    const normalMapMode = materialConfig.normalMapMode || "surface";
+    if (normalMapMode === "bathymetry") {
+      return textures.bathymetryNormalMap || textures.normalMap;
+    }
+    return textures.normalMap;
   }
 
   function getSunDirection(materialConfig) {
@@ -544,6 +559,107 @@
       label.addEventListener("click", () => selectLocation(location.id, { focus: true }));
       labelsById.set(location.id, label);
       labelLayer.appendChild(label);
+    });
+  }
+
+  function createStructures() {
+    const structures = data.structures || [];
+    structures.forEach((structure) => {
+      if ((structure.type || "pyramid") !== "pyramid") return;
+      const pyramid = createFallbackPyramid(structure);
+      structureGroup.add(pyramid);
+    });
+  }
+
+  function createFallbackPyramid(structure) {
+    const normal = latLonToVector(structure.lat, structure.lon, 1).normalize();
+    const poleAxis = Math.abs(normal.z) > 0.96 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1);
+    const tangent = new THREE.Vector3().crossVectors(poleAxis, normal).normalize();
+    const bitangent = new THREE.Vector3().crossVectors(normal, tangent).normalize();
+    const baseRadius = structure.baseRadius || 0.025;
+    const height = structure.height || 0.42;
+    const baseDistance = GLOBE_RADIUS * (structure.surfaceScale || 1.006);
+    const baseCenter = normal.clone().multiplyScalar(baseDistance);
+    const apex = normal.clone().multiplyScalar(baseDistance + height);
+
+    const geometry = new THREE.Geometry();
+    geometry.vertices.push(
+      baseCenter.clone().add(tangent.clone().multiplyScalar(baseRadius)).add(bitangent.clone().multiplyScalar(baseRadius)),
+      baseCenter.clone().add(tangent.clone().multiplyScalar(-baseRadius)).add(bitangent.clone().multiplyScalar(baseRadius)),
+      baseCenter.clone().add(tangent.clone().multiplyScalar(-baseRadius)).add(bitangent.clone().multiplyScalar(-baseRadius)),
+      baseCenter.clone().add(tangent.clone().multiplyScalar(baseRadius)).add(bitangent.clone().multiplyScalar(-baseRadius)),
+      apex
+    );
+    geometry.faces.push(
+      new THREE.Face3(0, 1, 4),
+      new THREE.Face3(1, 2, 4),
+      new THREE.Face3(2, 3, 4),
+      new THREE.Face3(3, 0, 4),
+      new THREE.Face3(0, 2, 1),
+      new THREE.Face3(0, 3, 2)
+    );
+    geometry.computeFaceNormals();
+    geometry.computeBoundingSphere();
+    geometry.computeBoundingBox();
+
+    const material = new THREE.MeshPhongMaterial({
+      color: new THREE.Color(structure.color || "#f4d27a"),
+      ambient: new THREE.Color(structure.color || "#f4d27a"),
+      emissive: new THREE.Color(structure.emissive || "#b56b18"),
+      specular: new THREE.Color("#fff0b0"),
+      shininess: structure.shininess === undefined ? 60 : structure.shininess,
+      transparent: true,
+      opacity: structure.opacity === undefined ? 0.92 : structure.opacity,
+      side: THREE.DoubleSide
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+    const light = new THREE.PointLight(
+      new THREE.Color(structure.lightColor || structure.emissive || "#ffd36a"),
+      structure.lightIntensity === undefined ? 1.8 : structure.lightIntensity,
+      structure.lightDistance || 1.2
+    );
+    light.position.copy(apex);
+    mesh.add(light);
+
+    const glow = new THREE.Particle(makeStructureGlowMaterial(structure));
+    glow.position.copy(apex);
+    glow.scale.set(structure.glowSize || 0.28, structure.glowSize || 0.28, structure.glowSize || 0.28);
+    mesh.add(glow);
+
+    pulsingStructures.push({
+      material,
+      light,
+      glow,
+      baseOpacity: material.opacity,
+      baseIntensity: light.intensity,
+      baseGlowSize: structure.glowSize || 0.28,
+      pulseSpeed: structure.pulseSpeed || 2.4
+    });
+
+    return mesh;
+  }
+
+  function makeStructureGlowMaterial(structure) {
+    const color = structure.glowColor || structure.lightColor || "#ffd36a";
+    const canvas = document.createElement("canvas");
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+    const gradient = ctx.createRadialGradient(64, 64, 4, 64, 64, 62);
+    gradient.addColorStop(0, color);
+    gradient.addColorStop(0.34, "rgba(255, 220, 120, 0.42)");
+    gradient.addColorStop(1, "rgba(255, 220, 120, 0)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 128, 128);
+
+    return new THREE.ParticleBasicMaterial({
+      map: canvasTexture(canvas),
+      color: new THREE.Color(color),
+      transparent: true,
+      opacity: structure.glowOpacity === undefined ? 0.8 : structure.glowOpacity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
     });
   }
 
@@ -886,6 +1002,13 @@
     markerGroup.children.forEach((marker, index) => {
       const pulse = 1 + Math.sin(elapsed * 2.4 + index) * 0.08;
       marker.scale.set(0.105 * pulse, 0.105 * pulse, 0.105 * pulse);
+    });
+    pulsingStructures.forEach((structure, index) => {
+      const pulse = 0.5 + Math.sin(elapsed * structure.pulseSpeed + index * 0.7) * 0.5;
+      structure.material.opacity = structure.baseOpacity * (0.68 + pulse * 0.32);
+      structure.light.intensity = structure.baseIntensity * (0.55 + pulse * 0.7);
+      const glowScale = structure.baseGlowSize * (0.82 + pulse * 0.42);
+      structure.glow.scale.set(glowScale, glowScale, glowScale);
     });
     if (controls.update) controls.update();
     renderer.render(scene, camera);
