@@ -9,8 +9,14 @@ window.PLANET_RPG_DATA = {
     nightMap: "images/earth_nightmap_8ki.jpg",
     bathymetryMap: "images/earth_bedrock_bathymetry_color_8ki.jpg",
     colorMap: "images/earth_daymap_8k.jpg",
-    normalMap: "images/earth_normal_map_8k.png",
-    bathymetryNormalMap: "images/earth_bedrock_bathymetry_normal_8ki.png",
+    normalMap: {
+      webp: "images/earth_normal_map_8k.webp",
+      fallback: "images/earth_normal_map_8k.png"
+    },
+    bathymetryNormalMap: {
+      webp: "images/earth_bedrock_bathymetry_normal_8ki.webp",
+      fallback: "images/earth_bedrock_bathymetry_normal_8ki.png"
+    },
     specularMap: "images/earth_specular_map_8k.png",
     cloudMap: "images/earth_clouds_8k.jpg"
   },
@@ -49,7 +55,11 @@ window.PLANET_RPG_DATA = {
     lexicanumTerraGeography: "https://wh40k.lexicanum.com/wiki/Terra_(geography)",
     lexicanumInquisition: "https://wh40k.lexicanum.com/wiki/Inquisition",
     lexicanumNavisNobilite: "https://wh40k.lexicanum.com/wiki/Navis_Nobilite",
-    lexicanumArbites: "https://wh40k.lexicanum.com/wiki/Adeptus_Arbites"
+    lexicanumArbites: "https://wh40k.lexicanum.com/wiki/Adeptus_Arbites",
+    lexicanumLuna: "https://wh40k.lexicanum.com/wiki/Luna",
+    lexicanumSomnusCitadel: "https://wh40k.lexicanum.com/wiki/Somnus_Citadel",
+    lexicanumSelenar: "https://wh40k.lexicanum.com/wiki/Selenar",
+    nasaMoonKit: "https://svs.gsfc.nasa.gov/4720/"
   },
   layers: [
     { id: "palace", name: "Imperial Palace", icon: "fort", color: "#b5f3ef" },
@@ -89,56 +99,180 @@ window.PLANET_RPG_DATA = {
       pulseSpeed: 2.2
     }
   ],
+  moon: {
+    title: "Luna Cogitator",
+    subtitle: "Terra Secundus / Segmentum Solar",
+    textures: {
+      colorMap: "images/moon_color_lroc_4k.jpg",
+      bumpMap: "images/moon_bump_lola_4k.jpg",
+      normalMap: {
+        webp: "images/moon_normal_lola_4k.webp",
+        fallback: "images/moon_normal_lola_4k.png"
+      }
+    },
+    material: {
+      ambientLight: 0x1a1e24,
+      sunColor: 0xd9e6ff,
+      sunIntensity: 1.55,
+      ambient: 0x7a7d86,
+      emissive: 0x010203,
+      specular: 0x141a22,
+      shininess: 9,
+      bumpScale: 0.07,
+      normalScale: 2.6,
+      haloColor: 0x9fc7ff,
+      haloOpacity: 0.08
+    },
+    locations: [
+      {
+        id: "luna-somnus-citadel",
+        name: "Somnus Citadel / Silent Sisterhood Fortress",
+        shortName: "Somnus Citadel",
+        subtitle: "Arx Somni",
+        lat: 12.5,
+        lon: 332.0,
+        coordinateConfidence: "campaign placement: canonical Luna site, exact selenographic coordinates not specified",
+        layer: "military",
+        layers: ["military", "orbital"],
+        faction: "Sisters of Silence / Imperial defence command",
+        status: "M42 restored fortress and Black Ship launch bastion",
+        loreConfidence: "Verified: Lexicanum Luna and Somnus Citadel",
+        sourceKeys: ["lexicanumLuna", "lexicanumSomnusCitadel"],
+        text: "The Somnus Citadel is Luna's restored fortress of the Sisters of Silence: a Black Ship bastion, anti-psyker redoubt, and one of Guilliman's renewed seals around Terra after the Terran Crusade."
+      },
+      {
+        id: "luna-port-luna",
+        name: "Port Luna / Battlefleet Sol Shipyards",
+        shortName: "Port Luna",
+        subtitle: "Portus Lunae",
+        lat: -3.0,
+        lon: 86.0,
+        coordinateConfidence: "campaign placement: naval base and orbital yard interface",
+        layer: "orbital",
+        layers: ["orbital", "military", "transit"],
+        faction: "Battlefleet Sol / Imperialis Armada",
+        status: "M41/M42 naval base, shipyard, and defence-ring anchor",
+        loreConfidence: "Verified: Lexicanum Luna notable locations",
+        sourceKeys: ["lexicanumLuna"],
+        text: "Port Luna is the naval machine of the Throneworld's moon: Battlefleet Sol base, vast shipyard, dock lattice, and military harbour for traffic that cannot be permitted to touch Terra unexamined."
+      },
+      {
+        id: "luna-circuit-ring",
+        name: "The Circuit Ring / Valley and Defence Platform Belt",
+        shortName: "Circuit Ring",
+        subtitle: "Circuitus Lunae",
+        lat: 2.0,
+        lon: 154.0,
+        coordinateConfidence: "campaign placement: combines The Circuit valley and The Ring orbital defence belt",
+        layer: "orbital",
+        layers: ["orbital", "military"],
+        faction: "Lunar defence commands / Battlefleet Sol",
+        status: "M41/M42 artificial valley, defence-belt, and orbital command zone",
+        loreConfidence: "Verified as separate Luna sites: The Circuit and The Ring on Lexicanum Luna",
+        sourceKeys: ["lexicanumLuna"],
+        text: "The Circuit Ring merges two linked lunar defences into one cogitator marker: the artificial military valley called The Circuit below, and The Ring of lance, torpedo, and macrocannon platforms above."
+      },
+      {
+        id: "luna-selenar-gene-labs",
+        name: "Selenar Gene-Labs / Herodotus Omega Dome",
+        shortName: "Herodotus Omega",
+        subtitle: "Laboratoria Selenarum",
+        lat: -18.0,
+        lon: 238.0,
+        coordinateConfidence: "campaign placement: underground gene-lab, Herodotus Omega Dome, and vault zone",
+        layer: "admin",
+        faction: "Selenar gene-cults / sealed Imperial genetors",
+        status: "Heresy-era strategic gene-tech site, modern status restricted",
+        loreConfidence: "Verified: Lexicanum Luna and Selenar",
+        sourceKeys: ["lexicanumLuna", "lexicanumSelenar"],
+        classified: true,
+        text: "The Selenar gene-labs and ruined Herodotus Omega Dome mark Luna's buried gene-cult inheritance: Astartes production secrets, the Magna Mater vault, and biological lineages contested during the Solar War."
+      }
+    ]
+  },
   hungarianTextById: {
-    "imperial-palace": "A Csaszari Palota nem egy epulet, hanem kontinensnyi erod-varos a Himalazia hegylancaiban. A birodalmi hatalom, a zarandoklat es a vegso vedelmi vonal egyetlen tulterhelt gepezete.",
-    "golden-throne": "Az Arany Tronus a Terra legszentebb es legtiltottabb magja. A hozza vezeto utak nem utvonalak, hanem jogosultsagi probak, pecsetek es halalos orsegek sorozata.",
-    "astronomican": "Az Astronomican fenyjele a birodalom csillagkozi iranytuje. A helyszin korul a hit, a pszichikus aldozat es az osregi technologia egyetlen ritualis uzemmel olvad ossze.",
-    "forbidden-fortress": "A Tiltott Erod, mas neven Hollow Mountain, az Adeptus Astronomica titkos Himalazia-komplexuma. Kivulrol hegy, belulrol szent gepezet es lezaras.",
-    "lions-gate-spaceport": "A Lion's Gate Spaceport a Palota legnagyobb kozlekedesi csomopontja. Felszini, legkori es orbitalis forgalma a Tronvilag veraramakent mukodik.",
-    "eternity-gate": "Az Eternity Gate a belso szentelyek egyik vegso kapuja. Neve onmagaban hadparancs: itt a zarandoklat, az ostrom es a dogma egy pontba szukul.",
-    "senatorum-imperialis": "A Senatorum Imperialis a High Lords politikai szive. A dontesek innen indulnak, de mire a galaxis peremere ernek, mar rendeletek, adok es hadparancsok hegyeve valnak.",
-    "adeptus-custodes-bastion": "A Custodes bastion nem egyszeru kaszarnya, hanem az Emperor szemelyes orsegenek felugyeleti pontja. Minden protokollja a vegso vedelmet szolgalja.",
-    "adeptus-administratum": "Az Administratum csarnokai a birodalom papiralapu idegrendszere. Ami itt elveszik, az egesz vilagok sorsat torolheti ki.",
-    "ecclesiarchal-palace": "Az Ecclesiarchal Palace a hit politikai es ritualis tulnyomasa. Zarandokok, predikatorok es szent hivatalok torlodnak egymasra.",
-    "petitioner-city": "A Petitioner City a Palota arnyekaban novekvo varakozas-varos. Generaciok elnek es halnak meg, mikozben egy engedelyre, iteletere vagy alairasra varnak.",
-    "merica-hive-belt": "Merica regi neve mar csak birodalmi torzulasban el. Hive-ovei adokat, katonakat es zarandokokat ontanak a Tronvilag kozepe fele.",
-    "europa-cardinal-bastions": "Europa regi kontinense ma szent hivatalok, cardinialis bastionok es fegyelmezett hive-negyedek osszenott tomege.",
-    "fortress-inquisition": "A deli polaris jeg alatt fekvo Inkvizicios Erod nem varos, hanem kihallgatasra, zarasra es eltuntetesre tervezett fold alatti birodalom. Null-mezok, pszicher-csendesitok es valtozo Castellan felugyelik.",
-    "navigator-quarter": "Az Oz-Tralla szigetkontinensen jelolt Navigator's Quarter a Navis Nobilite ghettoja es palota-negyede egyszerre. Mutans dinasztiak, hazassagi szerzodesek es warp-utvonal titkok tartjak eletben.",
-    "skhallax-city": "Skhallax City a regi Afrik asvanyban gazdag oveihez kapaszkodo hive-banyavaros. Reaktorai es kohaszati szentjei a fold alatti femerek es kobalt-tizedek ritmusara mukodnek.",
-    "hall-of-judgement": "A Hall of Judgement az Arbites terrani torvenyszive. Neork rom-neve alatt biro-szekek, bizonyitek kriptak es execution docketek futnak ossze.",
-    "white-mountain-prison": "White Mountain a deli polaris rendszer titkos borton-csucsa. A hivatalos terkepen nincs, a belso jeg alatti listakon viszont neve lezart cellablokkokat es soha vissza nem adott foglyokat jelent.",
-    "wyverin-space-port": "Wyverin Space Port az eszaki polar korzet hideg void-kapuja. A sarki palyak, vedett inditoablakok es zarandok-teherszallitok forgalma miatt egyszerre kikoto es erod.",
-    "mariana-gorge": "A Mariana Gorge a regi Mariana-arok terrani sebhelye. Kiralyokat abrazolo ezer meter magas sziklafaragvanyok, melysegi zarak es elfelejtett pre-Imperialis lepcsozetek szegelyezik.",
-    "phalanx-anchor": "A Phalanx orbitalis jelenlete nem varos, hanem figyelmeztetes: a Terra folotti eg nem ures, hanem fegyverrel es eskukkel kitoltott ter.",
-    "orbital-plate-network": "Az orbitalis vedelmi plate-halo a vilag korul feszulo pancel. Dokkok, agyuk, void-pajzsok es forgalmi pontok tartjak zarva a Tronvilag egeit."
+    "imperial-palace": "A Császári Palota nem épület, hanem kontinensnyi erőd-hive a Himalázia hegyláncain. A Sanctum Imperialis, a zarándoklat és a végső védelem egyetlen túlterhelt birodalmi gépezetté sűrűsödik benne.",
+    "golden-throne": "Az Arany Trón Terra legszentebb és legtiltottabb gép-szentélye. Az Emperor testét tartja életben, a Webway-kaput zárva tartja, és minden megközelítése pecsétek, őrségek és halálos jogosultsági próbák sora.",
+    "astronomican": "Az Astronomican az Imperium pszichikus világítótornya. A Kiválasztottak élete a kamráiban ég el, hogy a Navigátorok a warpban is megtalálják Terra irányát.",
+    "forbidden-fortress": "A Tiltott Erőd, más néven Hollow Mountain, az Adeptus Astronomica himaláziai szíve. Kívül hegy és zárvány; belül kamrák, gépek, áldozatok és a csillagközi jeladó szent üzeme.",
+    "lions-gate-spaceport": "A Lion's Gate Spaceport a Palota nagy közlekedési ütőere. Felszíni, légköri és orbitális forgalma békében zarándok- és hadianyagáram, ostrom idején pedig kapu, erőd és csatatér.",
+    "eternity-gate": "Az Eternity Gate a Belső Palota egyik végső küszöbe. A zarándoklat, az ostrom és a dogma itt egyetlen védett pontba szűkül a Sanctum Imperialis előtt.",
+    "senatorum-imperialis": "A Senatorum Imperialis a High Lords politikai gépháza. Ami itt határozatként megszületik, az a galaxis peremén tized, keresztes hadjárat, tisztogatás vagy halálos ítélet lesz.",
+    "adeptus-custodes-bastion": "A Custodes-bástya nem közönséges kaszárnya, hanem az Emperor személyes őrségének egyik felügyeleti pontja. Minden protokollja egyetlen feladatra épül: a Trón és a Palota végső védelmére.",
+    "adeptus-administratum": "Az Administratum csarnokai a birodalom papírral, pecséttel és adatkoporsókkal működő idegrendszere. Egy elveszett akta itt éhínséget, késő regimentet vagy egy világ lassú eltűnését okozhatja.",
+    "ecclesiarchal-palace": "Ez a terrani Ministorum-negyed a hit, hivatal és látványosság nyomását jelöli. Zarándokok, gyóntatók, ereklyeügyek, szent jogi viták és politikai prédikációk torlódnak egymásra.",
+    "petitioner-city": "A Petitioner's City a Palota árnyékában növő várakozás-város. Családok nemzedékei élhetnek és halhatnak meg, miközben egy pecsétre, kihallgatásra, feloldozásra vagy elutasításra várnak.",
+    "merica-hive-belt": "Merica ősi neve birodalmi torzulásban maradt fenn. Hive-övei embereket, kérelmeket, zarándoktesteket és ipari igényeket öntenek a Trónvilág központja felé.",
+    "europa-cardinal-bastions": "Europa régi kontinensneve ma shrine-hive-ok, nemesi hivatalok és ministorumi erőd-negyedek alatt él tovább. Ez a régió Terra rituális gazdaságának fegyelmezett, túlzsúfolt szolgálója.",
+    "fortress-inquisition": "A déli sarki jég alatt fekvő Inkvizíciós Erőd nem város, hanem föld alatti ítélet. Null-mezők, pszíker-csendesítők, foglyok és évente váltott Castellanok tartják zárva.",
+    "navigator-quarter": "Az Oz-Tralla szigetkontinensen jelölt Navigátor-negyed a Navis Nobilite zárt nemesi enklávéja. Mutáns dinasztiák, házassági szerződések, génkönyvek és warp-útvonal titkok tartják életben.",
+    "skhallax-city": "Skhallax City kampányhelyszín a régi Afrik ásványöveihez kötve. Mélyliftek, tizedkohók és shrine-foundry-k alakítják az eltemetett ércet Palota-ellátássá.",
+    "hall-of-judgement": "A Hall of Judgement az Adeptus Arbites terrani ítélőszíve. Neork rom-neve alatt ősi elfogatóparancsok, bizonyíték-kripták és városokra is kiterjedő ítéletek futnak össze.",
+    "white-mountain-prison": "White Mountain kampány-black-site a déli sarki Inkvizíciós rendszerben. Olyan foglyoknak épült, akiket túl hasznos kivégezni, túl veszélyes bemutatni, és túl kényes elismerni.",
+    "wyverin-space-port": "Wyverin Space Port kampánybeli északi sarki void-kapu. Hideg indítóaknái, liftállványai és védelmi sínrendszerei a Palota fő útvonalait elkerülő, őrzött indulásokat kezelik.",
+    "mariana-gorge": "A Mariana Gorge a régi Mariana-árok kampánybeli, kiszáradt terrani sebhelye. Mélységi zárak, örökségi szakadékok és katonai átjárók húzódnak az eltűnt óceán helyén.",
+    "phalanx-anchor": "A Phalanx orbitális jelölése nem felszíni város, hanem figyelmeztetés: Terra egén mozgó erőd, Imperial Fists-eskü és void-bástya is őrködik.",
+    "orbital-plate-network": "Az orbitális védelmi plate-háló Terra körül feszülő páncél. Régi orbitális városok, dokkok, ágyúk, forgalmi pontok és kivégzőplatformok tartják zárva a Trónvilág egét.",
+    "luna-somnus-citadel": "A Somnus Citadel Luna csendes erőd-szíve: a Sisters of Silence visszaállított bástyája, Black Ship indítóhely, anti-pszíker erődítmény és Terra újraerősített védelmi pecsétje.",
+    "luna-port-luna": "Port Luna a Trónvilág holdjának hadikikötője: Battlefleet Sol-bázis, hajógyár, dokkháló és ellenőrző kapu mindannak, ami Terrához túl közel kerülne.",
+    "luna-circuit-ring": "A Circuit Ring egyetlen hadtérképi jelbe vonja össze a Circuit mesterséges katonai holdvölgyét és a Ring orbitális fegyverplatformjait. Lent sebhely, fent makroágyús korona.",
+    "luna-selenar-gene-labs": "A Selenar génlaborok és a romos Herodotus Omega Dome a Hold alatti örökség sötét magjai. Astartes-titkok, Magna Mater-vaultok és tiltott vérvonalak miatt haltak meg értük birodalmak."
   },
   etymologyById: {
-    "imperial-palace": "HU: Palota, de bolygomeretu erod. EN: not a residence, a fortified civilization core. LAT: Palatium Imperiale.",
-    "golden-throne": "HU: Arany a szent rang; Tronus a hatalom es eletben tartas helye. EN: throne as reliquary and machine. LAT: Thronus Aureus.",
-    "astronomican": "HU: Csillagaszati jelado neve. EN: the psychic lighthouse of Imperial navigation. LAT: Pharus Astronomica.",
-    "lions-gate-spaceport": "HU: Oroszlankapu: vedelmi es kozlekedesi nev egyszerre. EN: gate, fortress, and port combined. LAT: Porta Leonis.",
-    "senatorum-imperialis": "HU: Birodalmi tanacs. EN: the formal engine of rule. LAT: Senatorum Imperialis.",
-    "petitioner-city": "HU: Kervenyezok varosa. EN: a city made from waiting. LAT: Civitas Supplicantium.",
-    "fortress-inquisition": "HU: A deli polaris jeg alatt rejtett Inkvizicios kozpont. EN: polar ice as seal, fortress, and interrogation machine. LAT: Arx Inquisitionis Australis.",
-    "navigator-quarter": "HU: Oz-Tralla a regi Australia torzult neve. EN: island-continent quarter for warp-sighted houses. LAT: Quartus Navigatorum.",
-    "skhallax-city": "HU: Kampany-helyszin Afrik banyaszati oveiben. EN: mineral wealth turned hive-city. LAT: Civitas Metallorum Skhallax.",
-    "hall-of-judgement": "HU: Neork a regi New York torzult neve. EN: law made fortress. LAT: Aula Judicii.",
-    "white-mountain-prison": "HU: Feher hegy, fekete nyilvantartas. EN: a prison named like a landmark but filed like a deletion. LAT: Mons Albus Carcer.",
-    "wyverin-space-port": "HU: Wyverin neven polaris void-kapu. EN: polar port for guarded departures. LAT: Portus Wyverin.",
-    "mariana-gorge": "HU: Mariana Gorge/Mariana Canyon a regi Mariana-arok emleke. EN: oceanic scar preserved as dry abyss. LAT: Fossa Mariana."
+    "imperial-palace": "HU: Palota, de bolygóméretű erőd és civilizációs mag. EN: not a residence, a fortified throneworld core. LAT: Palatium Imperiale.",
+    "golden-throne": "HU: Az arany szent rangot, a trón hatalmat és életfenntartó gépet jelöl. EN: throne as reliquary, prison, beacon-anchor, and machine. LAT: Thronus Aureus.",
+    "astronomican": "HU: Csillagászati jeladó, de pszichikus értelemben. EN: the beacon used by Navigators, not a mundane lighthouse. LAT: Pharus Astronomica.",
+    "forbidden-fortress": "HU: Tiltott erőd és Hollow Mountain: a hegy fedőnév, zár és géptest egyszerre. EN: mountain as fortress for the Astronomican. LAT: Arx Vetita.",
+    "lions-gate-spaceport": "HU: Oroszlánkapu: védelmi és közlekedési név egyszerre. EN: gate, fortress, and port combined. LAT: Porta Leonis.",
+    "eternity-gate": "HU: Örökkévalóság kapuja, a szent belső tér küszöbe. EN: a final Palace threshold. LAT: Porta Aeternitatis.",
+    "senatorum-imperialis": "HU: Birodalmi tanács, de valójában kormányzati hadigép. EN: the High Lords' chamber as state engine. LAT: Senatorum Imperialis.",
+    "adeptus-custodes-bastion": "HU: Aurum Custodia: arany őrség, a Custodes színéhez és feladatához kötve. EN: golden guard precinct. LAT: Aurum Custodia.",
+    "adeptus-administratum": "HU: Archivum Terrae: Terra levéltára, ahol az irat sorssá válik. EN: archive as planetary nervous system. LAT: Archivum Terrae.",
+    "ecclesiarchal-palace": "HU: Domus Ministorum: a Ministorum háza, nem feltétlen egyetlen palota. EN: Terran shrine-office precinct. LAT: Domus Ministorum.",
+    "petitioner-city": "HU: Kérvényezők városa. EN: a settlement defined by waiting for Imperial judgement. LAT: Civitas Supplicantium.",
+    "merica-hive-belt": "HU: Merica az ősi Amerika birodalmi torzulása. EN: ancient name preserved as hive-region. LAT: Civitates Mericae.",
+    "europa-cardinal-bastions": "HU: Europa régi kontinensnév, itt cardinalis/shrine-hive súllyal. EN: old Europe recast as devotional bastion. LAT: Bastiones Europae.",
+    "fortress-inquisition": "HU: A déli sarki jég alatti Inkvizíciós központ. EN: polar ice as seal, prison, and interrogation machine. LAT: Arx Inquisitionis Australis.",
+    "navigator-quarter": "HU: Oz-Tralla a régi Australia torzult neve. EN: island-continent quarter for warp-sighted houses. LAT: Quartus Navigatorum.",
+    "skhallax-city": "HU: Kampányhelyszín Afrik bányászati övében. EN: mineral wealth converted into hive obligation. LAT: Civitas Metallorum Skhallax.",
+    "hall-of-judgement": "HU: Neork a régi New York torzult neve. EN: Imperial law turned into fortress and archive. LAT: Aula Judicii.",
+    "white-mountain-prison": "HU: Fehér hegy, fekete nyilvántartás. EN: a prison named like geography but filed like erasure. LAT: Mons Albus Carcer.",
+    "wyverin-space-port": "HU: Wyverin néven jelölt poláris void-kapu. EN: campaign polar launch port for guarded departures. LAT: Portus Wyverin.",
+    "mariana-gorge": "HU: Mariana Gorge a régi Mariana-árok kiszáradt emléke. EN: oceanic scar preserved as dry abyss. LAT: Fossa Mariana.",
+    "phalanx-anchor": "HU: Praesidium Phalanx: a Phalanx mint védelmi jelenlét, nem felszíni város. EN: orbital bastion marker. LAT: Praesidium Phalanx.",
+    "orbital-plate-network": "HU: Corona Defensionis Terrae: Terra körüli védelmi korona. EN: dock, gun, shield, and traffic shell. LAT: Corona Defensionis Terrae.",
+    "luna-somnus-citadel": "HU: Somnus az alvás, csend és lezárás neve. EN: a silent fortress for the Silent Sisterhood. LAT: Arx Somni.",
+    "luna-port-luna": "HU: Luna kikötője, Terra legközelebbi hadikapuja. EN: naval station and shipyard-moon in one name. LAT: Portus Lunae.",
+    "luna-circuit-ring": "HU: Circuit és Ring két külön holdi név, itt stratégiai összevont jelölés. EN: valley-circuit below, defence-ring above. LAT: Circuitus Lunae.",
+    "luna-selenar-gene-labs": "HU: Selenar a holdi génkultok neve; Herodotus Omega a zárt dóm/vault jelölés. EN: creation laboratories below the old moon. LAT: Laboratoria Selenarum."
   },
   notableById: {
-    "imperial-palace": [{ name: "The Emperor of Mankind", role: "sovereign presence at the heart of Terra" }, { name: "Adeptus Custodes", role: "primary guardians of the Palace" }],
-    "golden-throne": [{ name: "The Emperor of Mankind", role: "enthroned master of mankind" }, { name: "Adeptus Mechanicus", role: "maintenance rites and impossible repair burdens" }],
-    "astronomican": [{ name: "Adeptus Astronomica", role: "operators and wardens of the psychic beacon" }, { name: "Master of the Astronomican", role: "High Lord office tied to the beacon" }],
-    "senatorum-imperialis": [{ name: "High Lords of Terra", role: "ruling council of the Imperium" }, { name: "Roboute Guilliman", role: "Imperial Regent in the current era" }],
-    "adeptus-custodes-bastion": [{ name: "Captain-General Trajann Valoris", role: "modern commander of the Adeptus Custodes" }, { name: "Shield-Captains", role: "Palace defence command cadres" }],
-    "fortress-inquisition": [{ name: "The Castellan", role: "rotating annual overseer of the polar fortress" }, { name: "Ordo conclaves", role: "sealed cells, null fields, and prisoner handling" }],
-    "navigator-quarter": [{ name: "Navis Nobilite houses", role: "Navigator dynasties and warp-route custodians" }, { name: "House Belisarius liaison factors", role: "Terran noble-warp diplomacy" }],
-    "hall-of-judgement": [{ name: "Adeptus Arbites", role: "Imperial law enforcement and judgement authority" }, { name: "Lord Marshal's docket courts", role: "warrants, sentences, and planetary-scale precedent" }],
+    "imperial-palace": [{ name: "The Emperor of Mankind", role: "enthroned sovereign and sacred centre of Terra" }, { name: "Adeptus Custodes", role: "primary guardians of the Palace and Sanctum Imperialis" }],
+    "golden-throne": [{ name: "The Emperor of Mankind", role: "kept alive upon the Throne and bound to Terra's survival" }, { name: "Adeptus Mechanicus throne adepts", role: "maintenance rites, life-support burdens, and failing sacred machinery" }],
+    "astronomican": [{ name: "Adeptus Astronomica", role: "institution responsible for the psychic beacon and its sacrifices" }, { name: "Master of the Astronomican", role: "High Lord office overseeing the beacon's operation" }],
+    "forbidden-fortress": [{ name: "Adeptus Astronomica", role: "masters of the Hollow Mountain complex" }, { name: "The Chosen", role: "psykers consumed in the beacon's operation" }],
+    "lions-gate-spaceport": [{ name: "Palace defence command", role: "spaceport security and siege-time traffic control" }, { name: "Imperial Army and void-lift crews", role: "movement of personnel, materiel, and orbital cargo" }],
+    "eternity-gate": [{ name: "Sanguinius", role: "Heresy-era defender remembered at the gate" }, { name: "Adeptus Custodes", role: "guardians of the inner Palace threshold" }],
+    "senatorum-imperialis": [{ name: "High Lords of Terra", role: "ruling council of the Imperium" }, { name: "Roboute Guilliman", role: "Imperial Regent whose return reshaped Terran politics" }],
+    "adeptus-custodes-bastion": [{ name: "Captain-General Trajann Valoris", role: "modern commander of the Adeptus Custodes" }, { name: "Companions", role: "Custodes assigned closest to the Emperor's presence" }],
+    "adeptus-administratum": [{ name: "Adeptus Administratum", role: "bureaucratic engine of Imperial tithe, census, and decree" }, { name: "Master of the Administratum", role: "High Lord office tied to Imperial bureaucracy" }],
+    "ecclesiarchal-palace": [{ name: "Adeptus Ministorum", role: "Imperial Cult authority and shrine administration" }, { name: "Ecclesiarch", role: "High Lord and supreme priest of the Imperial Creed" }],
+    "petitioner-city": [{ name: "Adeptus Terra clerks", role: "petition routing, audience control, and stamp authority" }, { name: "Pilgrim families", role: "multi-generation seekers of judgement and access" }],
+    "merica-hive-belt": [{ name: "Terran hive prefectures", role: "regional tithe, labour, and civil control" }, { name: "Munitorum levy factors", role: "manpower extraction and supply accounting" }],
+    "europa-cardinal-bastions": [{ name: "Adeptus Ministorum cardinals", role: "regional shrine and doctrine authority" }, { name: "Local hive prefectures", role: "hab order, pilgrim control, and tithe enforcement" }],
+    "fortress-inquisition": [{ name: "The Castellan", role: "annually rotating overseer of the polar fortress" }, { name: "Ordo conclaves", role: "sealed cells, null fields, interrogation, and prisoner handling" }],
+    "navigator-quarter": [{ name: "Navis Nobilite houses", role: "Navigator dynasties and warp-route custodians" }, { name: "Paternova's agents", role: "noble-house influence, breeding politics, and Terran representation" }],
+    "skhallax-city": [{ name: "Terran hive-mining combines", role: "campaign extraction authority and labour control" }, { name: "Munitorum tithe factors", role: "ore quotas, furnace output, and military allocation" }],
+    "hall-of-judgement": [{ name: "Grand Provost Marshal", role: "High Lord office and leader of the Adeptus Arbites, seated from the Hall of Judgement" }, { name: "Adeptus Arbites", role: "Imperial law enforcement, warrants, evidence crypts, and planetary-scale precedent" }],
     "white-mountain-prison": [{ name: "Inquisitorial gaol-wardens", role: "black-site custody and memory-sealed transfer" }, { name: "Null cadre", role: "anti-psyker containment and silence protocols" }],
-    "phalanx-anchor": [{ name: "Imperial Fists", role: "Chapter bound to Terra's defence traditions" }, { name: "Phalanx", role: "mobile fortress monastery and void bastion" }]
+    "wyverin-space-port": [{ name: "Imperial Navy traffic officers", role: "campaign polar launch scheduling and void clearance" }, { name: "Palace customs provosts", role: "sealed cargo inspection and pilgrim-route interdiction" }],
+    "mariana-gorge": [{ name: "Terran heritage wardens", role: "campaign guardians of the abyssal scar and sealed galleries" }, { name: "Depth-fortress commanders", role: "military control of gorge approaches" }],
+    "phalanx-anchor": [{ name: "Imperial Fists", role: "Chapter bound to Terra's defence traditions" }, { name: "Phalanx", role: "mobile fortress-monastery and void bastion" }],
+    "orbital-plate-network": [{ name: "Battlefleet Solar", role: "void defence, traffic interdiction, and orbital command" }, { name: "Palace defence platforms", role: "guns, shields, docks, and execution authority above Terra" }],
+    "luna-somnus-citadel": [{ name: "Sisters of Silence", role: "restored garrison and anti-psyker authority" }, { name: "Roboute Guilliman", role: "restorer of the Citadel after the Terran Crusade" }],
+    "luna-port-luna": [{ name: "Battlefleet Sol", role: "naval defence and shipyard command" }, { name: "Port Luna voidmasters", role: "dock, yard, and defence-ring traffic authority" }],
+    "luna-circuit-ring": [{ name: "Lunar defence commands", role: "coordination of The Circuit and The Ring" }, { name: "Battlefleet Sol sentry crews", role: "lance, torpedo, and macrocannon platform watch" }],
+    "luna-selenar-gene-labs": [{ name: "Selenar gene-cults", role: "ancient lunar gene-tech custodians" }, { name: "Ta'lab Vita-37", role: "Selenar matriarch tied to the Magna Mater legacy" }]
   },
   locations: [
     {
@@ -150,11 +284,12 @@ window.PLANET_RPG_DATA = {
       lon: 268.1,
       coordinateConfidence: "approximate: Himalazia palace zone",
       layer: "palace",
+      layers: ["palace", "military"],
       faction: "Adeptus Terra / Imperial Household",
       status: "M41/M42 active throneworld command core",
       loreConfidence: "Verified: Lexicanum Terra, Imperial Palace",
       sourceKeys: ["lexicanumTerra", "lexicanumPalace"],
-      text: "The Imperial Palace is a continent-scale fortress-city across the Himalazia. It is command centre, shrine-world heart, and final defensive machine of the Imperium."
+      text: "The Imperial Palace is not a residence but a continent-scale fortress-hive across the Himalazia. It houses the Sanctum Imperialis, the Adeptus Terra's central machinery, and the Imperium's final defensive heart."
     },
     {
       id: "golden-throne",
@@ -165,12 +300,13 @@ window.PLANET_RPG_DATA = {
       lon: 273.03,
       coordinateConfidence: "classified: Palace interior approximation",
       layer: "throne",
+      layers: ["throne", "palace"],
       faction: "Adeptus Custodes / Mechanicus throne adepts",
       status: "M41/M42 active and failing sacred machine",
       loreConfidence: "Verified: Lexicanum Golden Throne, Terra",
       sourceKeys: ["lexicanumGoldenThrone", "lexicanumTerra"],
       classified: true,
-      text: "The Golden Throne is Terra's most sacred and forbidden machine-sanctum. Access is not travel; it is a chain of seals, authority tests, and lethal guardianship."
+      text: "The Golden Throne sustains the Emperor's body, seals the failed Webway gate, and anchors the Astronomican's direction. Access to it is a chain of wards, Custodes authority, Mechanicus rites, and lethal exclusion."
     },
     {
       id: "astronomican",
@@ -181,11 +317,12 @@ window.PLANET_RPG_DATA = {
       lon: 277.5,
       coordinateConfidence: "approximate: Himalazia beacon complex",
       layer: "throne",
+      layers: ["throne", "orbital"],
       faction: "Adeptus Astronomica",
       status: "M41/M42 active psychic navigation beacon",
       loreConfidence: "Verified: Lexicanum Astronomican, Forbidden Fortress",
       sourceKeys: ["lexicanumAstronomican", "lexicanumForbiddenFortress"],
-      text: "The Astronomican is the psychic lighthouse by which Imperial ships navigate the warp. Around it, sacrifice, machine maintenance, and doctrine become one operating rhythm."
+      text: "The Astronomican is the psychic beacon Navigators use to cross the warp. Its Chosen burn out in the Chamber of the Astronomican while the Emperor's will directs their light across the Imperium."
     },
     {
       id: "forbidden-fortress",
@@ -196,12 +333,13 @@ window.PLANET_RPG_DATA = {
       lon: 281.2,
       coordinateConfidence: "approximate: remote Himalazia complex",
       layer: "throne",
+      layers: ["throne", "palace"],
       faction: "Adeptus Astronomica",
       status: "M41/M42 restricted beacon fortress",
       loreConfidence: "Verified: Lexicanum Forbidden Fortress",
       sourceKeys: ["lexicanumForbiddenFortress"],
       classified: true,
-      text: "The Forbidden Fortress is the secret mountain complex of the Adeptus Astronomica. Outside it remains stone; inside it becomes chamber, conduit, and sealed psychic engine."
+      text: "The Forbidden Fortress, or Hollow Mountain, is the Himalazian fortress of the Adeptus Astronomica. Its carved peak and sealed depths house the machinery, chambers, and sacrifice that feed the beacon."
     },
     {
       id: "lions-gate-spaceport",
@@ -212,11 +350,12 @@ window.PLANET_RPG_DATA = {
       lon: 258.55,
       coordinateConfidence: "approximate: Palace outer/inner gate interface",
       layer: "transit",
+      layers: ["transit", "military"],
       faction: "Imperial Palace traffic authority",
       status: "M41/M42 active major spaceport",
       loreConfidence: "Verified: Lexicanum Lion's Gate Spaceport",
       sourceKeys: ["lexicanumLionsGate", "lexicanumPalace"],
-      text: "Lion's Gate Spaceport is a major Palace transport hub with surface, atmospheric, and void traffic capacity. Its towers and elevators move the lifeblood of the Throneworld."
+      text: "Lion's Gate Spaceport is the Palace's great transport artery, linking surface precincts, high atmosphere, and orbital traffic. In war it becomes gate, fortress, and battlefield at once."
     },
     {
       id: "eternity-gate",
@@ -227,11 +366,12 @@ window.PLANET_RPG_DATA = {
       lon: 273.15,
       coordinateConfidence: "approximate: Palace inner sanctum gate",
       layer: "palace",
+      layers: ["palace", "military", "throne"],
       faction: "Adeptus Custodes",
       status: "M41/M42 active sacred gate",
       loreConfidence: "Referenced in Terra and Palace siege records",
       sourceKeys: ["lexicanumTerra", "lexicanumPalace"],
-      text: "The Eternity Gate is one of the final names in any route toward the inner sanctums. Pilgrimage, siege, and judgement narrow into a single defended threshold."
+      text: "The Eternity Gate is the great threshold of the Inner Palace and the end point of countless pilgrim dreams. In siege records it is not only a door, but the line before the Sanctum Imperialis."
     },
     {
       id: "senatorum-imperialis",
@@ -242,11 +382,12 @@ window.PLANET_RPG_DATA = {
       lon: 280.28,
       coordinateConfidence: "approximate: Imperial Palace governance district",
       layer: "admin",
+      layers: ["admin", "palace"],
       faction: "High Lords of Terra",
       status: "M41/M42 active Imperial ruling chamber",
       loreConfidence: "Verified: Lexicanum Senatorum Imperialis",
       sourceKeys: ["lexicanumSenatorum", "lexicanumTerra"],
-      text: "The Senatorum Imperialis is the political heart of the High Lords. Decisions born here become tithes, crusades, pardons, and death warrants across the Imperium."
+      text: "The Great Chamber of the Senatorum Imperialis is where the High Lords turn crisis into edict. Its votes become tithes, crusades, purges, pardons, and death warrants across human space."
     },
     {
       id: "adeptus-custodes-bastion",
@@ -257,11 +398,12 @@ window.PLANET_RPG_DATA = {
       lon: 268.0,
       coordinateConfidence: "approximate: Palace defence district",
       layer: "military",
+      layers: ["military", "palace"],
       faction: "Adeptus Custodes",
       status: "M41/M42 active elite defence node",
       loreConfidence: "Verified: Lexicanum Adeptus Custodes, Terra",
       sourceKeys: ["lexicanumCustodes", "lexicanumTerra"],
-      text: "This bastion represents the Custodes watch over the Palace. Its protocols are not garrison routines; they are the grammar of the Emperor's final defence."
+      text: "This bastion represents the Custodes watch over the Palace, from outer walls to hidden cells. Its protocols are older than most Imperial institutions and exist for one duty: the Emperor's defence."
     },
     {
       id: "adeptus-administratum",
@@ -272,11 +414,12 @@ window.PLANET_RPG_DATA = {
       lon: 130.1,
       coordinateConfidence: "approximate: Palace bureaucratic sprawl",
       layer: "admin",
+      layers: ["admin", "hives"],
       faction: "Adeptus Administratum",
       status: "M41/M42 active Imperial bureaucracy",
       loreConfidence: "Verified headquarters context: Lexicanum Terra",
       sourceKeys: ["lexicanumTerra", "lexicanumSenatorum"],
-      text: "The Administratum halls are Terra's bureaucratic nervous system. A lost docket here can become a famine, a delayed regiment, or a forgotten world's extinction."
+      text: "The Administratum record halls are Terra's bureaucratic nervous system. Petitions, tithes, census rolls, war demands, and contradictory decrees pass through archives large enough to bury worlds in delay."
     },
     {
       id: "ecclesiarchal-palace",
@@ -287,11 +430,12 @@ window.PLANET_RPG_DATA = {
       lon: 347.5,
       coordinateConfidence: "symbolic approximation: ancient Roma precinct",
       layer: "faith",
+      layers: ["faith", "admin"],
       faction: "Adeptus Ministorum",
       status: "M41/M42 active religious power node",
       loreConfidence: "Institution verified: Terra and Senatorum context",
       sourceKeys: ["lexicanumTerra", "lexicanumSenatorum"],
-      text: "The Ecclesiarchal precinct is a pressure engine of faith, office, and spectacle. Pilgrims, confessors, shrine writs, and political sermons compress into one holy apparatus."
+      text: "This Terran synod precinct marks the Ministorum's shrine and court presence on Holy Terra. Faith here is administration as much as worship: sermons, indulgences, relic claims, pilgrim law, and political pressure."
     },
     {
       id: "petitioner-city",
@@ -306,7 +450,7 @@ window.PLANET_RPG_DATA = {
       status: "M41/M42 active waiting-city",
       loreConfidence: "Terra pilgrim context, cartographic approximation",
       sourceKeys: ["lexicanumTerra", "lexicanumPalace"],
-      text: "Petitioner City is the settlement of waiting that grows in the Palace shadow. Generations can be born, petition, and die before an audience, seal, or refusal arrives."
+      text: "Petitioner's City is the waiting-sprawl at the edge of Imperial authority. Families can spend generations pursuing a stamp, audience, absolution, or judgement that may never arrive."
     },
     {
       id: "merica-hive-belt",
@@ -321,7 +465,7 @@ window.PLANET_RPG_DATA = {
       status: "M41/M42 active hive and tithe belt",
       loreConfidence: "Old Terra name verified in Lexicanum Terra",
       sourceKeys: ["lexicanumTerra"],
-      text: "Merica survives as an Imperial distortion of an ancient name. Its hive belts feed the Throneworld with people, petitions, levy bodies, and endless material demand."
+      text: "Merica is an ancient Terran name preserved through Imperial distortion. Its hive belts are treated here as tithe engines: manpower, petitions, pilgrim bodies, and industrial demand moving toward the Palace."
     },
     {
       id: "europa-cardinal-bastions",
@@ -332,11 +476,12 @@ window.PLANET_RPG_DATA = {
       lon: 351.8,
       coordinateConfidence: "approximate: ancient Europa continental zone",
       layer: "faith",
+      layers: ["faith", "hives"],
       faction: "Adeptus Ministorum / local hive prefectures",
       status: "M41/M42 active shrine-hive region",
       loreConfidence: "Old Terra name verified in Lexicanum Terra",
       sourceKeys: ["lexicanumTerra"],
-      text: "Europa is an old continental name buried beneath shrine-hives, cardinal courts, relic vaults, and disciplined hab sectors that serve Terra's ritual economy."
+      text: "Europa is an old continental name under layers of shrine-hive, hab block, and noble office. This marker frames the region as a Ministorum-heavy bastion network serving Terra's ritual economy."
     },
     {
       id: "fortress-inquisition",
@@ -352,7 +497,7 @@ window.PLANET_RPG_DATA = {
       loreConfidence: "Verified location: Lexicanum Terra; polar placement from Terra geography",
       sourceKeys: ["lexicanumTerra", "lexicanumTerraGeography", "lexicanumInquisition"],
       classified: true,
-      text: "The Fortress of the Inquisition is a vast complex beneath the south polar ice caps. Its wards, null-fields, and psyker-dampening engines make it less a building than a sealed verdict."
+      text: "The Fortress of the Inquisition is a vast underground complex beneath the south polar ice. Wards, null-fields, psyker-dampening engines, prisoners, and rotating Castellans make it a headquarters and a sentence."
     },
     {
       id: "navigator-quarter",
@@ -363,11 +508,12 @@ window.PLANET_RPG_DATA = {
       lon: 226.5,
       coordinateConfidence: "campaign placement: Oz-Tralla / ancient Australia",
       layer: "transit",
+      layers: ["transit"],
       faction: "Navis Nobilite",
-      status: "M41/M42 active Navigator ghetto and noble enclave",
+      status: "M41/M42 active Navigator noble enclave and sealed quarter",
       loreConfidence: "Verified location name: Lexicanum Terra; Oz-Tralla placement from Terra geography",
       sourceKeys: ["lexicanumTerra", "lexicanumTerraGeography", "lexicanumNavisNobilite"],
-      text: "The Navigator's Quarter is the mutant nobility's sealed island enclave: manor-spires, gene-ledgers, marriage vaults, and warp-route secrets guarded behind silk, law, and armed retainers."
+      text: "The Navigator's Quarter is the Navis Nobilite's massive-island enclave. Manor-spires, gene-ledgers, marriage contracts, and warp-route privileges are guarded behind noble law, household troops, and sanctioned mutation."
     },
     {
       id: "skhallax-city",
@@ -382,7 +528,7 @@ window.PLANET_RPG_DATA = {
       status: "M41/M42 active extraction hive",
       loreConfidence: "Campaign location grounded in Lexicanum Terra Afrik region and mineral-rich placement",
       sourceKeys: ["lexicanumTerra", "lexicanumTerraGeography"],
-      text: "Skhallax City is a hive-mining knot sunk into old Afrik's mineral belt. Deep elevators, tithe furnaces, and shrine-foundries turn buried ore into Palace demand."
+      text: "Skhallax City is a campaign hive-mining knot placed in old Afrik's resource belt. Deep elevators, tithe furnaces, and shrine-foundries turn buried ore into Palace supply and Munitorum obligation."
     },
     {
       id: "hall-of-judgement",
@@ -393,11 +539,12 @@ window.PLANET_RPG_DATA = {
       lon: 74.0,
       coordinateConfidence: "campaign placement: Neork / ancient New York",
       layer: "admin",
+      layers: ["admin"],
       faction: "Adeptus Arbites",
       status: "M41/M42 active Arbites headquarters",
       loreConfidence: "Verified location name and Arbites role: Lexicanum Terra and Adeptus Arbites",
       sourceKeys: ["lexicanumTerra", "lexicanumTerraGeography", "lexicanumArbites"],
-      text: "The Hall of Judgement is the Terran heart of Imperial law. Its precincts store warrants older than dynasties and sentences broad enough to condemn cities, cults, and planetary offices."
+      text: "The Hall of Judgement is the Terran seat of the Adeptus Arbites. Its precincts hold warrants older than dynasties and rulings broad enough to condemn cities, cults, noble houses, and planetary offices."
     },
     {
       id: "white-mountain-prison",
@@ -414,7 +561,7 @@ window.PLANET_RPG_DATA = {
       sourceKeys: ["lexicanumTerra", "lexicanumTerraGeography", "lexicanumInquisition"],
       classified: true,
       traitorSensitive: true,
-      text: "White Mountain is a name used only on sealed internal maps: a polar prison-spur where important prisoners are not executed, not released, and not permitted to remain historically convenient."
+      text: "White Mountain is a campaign black-site attached to the south polar Inquisition complex: a prison-spur for prisoners too useful to execute, too dangerous to expose, and too politically charged to admit."
     },
     {
       id: "wyverin-space-port",
@@ -425,11 +572,12 @@ window.PLANET_RPG_DATA = {
       lon: 340.0,
       coordinateConfidence: "campaign placement: north polar launch region",
       layer: "transit",
+      layers: ["transit"],
       faction: "Imperial Navy / Palace traffic commands",
       status: "M41/M42 active polar spaceport",
       loreConfidence: "Campaign spaceport placed in Terra's polar traffic network",
       sourceKeys: ["lexicanumTerra", "lexicanumTerraGeography"],
-      text: "Wyverin Space Port is a northern polar void-gate: launch caissons, cold-weather lift gantries, and defence rails arranged for guarded departures outside the Palace corridors."
+      text: "Wyverin Space Port is a campaign northern polar void-gate. Its launch caissons, cold lift gantries, and defence rails handle guarded departures that must avoid the Palace's main transit arteries."
     },
     {
       id: "mariana-gorge",
@@ -439,12 +587,12 @@ window.PLANET_RPG_DATA = {
       lat: 11.35,
       lon: 217.8,
       coordinateConfidence: "approximate: ancient Mariana Trench region",
-      layer: "military",
+      layer: "admin",
       faction: "Terran heritage wardens / sealed depth authorities",
       status: "M41/M42 restricted abyssal heritage and defence zone",
       loreConfidence: "Verified region name: Lexicanum Terra geography",
       sourceKeys: ["lexicanumTerraGeography"],
-      text: "Mariana Gorge preserves the scar of the old Mariana Trench as a dry abyss. Thousand-metre cliff sculptures of forgotten kings overlook sealed galleries and depth-fortified approaches."
+      text: "Mariana Gorge is the campaign form of the old Mariana Trench after Terra's oceans vanished: a dry abyss, heritage wound, sealed approach, and depth-fortified military corridor."
     },
     {
       id: "phalanx-anchor",
@@ -455,11 +603,12 @@ window.PLANET_RPG_DATA = {
       lon: 320,
       coordinateConfidence: "orbital: representative station longitude",
       layer: "orbital",
+      layers: ["orbital", "military"],
       faction: "Imperial Fists",
       status: "mobile orbital fortress, strategic Terra defence asset",
       loreConfidence: "Verified: Lexicanum Phalanx, Terra defence context",
       sourceKeys: ["lexicanumPhalanx", "lexicanumTerra"],
-      text: "The Phalanx anchor is a strategic overlay for the fortress-monastery's Terran defence role. It marks the fact that the sky over Terra is never empty."
+      text: "The Phalanx anchor is an orbital overlay for the Imperial Fists' fortress-monastery and its role in Terra's defence. It marks a mobile bastion, not a fixed city on the surface."
     },
     {
       id: "orbital-plate-network",
@@ -470,11 +619,12 @@ window.PLANET_RPG_DATA = {
       lon: 180,
       coordinateConfidence: "orbital equatorial defence band",
       layer: "orbital",
+      layers: ["orbital", "military"],
       faction: "Imperial Navy / Palace defence commands",
       status: "M41/M42 active orbital defence and traffic shell",
       loreConfidence: "Terra orbital defence context, campaign abstraction",
       sourceKeys: ["lexicanumTerra"],
-      text: "The orbital plate network is a campaign abstraction for Terra's void shield, gun, dock, and traffic shell. It is armour, customs office, and execution platform in orbit."
+      text: "The orbital plate network is a campaign abstraction for Terra's old orbital cities, defence platforms, dock structures, and traffic shell. It is armour, customs office, and execution platform above the Throneworld."
     }
   ]
 };

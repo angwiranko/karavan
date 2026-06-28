@@ -37,6 +37,7 @@
   const clock = new THREE.Clock();
   const appName = data.appName || "Mars Cogitator Map";
   const classifiedStorageKey = data.classifiedStorageKey || "mars-classified-unlocked";
+  const supportsWebpTextures = detectWebpSupport();
   const defaultHungarianTextById = {
     "olympus-mons": "A Nagy Hegy Sacred Mars legszentebb tengelye: kohóváros, trón-templom és a Fabricator-General székhelye. A hatalom liturgiái binharikus mennydörgésként gördülnek végig oldalain.",
     "temple-all-knowledge": "A Machine Cult tudásának hatalmas és ősi tárháza. Minden új felfedezést ennek oltárán ajánlanak fel, ahol dugattyú-páncéltermek és nooszférikus kórusok őrzik a vas emlékezetét.",
@@ -142,6 +143,7 @@
   let globeGroup;
   let markerGroup;
   let structureGroup;
+  let moonWidget = null;
   const pulsingStructures = [];
   const hungarianTextById = data.hungarianTextById || defaultHungarianTextById;
   const etymologyById = data.etymologyById || defaultEtymologyById;
@@ -150,6 +152,7 @@
   let selectedLocation = data.locations[0];
   let classifiedUnlocked = sessionStorage.getItem(classifiedStorageKey) === "true";
   let cameraFocusAnimation = null;
+  let moonFocusAnimation = null;
   const CAMERA_FOCUS_DURATION = 1.2;
   let width = window.innerWidth;
   let height = window.innerHeight;
@@ -208,6 +211,7 @@
     createPatterns();
     createMarkersAndLabels();
     createStructures();
+    createMoonWidget();
     globeGroup.add(markerGroup);
     globeGroup.add(structureGroup);
 
@@ -282,14 +286,292 @@
   }
 
   function loadGlobeTexture(path) {
-    const texture = THREE.ImageUtils.loadTexture(path, undefined, function (loadedTexture) {
-      loadedTexture.anisotropy = renderer.getMaxAnisotropy();
+    return loadSceneTexture(path, renderer, function () {
       if (globe && globe.material) {
         globe.material.needsUpdate = true;
       }
     });
-    texture.anisotropy = renderer.getMaxAnisotropy();
+  }
+
+  function loadSceneTexture(path, targetRenderer, onLoad) {
+    const resolvedPath = resolveTextureSource(path);
+    const texture = THREE.ImageUtils.loadTexture(resolvedPath, undefined, function (loadedTexture) {
+      loadedTexture.anisotropy = targetRenderer.getMaxAnisotropy();
+      if (onLoad) onLoad(loadedTexture);
+    });
+    texture.anisotropy = targetRenderer.getMaxAnisotropy();
     return texture;
+  }
+
+  function resolveTextureSource(textureConfig) {
+    if (!textureConfig || typeof textureConfig === "string") return textureConfig;
+    if (supportsWebpTextures && textureConfig.webp) return textureConfig.webp;
+    return textureConfig.fallback || textureConfig.src || textureConfig.png || textureConfig.webp;
+  }
+
+  function detectWebpSupport() {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1;
+      canvas.height = 1;
+      return canvas.toDataURL("image/webp").indexOf("data:image/webp") === 0;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function createMoonWidget() {
+    if (!data.moon || !data.moon.locations || !data.moon.locations.length) return;
+
+    ensureMoonWidgetStyles();
+
+    const container = document.createElement("section");
+    container.className = "moon-widget";
+    container.setAttribute("aria-label", data.moon.title || "Luna Cogitator");
+
+    const header = document.createElement("div");
+    header.className = "moon-widget-header";
+    header.innerHTML = `
+      <span>${escapeHtml(data.moon.title || "Luna Cogitator")}</span>
+      <small>${escapeHtml(data.moon.subtitle || "Terra satellite")}</small>
+    `;
+
+    const viewport = document.createElement("div");
+    viewport.className = "moon-widget-viewport";
+    const moonLabelLayer = document.createElement("div");
+    moonLabelLayer.className = "moon-label-layer";
+
+    container.appendChild(header);
+    container.appendChild(viewport);
+    viewport.appendChild(moonLabelLayer);
+    document.body.appendChild(container);
+
+    const moonScene = new THREE.Scene();
+    const moonCamera = new THREE.PerspectiveCamera(34, 1, 0.01, 80);
+    moonCamera.position.set(0.12, -4.15, 1.35);
+    moonCamera.up.set(0, 0, 1);
+
+    const moonRenderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2)
+    });
+    moonRenderer.setClearColor(0x000000, 0);
+    viewport.insertBefore(moonRenderer.domElement, moonLabelLayer);
+
+    const moonControls = new THREE.TrackballControls(moonCamera, moonRenderer.domElement);
+    moonControls.rotateSpeed = 2.2;
+    moonControls.zoomSpeed = 0.75;
+    moonControls.panSpeed = 0.08;
+    moonControls.noPan = true;
+    moonControls.staticMoving = false;
+    moonControls.dynamicDampingFactor = 0.12;
+    moonControls.minDistance = 2.15;
+    moonControls.maxDistance = 6.4;
+
+    const moonConfig = data.moon.material || {};
+    moonScene.add(new THREE.AmbientLight(moonConfig.ambientLight || 0x22252d));
+    const moonSun = new THREE.DirectionalLight(
+      moonConfig.sunColor || 0xd9e6ff,
+      moonConfig.sunIntensity === undefined ? 1.45 : moonConfig.sunIntensity
+    );
+    moonSun.position.set(2.5, -3.1, 2.2);
+    moonScene.add(moonSun);
+
+    const moonGroup = new THREE.Object3D();
+    const moonMarkerGroup = new THREE.Object3D();
+    moonScene.add(moonGroup);
+
+    const moonRadius = 1;
+    const moonTextures = data.moon.textures || {};
+    const moonMaterial = new THREE.MeshPhongMaterial({
+      color: 0xffffff,
+      ambient: moonConfig.ambient === undefined ? 0x7c7f88 : moonConfig.ambient,
+      emissive: moonConfig.emissive === undefined ? 0x010203 : moonConfig.emissive,
+      specular: moonConfig.specular === undefined ? 0x141a22 : moonConfig.specular,
+      shininess: moonConfig.shininess === undefined ? 9 : moonConfig.shininess,
+      bumpScale: moonConfig.bumpScale === undefined ? 0.035 : moonConfig.bumpScale,
+      normalScale: moonConfig.normalScale ? new THREE.Vector2(moonConfig.normalScale, moonConfig.normalScale) : new THREE.Vector2(2, 2)
+    });
+    if (moonTextures.colorMap) {
+      moonMaterial.map = loadSceneTexture(moonTextures.colorMap, moonRenderer, function () {
+        moonMaterial.needsUpdate = true;
+      });
+    }
+    if (moonTextures.bumpMap) {
+      moonMaterial.bumpMap = loadSceneTexture(moonTextures.bumpMap, moonRenderer, function () {
+        moonMaterial.needsUpdate = true;
+      });
+    }
+    if (moonTextures.normalMap) {
+      moonMaterial.normalMap = loadSceneTexture(moonTextures.normalMap, moonRenderer, function () {
+        moonMaterial.needsUpdate = true;
+      });
+    }
+
+    const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(moonRadius, 96, 64), moonMaterial);
+    moonMesh.rotateX(Math.PI / 2);
+    moonGroup.add(moonMesh);
+
+    const moonHalo = new THREE.Mesh(
+      new THREE.SphereGeometry(moonRadius * 1.035, 72, 40),
+      new THREE.MeshBasicMaterial({
+        color: moonConfig.haloColor || 0x9fc7ff,
+        transparent: true,
+        opacity: moonConfig.haloOpacity === undefined ? 0.07 : moonConfig.haloOpacity,
+        side: THREE.BackSide,
+        blending: THREE.AdditiveBlending
+      })
+    );
+    moonGroup.add(moonHalo);
+
+    const labels = new Map();
+    const markers = new Map();
+    data.moon.locations.forEach((location) => {
+      const marker = new THREE.Particle(makeMarkerMaterial(location));
+      marker.position.copy(latLonToVector(location.lat, location.lon, moonRadius * 1.07));
+      marker.scale.set(0.09, 0.09, 0.09);
+      marker.userData.locationId = location.id;
+      markers.set(location.id, marker);
+      moonMarkerGroup.add(marker);
+
+      const label = document.createElement("button");
+      label.type = "button";
+      label.className = "map-label moon-map-label";
+      label.dataset.locationId = location.id;
+      label.textContent = location.shortName || location.name;
+      label.addEventListener("click", () => selectMoonLocation(location.id));
+      labels.set(location.id, label);
+      moonLabelLayer.appendChild(label);
+    });
+    moonGroup.add(moonMarkerGroup);
+
+    moonRenderer.domElement.addEventListener("click", handleMoonCanvasClick);
+
+    moonWidget = {
+      container,
+      viewport,
+      labelLayer: moonLabelLayer,
+      scene: moonScene,
+      camera: moonCamera,
+      renderer: moonRenderer,
+      controls: moonControls,
+      group: moonGroup,
+      mesh: moonMesh,
+      markerGroup: moonMarkerGroup,
+      labels,
+      markers,
+      locations: data.moon.locations,
+      pointer: new THREE.Vector2(),
+      projector: new THREE.Projector(),
+      width: 0,
+      height: 0
+    };
+
+    resizeMoonWidget();
+  }
+
+  function ensureMoonWidgetStyles() {
+    if (document.getElementById("moon-widget-style")) return;
+
+    const style = document.createElement("style");
+    style.id = "moon-widget-style";
+    style.textContent = `
+      .moon-widget {
+        position: fixed;
+        right: 386px;
+        bottom: 44px;
+        width: 300px;
+        height: 300px;
+        z-index: 6;
+        pointer-events: auto;
+        border: 0px solid rgba(120, 198, 200, 0.38);
+        background: radial-gradient(circle at 48% 42%, rgba(25, 38, 47, 0.01), rgba(2, 7, 9, 0.02) 62%, rgba(0, 0, 0, 0.01));
+        box-shadow: 0 0 0px rgba(90, 205, 220, 0.12), inset 0 0 0px rgba(120, 198, 200, 0.08);
+        overflow: hidden;
+      }
+
+      .moon-widget-header {
+        position: absolute;
+        left: 10px;
+        top: 8px;
+        z-index: 3;
+        display: grid;
+        gap: 2px;
+        color: #8fe4e8;
+        text-transform: uppercase;
+        letter-spacing: 0;
+        text-shadow: 0 0 10px rgba(80, 220, 230, 0.35);
+        pointer-events: none;
+      }
+
+      .moon-widget-header span {
+        font-family: Orbitron, sans-serif;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .moon-widget-header small {
+        max-width: 180px;
+        color: rgba(195, 232, 235, 0.64);
+        font-size: 8px;
+        line-height: 1.3;
+      }
+
+      .moon-widget-viewport,
+      .moon-widget canvas,
+      .moon-label-layer {
+        position: absolute;
+        inset: 0;
+      }
+
+      .moon-widget canvas {
+        width: 100%;
+        height: 100%;
+        cursor: grab;
+      }
+
+      .moon-widget canvas:active {
+        cursor: grabbing;
+      }
+
+      .moon-label-layer {
+        pointer-events: none;
+      }
+
+      .moon-map-label {
+        font-size: 8px;
+        padding: 3px 6px;
+        max-width: 104px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        pointer-events: auto;
+      }
+
+      @media (max-width: 1180px) {
+        .moon-widget {
+          right: 18px;
+          bottom: 52px;
+          width: 232px;
+          height: 232px;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .moon-widget {
+          width: 178px;
+          height: 178px;
+          right: 12px;
+          bottom: 46px;
+        }
+
+        .moon-widget-header small {
+          display: none;
+        }
+      }
+    `;
+    document.head.appendChild(style);
   }
 
   function createGlobeMaterial(textures, materialConfig) {
@@ -664,7 +946,7 @@
   }
 
   function makeMarkerMaterial(location) {
-    const color = location.classified || location.traitorSensitive ? "#8b2500" : layerColors.get(location.layer) || "#c5a844";
+    const color = location.classified || location.traitorSensitive ? "#8b2500" : layerColors.get(primaryLayerId(location)) || "#c5a844";
     const canvas = document.createElement("canvas");
     canvas.width = 96;
     canvas.height = 96;
@@ -719,19 +1001,28 @@
 
   function buildLocationList() {
     data.locations.forEach((location) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "location-chip";
-      button.dataset.locationId = location.id;
-      button.dataset.layerId = location.layer;
-      button.innerHTML = `
-        <span class="chip-name">${escapeHtml(location.shortName || location.name)}</span>
-        <span class="material-symbols-outlined" aria-hidden="true">${location.classified || location.traitorSensitive ? "encrypted" : "place"}</span>
-      `;
-      button.addEventListener("click", () => selectLocation(location.id, { focus: true }));
-      listItemById.set(location.id, button);
-      locationListEl.appendChild(button);
+      addLocationListItem(location, "terra", () => selectLocation(location.id, { focus: true }));
     });
+    getMoonLocations().forEach((location) => {
+      addLocationListItem(location, "luna", () => selectMoonLocation(location.id));
+    });
+  }
+
+  function addLocationListItem(location, body, onSelect) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "location-chip";
+    button.dataset.locationId = location.id;
+    button.dataset.layerId = primaryLayerId(location);
+    button.dataset.layerIds = getLocationLayerIds(location).join(" ");
+    button.dataset.body = body;
+    button.innerHTML = `
+      <span class="chip-name">${escapeHtml(location.shortName || location.name)}</span>
+      <span class="material-symbols-outlined" aria-hidden="true">${location.classified || location.traitorSensitive ? "encrypted" : body === "luna" ? "orbit" : "place"}</span>
+    `;
+    button.addEventListener("click", onSelect);
+    listItemById.set(location.id, button);
+    locationListEl.appendChild(button);
   }
 
   function bindEvents() {
@@ -788,7 +1079,7 @@
     for (let i = 0; i < hits.length; i += 1) {
       const marker = hits[i].object;
       const location = getLocation(marker.userData.locationId);
-      if (location && activeLayers.has(location.layer)) {
+      if (location && isLocationLayerActive(location)) {
         return marker;
       }
     }
@@ -809,15 +1100,63 @@
 
     labelsById.forEach((label) => label.classList.toggle("active", label.dataset.locationId === id));
     listItemById.forEach((item) => item.classList.toggle("active", item.dataset.locationId === id));
+    if (moonWidget) {
+      moonWidget.labels.forEach((label) => label.classList.remove("active"));
+    }
 
     renderDossier(location);
     if (options && options.focus) focusLocation(location);
   }
 
+  function selectMoonLocation(id) {
+    const location = getMoonLocation(id);
+    if (!location) return;
+
+    selectedLocation = location;
+    selectedReadoutEl.textContent = location.shortName || location.name;
+    confidenceReadoutEl.textContent = location.coordinateConfidence;
+
+    labelsById.forEach((label) => label.classList.remove("active"));
+    listItemById.forEach((item) => item.classList.toggle("active", item.dataset.locationId === id));
+    if (moonWidget) {
+      moonWidget.labels.forEach((label) => label.classList.toggle("active", label.dataset.locationId === id));
+    }
+
+    renderDossier(location);
+    focusMoonLocation(location);
+  }
+
+  function handleMoonCanvasClick(event) {
+    const marker = pickMoonMarker(event.clientX, event.clientY);
+    if (marker) {
+      selectMoonLocation(marker.userData.locationId);
+    }
+  }
+
+  function pickMoonMarker(clientX, clientY) {
+    if (!moonWidget) return null;
+
+    const rect = moonWidget.renderer.domElement.getBoundingClientRect();
+    moonWidget.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    moonWidget.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    const hits = moonWidget.projector.pickingRay(
+      new THREE.Vector3(moonWidget.pointer.x, moonWidget.pointer.y, 0),
+      moonWidget.camera
+    ).intersectObjects(moonWidget.markerGroup.children, true);
+
+    for (let i = 0; i < hits.length; i += 1) {
+      const marker = hits[i].object;
+      const location = getMoonLocation(marker.userData.locationId);
+      if (location && isLocationLayerActive(location)) return marker;
+    }
+
+    return null;
+  }
+
   function renderDossier(location) {
     const restricted = isRestricted(location);
-    const layer = getLayer(location.layer);
-    const sources = location.sourceKeys
+    const layers = getLocationLayers(location);
+    const sources = (location.sourceKeys || [])
       .map((key) => ({ key, url: data.sources[key] }))
       .filter((source) => source.url);
 
@@ -836,7 +1175,7 @@
       ${etymologyMarkup}
       ${notableMarkup}
       <div class="tag-row">
-        <span class="tag">${escapeHtml(layer ? layer.name : location.layer)}</span>
+        ${layers.map((layer) => `<span class="tag">${escapeHtml(layer ? layer.name : primaryLayerId(location))}</span>`).join("")}
         <span class="tag">${escapeHtml(location.status)}</span>
         ${location.classified ? '<span class="tag">CLASSIFIED</span>' : ""}
         ${location.traitorSensitive ? '<span class="tag">TRAITOR-SENSITIVE</span>' : ""}
@@ -912,6 +1251,22 @@
     controls.target.set(0, 0, 0);
   }
 
+  function focusMoonLocation(location) {
+    if (!moonWidget) return;
+
+    const distance = moonWidget.camera.position.length();
+    const target = latLonToVector(location.lat, location.lon, Math.max(distance, 3.2));
+
+    moonFocusAnimation = {
+      from: moonWidget.camera.position.clone(),
+      to: target,
+      startTime: clock.getElapsedTime(),
+      duration: CAMERA_FOCUS_DURATION
+    };
+
+    moonWidget.controls.target.set(0, 0, 0);
+  }
+
   function toggleLayer(layerId) {
     if (activeLayers.has(layerId)) {
       activeLayers.delete(layerId);
@@ -919,6 +1274,9 @@
       activeLayers.add(layerId);
     }
     updateLayerVisibility();
+    if (selectedLocation && getMoonLocation(selectedLocation.id) && isLocationLayerActive(selectedLocation)) {
+      focusMoonLocation(selectedLocation);
+    }
   }
 
   function updateLayerVisibility() {
@@ -931,9 +1289,18 @@
     });
 
     data.locations.forEach((location) => {
-      const active = activeLayers.has(location.layer);
+      const active = isLocationLayerActive(location);
       const marker = markerById.get(location.id);
       const label = labelsById.get(location.id);
+      const chip = listItemById.get(location.id);
+      if (marker) marker.visible = active;
+      if (label) label.style.display = active ? "" : "none";
+      if (chip) chip.classList.toggle("hidden", !active);
+    });
+    getMoonLocations().forEach((location) => {
+      const active = isLocationLayerActive(location);
+      const marker = moonWidget ? moonWidget.markers.get(location.id) : null;
+      const label = moonWidget ? moonWidget.labels.get(location.id) : null;
       const chip = listItemById.get(location.id);
       if (marker) marker.visible = active;
       if (label) label.style.display = active ? "" : "none";
@@ -948,11 +1315,11 @@
 
   function filterLocations() {
     const query = locationSearchEl.value.trim().toLowerCase();
-    data.locations.forEach((location) => {
+    getListLocations().forEach((location) => {
       const item = listItemById.get(location.id);
       if (!item) return;
-      const inLayer = activeLayers.has(location.layer);
-      const searchable = `${location.name} ${location.shortName} ${location.subtitle} ${location.status} ${location.faction}`.toLowerCase();
+      const inLayer = isLocationLayerActive(location);
+      const searchable = buildLocationSearchText(location, item.dataset.body).toLowerCase();
       item.classList.toggle("hidden", !inLayer || (query && !searchable.includes(query)));
     });
   }
@@ -961,7 +1328,9 @@
     const response = window.prompt(`Enter ${appName} classified passkey:`);
     if (!response) return;
 
-    if (response.trim().toUpperCase() === data.CLASSIFIED_PASSKEY) {
+    const enteredPasskey = response.trim().toUpperCase();
+    const expectedPasskey = String(data.CLASSIFIED_PASSKEY || "").trim().toUpperCase();
+    if (enteredPasskey === expectedPasskey) {
       classifiedUnlocked = true;
       sessionStorage.setItem(classifiedStorageKey, "true");
       showToast("Classified mode unlocked.");
@@ -984,13 +1353,18 @@
     document.body.classList.toggle("classified-unlocked", classifiedUnlocked);
     classifiedButton.classList.toggle("active", classifiedUnlocked);
 
-    data.locations.forEach((location) => {
+    getListLocations().forEach((location) => {
       const restricted = isRestricted(location);
       const label = labelsById.get(location.id);
       const item = listItemById.get(location.id);
       setClass(label, "restricted", restricted);
       setClass(item, "restricted", restricted);
     });
+    if (moonWidget) {
+      moonWidget.locations.forEach((location) => {
+        setClass(moonWidget.labels.get(location.id), "restricted", isRestricted(location));
+      });
+    }
   }
 
   function animate() {
@@ -1010,6 +1384,7 @@
       const glowScale = structure.baseGlowSize * (0.82 + pulse * 0.42);
       structure.glow.scale.set(glowScale, glowScale, glowScale);
     });
+    updateMoonWidget(elapsed);
     if (controls.update) controls.update();
     renderer.render(scene, camera);
     updateLabels();
@@ -1044,7 +1419,7 @@ camera.position.lerp(cameraFocusAnimation.to, eased);
     labelsById.forEach((label, id) => {
       const marker = markerById.get(id);
       const location = getLocation(id);
-      if (!marker || !location || !activeLayers.has(location.layer)) return;
+      if (!marker || !location || !isLocationLayerActive(location)) return;
 
       const worldPosition = getObjectWorldPosition(marker);
       const surfaceDirection = worldPosition.clone().normalize();
@@ -1066,12 +1441,91 @@ camera.position.lerp(cameraFocusAnimation.to, eased);
     });
   }
 
+  function updateMoonWidget(elapsed) {
+    if (!moonWidget) return;
+
+    updateMoonFocusAnimation(elapsed);
+
+    moonWidget.markerGroup.children.forEach((marker, index) => {
+      const pulse = 1 + Math.sin(elapsed * 2.1 + index * 1.7) * 0.08;
+      marker.scale.set(0.09 * pulse, 0.09 * pulse, 0.09 * pulse);
+    });
+    if (moonWidget.controls.update) moonWidget.controls.update();
+    moonWidget.renderer.render(moonWidget.scene, moonWidget.camera);
+    updateMoonLabels();
+  }
+
+  function updateMoonFocusAnimation(elapsed) {
+    if (!moonWidget || !moonFocusAnimation) return;
+
+    const progress = Math.min(
+      (elapsed - moonFocusAnimation.startTime) / moonFocusAnimation.duration,
+      1
+    );
+    const eased = progress * progress * (3 - 2 * progress);
+
+    moonWidget.camera.position.copy(moonFocusAnimation.from);
+    moonWidget.camera.position.lerp(moonFocusAnimation.to, eased);
+    moonWidget.controls.target.set(0, 0, 0);
+
+    if (progress >= 1) {
+      moonWidget.camera.position.copy(moonFocusAnimation.to);
+      moonFocusAnimation = null;
+    }
+  }
+
+  function updateMoonLabels() {
+    if (!moonWidget || !moonWidget.width || !moonWidget.height) return;
+
+    const cameraDirection = moonWidget.camera.position.clone().normalize();
+    moonWidget.labels.forEach((label, id) => {
+      const marker = moonWidget.markers.get(id);
+      const location = getMoonLocation(id);
+      if (!marker || !location || !isLocationLayerActive(location)) {
+        label.style.opacity = "0";
+        label.style.pointerEvents = "none";
+        return;
+      }
+
+      const worldPosition = getObjectWorldPosition(marker);
+      const surfaceDirection = worldPosition.clone().normalize();
+      const facingCamera = surfaceDirection.dot(cameraDirection) > -0.02;
+      const projected = moonWidget.projector.projectVector(worldPosition.clone(), moonWidget.camera);
+
+      if (!facingCamera || projected.z < -1 || projected.z > 1) {
+        label.style.opacity = "0";
+        label.style.pointerEvents = "none";
+        return;
+      }
+
+      const x = (projected.x * 0.5 + 0.5) * moonWidget.width;
+      const y = (-projected.y * 0.5 + 0.5) * moonWidget.height;
+      label.style.left = `${x}px`;
+      label.style.top = `${y}px`;
+      label.style.opacity = "1";
+      label.style.pointerEvents = "auto";
+    });
+  }
+
+  function resizeMoonWidget() {
+    if (!moonWidget) return;
+
+    const rect = moonWidget.viewport.getBoundingClientRect();
+    moonWidget.width = Math.max(1, rect.width);
+    moonWidget.height = Math.max(1, rect.height);
+    moonWidget.camera.aspect = moonWidget.width / moonWidget.height;
+    moonWidget.camera.updateProjectionMatrix();
+    moonWidget.renderer.setSize(moonWidget.width, moonWidget.height);
+    if (moonWidget.controls.handleResize) moonWidget.controls.handleResize();
+  }
+
   function handleResize() {
     width = window.innerWidth;
     height = window.innerHeight;
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
+    resizeMoonWidget();
   }
 
   function latLonToVector(lat, lonWest, radius) {
@@ -1113,11 +1567,77 @@ camera.position.lerp(cameraFocusAnimation.to, eased);
     return null;
   }
 
+  function getMoonLocation(id) {
+    const moonLocations = getMoonLocations();
+    for (let i = 0; i < moonLocations.length; i += 1) {
+      if (moonLocations[i].id === id) return moonLocations[i];
+    }
+    return null;
+  }
+
+  function getMoonLocations() {
+    return data.moon && Array.isArray(data.moon.locations) ? data.moon.locations : [];
+  }
+
+  function getListLocations() {
+    return data.locations.concat(getMoonLocations());
+  }
+
+  function getLocationLayerIds(location) {
+    const layers = Array.isArray(location.layers) && location.layers.length ? location.layers : [location.layer];
+    const unique = [];
+    layers.forEach((layerId) => {
+      if (layerId && unique.indexOf(layerId) === -1) unique.push(layerId);
+    });
+    return unique.length ? unique : ["unknown"];
+  }
+
+  function primaryLayerId(location) {
+    return getLocationLayerIds(location)[0];
+  }
+
+  function getLocationLayers(location) {
+    return getLocationLayerIds(location).map((layerId) => getLayer(layerId) || { id: layerId, name: layerId });
+  }
+
+  function isLocationLayerActive(location) {
+    return getLocationLayerIds(location).some((layerId) => activeLayers.has(layerId));
+  }
+
   function getLayer(id) {
     for (let i = 0; i < data.layers.length; i += 1) {
       if (data.layers[i].id === id) return data.layers[i];
     }
     return null;
+  }
+
+  function buildLocationSearchText(location, body) {
+    const layers = getLocationLayers(location).map((layer) => `${layer.id} ${layer.name}`).join(" ");
+    const sources = (location.sourceKeys || [])
+      .map((key) => `${key} ${data.sources[key] || ""}`)
+      .join(" ");
+    const notables = (notableById[location.id] || [])
+      .map((person) => `${person.name} ${person.role}`)
+      .join(" ");
+    return [
+      body === "luna" ? "luna moon" : "terra earth",
+      location.id,
+      location.name,
+      location.shortName,
+      location.subtitle,
+      location.coordinateConfidence,
+      layers,
+      location.faction,
+      location.status,
+      location.loreConfidence,
+      location.text,
+      hungarianTextById[location.id],
+      etymologyById[location.id],
+      notables,
+      sources,
+      location.classified ? "classified restricted" : "",
+      location.traitorSensitive ? "traitor-sensitive traitor sensitive" : ""
+    ].filter(Boolean).join(" ");
   }
 
   function colorForLayer(layerId) {
