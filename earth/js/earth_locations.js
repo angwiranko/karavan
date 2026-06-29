@@ -4,16 +4,19 @@ window.PLANET_RPG_DATA = {
   CLASSIFIED_PASSKEY: "warprotocol",
   classifiedStorageKey: "earth-classified-unlocked",
   longitudeLabels: "eastWest",
+  markerStyle: { visible: false },
   textures: {
     dayMap: "images/earth_daymap_8k.jpg",
     nightMap: "images/earth_nightmap_8ki.jpg",
     bathymetryMap: "images/earth_bedrock_bathymetry_color_8ki.jpg",
     colorMap: "images/earth_daymap_8k.jpg",
     normalMap: {
+      ktx2: "images/earth_normal_map_8k_uastc.ktx2",
       webp: "images/earth_normal_map_8k.webp",
       fallback: "images/earth_normal_map_8k.png"
     },
     bathymetryNormalMap: {
+      ktx2: "images/earth_bedrock_bathymetry_normal_8ki_uastc.ktx2",
       webp: "images/earth_bedrock_bathymetry_normal_8ki.webp",
       fallback: "images/earth_bedrock_bathymetry_normal_8ki.png"
     },
@@ -29,15 +32,17 @@ window.PLANET_RPG_DATA = {
     dayNightBaseMap: "bathymetry",
     // nightOverlay.mode accepts "full" for global lights or "nightoverlap" for night-side-only lights.
     nightOverlay: { mode: "full", opacity: 0.95, edgeSoftness: 0.75, radiusScale: 1.002 },
+    nightGlow: { enabled: true, mode: "full", opacity: 10.52, threshold: 0.04, softness: 0.9, colorBoost: 0.40, radiusScale: 1.004 },
+    bloom: { enabled: true, strength: 0.85, radius: 0.5, threshold: 0.56 },
     sunFocus: { lat: 30.0, lon: 270.0, distance: 1 },
     sunColor: 0xfff1c8,
-    sunIntensity: 0.48,
+    sunIntensity: 0.08,
     ambientLight: 0x10181a,
     ambient: 0x6f858a,
     emissive: 0x020608,
     specular: 0x476b7d,
-    shininess: 22,
-    normalScale: 5,
+    shininess: 2,
+    normalScale: 10,
     haloColor: 0x9ccfff,
     haloOpacity: 0.07,
     cloudOpacity: 0.04
@@ -56,10 +61,12 @@ window.PLANET_RPG_DATA = {
     lexicanumInquisition: "https://wh40k.lexicanum.com/wiki/Inquisition",
     lexicanumNavisNobilite: "https://wh40k.lexicanum.com/wiki/Navis_Nobilite",
     lexicanumArbites: "https://wh40k.lexicanum.com/wiki/Adeptus_Arbites",
+    lexicanumOfficioAssassinorum: "https://wh40k.lexicanum.com/wiki/Officio_Assassinorum",
     lexicanumLuna: "https://wh40k.lexicanum.com/wiki/Luna",
     lexicanumSomnusCitadel: "https://wh40k.lexicanum.com/wiki/Somnus_Citadel",
     lexicanumSelenar: "https://wh40k.lexicanum.com/wiki/Selenar",
-    nasaMoonKit: "https://svs.gsfc.nasa.gov/4720/"
+    nasaMoonKit: "https://svs.gsfc.nasa.gov/4720/",
+    wikiAlamutCastle: "https://en.wikipedia.org/wiki/Alamut_Castle"
   },
   layers: [
     { id: "palace", name: "Imperial Palace", icon: "fort", color: "#b5f3ef" },
@@ -77,7 +84,59 @@ window.PLANET_RPG_DATA = {
     { id: "senatorum-bureaucracy", layer: "admin", name: "Senatorum Data Web", latMin: 18, latMax: 42, lonMin: 255, lonMax: 295, pattern: "data" },
     { id: "terra-pilgrim-hives", layer: "hives", name: "Pilgrim Hive Sprawl", latMin: -12, latMax: 58, lonMin: 295, lonMax: 40, pattern: "hex" },
     { id: "terran-defence-ring", layer: "military", name: "Palace Defence Net", latMin: 5, latMax: 48, lonMin: 244, lonMax: 312, pattern: "target" },
-    { id: "orbital-plates", layer: "orbital", name: "Orbital Defence Lanes", latMin: -3, latMax: 3, lonMin: 0, lonMax: 360, pattern: "orbital" }
+    {
+      id: "orbital-plates",
+      layer: "orbital",
+      name: "Orbital Defence Lanes",
+      latMin: -3,
+      latMax: 3,
+      lonMin: 0,
+      lonMax: 360,
+      pattern: "orbital",
+      ringVisible: false,
+      panelWidth: 8,
+      panelMaxWidth: 12,
+      panelSize: 0.022,
+      panelOpacity: 0.26,
+      panelColor: "#9ba4aa",
+      panelWireOpacity: 0.0,
+      panelStep: 1.25,
+      panelRowStep: 1.1,
+      panelGapChance: 0.23,
+      panelHoleChance: 0.16,
+      panelArcs: [{ start: 208, end: 336 }, { start: 18, end: 94 }]
+    }
+  ],
+  traffic: {
+    enabled: true,
+    color: "#ffd36a",
+    intensity: 1.55,
+    opacity: 0.9,
+    speed: 0.115,
+    pause: 1.2,
+    trailLength: 0.12,
+    fadeDistance: 0.11,
+    headPower: 2.8,
+    radiusScale: 1.12,
+    arcHeight: 0.34,
+    lineSpacing: 0.014,
+    randomness: 1,
+    lateralJitter: 0.006,
+    altitudeJitter: 0.018,
+    arcHeightJitter: 0.05,
+    tiltJitter: 0.055,
+    phaseJitter: 0.22,
+    speedJitter: 0.08,
+    lineStagger: 0.065,
+    routeStagger: 1.6,
+    segments: 112
+  },
+  trafficRoutes: [
+    { id: "palace-wyverin-convoy", from: "lions-gate-spaceport", to: "wyverin-space-port", count: 6, speed: 0.12, trailLength: 0.2, arcHeight: 0.3 },
+    { id: "navis-palace-convoy", from: "navigator-quarter", to: "lions-gate-spaceport", count: 5, speed: 0.105, trailLength: 0.24, arcHeight: 0.36 },
+    { id: "plate-mariana-patrol", from: "orbital-plate-network", to: "mariana-gorge", count: 4, speed: 0.14, trailLength: 0.18, arcHeight: 0.28 },
+    { id: "phalanx-himalazia-watch", from: "phalanx-anchor", to: "imperial-palace", count: 8, speed: 0.095, trailLength: 0.26, arcHeight: 0.42, intensity: 1.75 },
+    { id: "alamut-judgement-shadow", from: "assassinorum-temple-alamut", to: "hall-of-judgement", count: 4, speed: 0.13, trailLength: 0.16, arcHeight: 0.22, opacity: 0.7 }
   ],
   structures: [
     {
@@ -92,36 +151,46 @@ window.PLANET_RPG_DATA = {
       color: "#f4d27a",
       emissive: "#b56b18",
       lightColor: "#ffd36a",
-      lightIntensity: 2.4,
-      lightDistance: 1.45,
+      lightIntensity: 3.4,
+      lightDistance: 1.25,
       glowSize: 0.34,
       glowOpacity: 0.86,
-      pulseSpeed: 2.2
+      pulseSpeed: 0.5,
+      pulseIntensity: 1.35
     }
   ],
   moon: {
     title: "Luna Cogitator",
-    subtitle: "Terra Secundus / Segmentum Solar",
+    subtitle: "Terran Orbit",
     textures: {
       colorMap: "images/moon_color_lroc_4k.jpg",
+      nightMap: "images/moon_nightmap_4k.jpg",
       bumpMap: "images/moon_bump_lola_4k.jpg",
       normalMap: {
+        ktx2: "images/moon_normal_lola_4k_uastc.ktx2",
         webp: "images/moon_normal_lola_4k.webp",
         fallback: "images/moon_normal_lola_4k.png"
       }
     },
     material: {
-      ambientLight: 0x1a1e24,
+      ambientLight: 0x07080b,
       sunColor: 0xd9e6ff,
-      sunIntensity: 1.55,
+      sunIntensity: 1,
+      sunPosition: { x: 13.8, y: -1.1, z: 10.95 },
       ambient: 0x7a7d86,
-      emissive: 0x010203,
+      emissive: 0x050505,
       specular: 0x141a22,
-      shininess: 9,
-      bumpScale: 0.07,
-      normalScale: 2.6,
+      shininess: 3,
+      reliefMap: "bump",
+      bumpScale: 0.04,
+      normalScale: 12,
+      mapContrast: 1,
+      mapBrightness: -8,
+      nightOverlay: { mode: "full", opacity: 10, radiusScale: 1.003 },
+      nightGlow: { enabled: true, mode: "full", opacity: 10, threshold: 0.08, softness: 0.7, colorBoost: 0.5, radiusScale: 1.005 },
+      bloom: { enabled: true, strength: 0.25, radius: 0.52, threshold: 0.28 },
       haloColor: 0x9fc7ff,
-      haloOpacity: 0.08
+      haloOpacity: 0.06
     },
     locations: [
       {
@@ -129,8 +198,8 @@ window.PLANET_RPG_DATA = {
         name: "Somnus Citadel / Silent Sisterhood Fortress",
         shortName: "Somnus Citadel",
         subtitle: "Arx Somni",
-        lat: 12.5,
-        lon: 332.0,
+        lat: 160.5,
+        lon: 28.0,
         coordinateConfidence: "campaign placement: canonical Luna site, exact selenographic coordinates not specified",
         layer: "military",
         layers: ["military", "orbital"],
@@ -208,6 +277,7 @@ window.PLANET_RPG_DATA = {
     "navigator-quarter": "Az Oz-Tralla szigetkontinensen jelölt Navigátor-negyed a Navis Nobilite zárt nemesi enklávéja. Mutáns dinasztiák, házassági szerződések, génkönyvek és warp-útvonal titkok tartják életben.",
     "skhallax-city": "Skhallax City kampányhelyszín a régi Afrik ásványöveihez kötve. Mélyliftek, tizedkohók és shrine-foundry-k alakítják az eltemetett ércet Palota-ellátássá.",
     "hall-of-judgement": "A Hall of Judgement az Adeptus Arbites terrani ítélőszíve. Neork rom-neve alatt ősi elfogatóparancsok, bizonyíték-kripták és városokra is kiterjedő ítéletek futnak össze.",
+    "assassinorum-temple-alamut": "Az Assassinorum Templom Alamut fedőnéven jelölt titkos terrani parancsközpont. A valódi helye hivatalosan ismeretlen; a perzsa erőd romjai alatt csak árnyék-irodák, halálparancsok és hamis térképek válaszolnak.",
     "white-mountain-prison": "White Mountain kampány-black-site a déli sarki Inkvizíciós rendszerben. Olyan foglyoknak épült, akiket túl hasznos kivégezni, túl veszélyes bemutatni, és túl kényes elismerni.",
     "wyverin-space-port": "Wyverin Space Port kampánybeli északi sarki void-kapu. Hideg indítóaknái, liftállványai és védelmi sínrendszerei a Palota fő útvonalait elkerülő, őrzött indulásokat kezelik.",
     "mariana-gorge": "A Mariana Gorge a régi Mariana-árok kampánybeli, kiszáradt terrani sebhelye. Mélységi zárak, örökségi szakadékok és katonai átjárók húzódnak az eltűnt óceán helyén.",
@@ -236,6 +306,7 @@ window.PLANET_RPG_DATA = {
     "navigator-quarter": "HU: Oz-Tralla a régi Australia torzult neve. EN: island-continent quarter for warp-sighted houses. LAT: Quartus Navigatorum.",
     "skhallax-city": "HU: Kampányhelyszín Afrik bányászati övében. EN: mineral wealth converted into hive obligation. LAT: Civitas Metallorum Skhallax.",
     "hall-of-judgement": "HU: Neork a régi New York torzult neve. EN: Imperial law turned into fortress and archive. LAT: Aula Judicii.",
+    "assassinorum-temple-alamut": "HU: Alamut a történelmi Asszaszinok híres hegyi erődje; itt a név fedőpecsét és félrevezetés. EN: Eagle's Nest recast as a hidden Temple of Assassins. LAT: Templum Sicariorum Alamut.",
     "white-mountain-prison": "HU: Fehér hegy, fekete nyilvántartás. EN: a prison named like geography but filed like erasure. LAT: Mons Albus Carcer.",
     "wyverin-space-port": "HU: Wyverin néven jelölt poláris void-kapu. EN: campaign polar launch port for guarded departures. LAT: Portus Wyverin.",
     "mariana-gorge": "HU: Mariana Gorge a régi Mariana-árok kiszáradt emléke. EN: oceanic scar preserved as dry abyss. LAT: Fossa Mariana.",
@@ -264,6 +335,7 @@ window.PLANET_RPG_DATA = {
     "navigator-quarter": [{ name: "Navis Nobilite houses", role: "Navigator dynasties and warp-route custodians" }, { name: "Paternova's agents", role: "noble-house influence, breeding politics, and Terran representation" }],
     "skhallax-city": [{ name: "Terran hive-mining combines", role: "campaign extraction authority and labour control" }, { name: "Munitorum tithe factors", role: "ore quotas, furnace output, and military allocation" }],
     "hall-of-judgement": [{ name: "Grand Provost Marshal", role: "High Lord office and leader of the Adeptus Arbites, seated from the Hall of Judgement" }, { name: "Adeptus Arbites", role: "Imperial law enforcement, warrants, evidence crypts, and planetary-scale precedent" }],
+    "assassinorum-temple-alamut": [{ name: "Grand Master of Assassins", role: "secretive head of the Officio Assassinorum and holder of Senatorum-level authority" }, { name: "Lord Assassins", role: "temple masters who train, plan, and direct Imperial assassins from hidden Terran cells" }],
     "white-mountain-prison": [{ name: "Inquisitorial gaol-wardens", role: "black-site custody and memory-sealed transfer" }, { name: "Null cadre", role: "anti-psyker containment and silence protocols" }],
     "wyverin-space-port": [{ name: "Imperial Navy traffic officers", role: "campaign polar launch scheduling and void clearance" }, { name: "Palace customs provosts", role: "sealed cargo inspection and pilgrim-route interdiction" }],
     "mariana-gorge": [{ name: "Terran heritage wardens", role: "campaign guardians of the abyssal scar and sealed galleries" }, { name: "Depth-fortress commanders", role: "military control of gorge approaches" }],
@@ -545,6 +617,24 @@ window.PLANET_RPG_DATA = {
       loreConfidence: "Verified location name and Arbites role: Lexicanum Terra and Adeptus Arbites",
       sourceKeys: ["lexicanumTerra", "lexicanumTerraGeography", "lexicanumArbites"],
       text: "The Hall of Judgement is the Terran seat of the Adeptus Arbites. Its precincts hold warrants older than dynasties and rulings broad enough to condemn cities, cults, noble houses, and planetary offices."
+    },
+    {
+      id: "assassinorum-temple-alamut",
+      name: "Temple of Assassins / Alamut Shadow Cell",
+      shortName: "Assassinorum Temple",
+      subtitle: "Templum Sicariorum Alamut",
+      lat: 36.45,
+      lon: 309.41,
+      coordinateConfidence: "campaign placement: historical Alamut Castle anchor; canonical Temple of Assassins location remains secret",
+      layer: "military",
+      layers: ["military", "admin"],
+      faction: "Officio Assassinorum",
+      status: "M41/M42 classified assassin command and sanction cell",
+      loreConfidence: "Verified: Officio Assassinorum has a secretive Temple of Assassins on Terra; Alamut placement is campaign interpretation",
+      sourceKeys: ["lexicanumOfficioAssassinorum", "wikiAlamutCastle"],
+      classified: true,
+      traitorSensitive: true,
+      text: "The Temple of Assassins is the hidden heart of the Officio Assassinorum on Terra. This Alamut marker is a campaign cover-site: an ancient mountain fortress repurposed as misdirection, sanction archive, and deployment cell for deaths that must never look like Imperial policy."
     },
     {
       id: "white-mountain-prison",
