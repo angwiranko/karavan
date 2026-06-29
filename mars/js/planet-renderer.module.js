@@ -566,6 +566,7 @@ import { UnrealBloomPass } from "./UnrealBloomPass.js";
     if (contrast === 1 && brightness === 0) return;
 
     texture.onUpdate = function () {
+      texture.userData = texture.userData || {};
       if (!texture.image || texture.userData.toneAdjusted) return;
 
       try {
