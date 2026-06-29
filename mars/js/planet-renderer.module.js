@@ -1,6 +1,9 @@
 import * as THREE from "./three.module.js";
 import { TrackballControls } from "./TrackballControls.module.js";
 import { KTX2Loader } from "./KTX2Loader.js";
+import { EffectComposer } from "./EffectComposer.js";
+import { RenderPass } from "./RenderPass.js";
+import { UnrealBloomPass } from "./UnrealBloomPass.js";
 
 (function () {
   "use strict";
@@ -42,6 +45,7 @@ import { KTX2Loader } from "./KTX2Loader.js";
   const appName = data.appName || "Mars Cogitator Map";
   const classifiedStorageKey = data.classifiedStorageKey || "mars-classified-unlocked";
   const supportsWebpTextures = detectWebpSupport();
+  const markerStyle = data.markerStyle || {};
   const defaultHungarianTextById = {
     "olympus-mons": "A Nagy Hegy Sacred Mars legszentebb tengelye: kohóváros, trón-templom és a Fabricator-General székhelye. A hatalom liturgiái binharikus mennydörgésként gördülnek végig oldalain.",
     "temple-all-knowledge": "A Machine Cult tudásának hatalmas és ősi tárháza. Minden új felfedezést ennek oltárán ajánlanak fel, ahol dugattyú-páncéltermek és nooszférikus kórusok őrzik a vas emlékezetét.",
@@ -144,14 +148,18 @@ import { KTX2Loader } from "./KTX2Loader.js";
   let renderer;
   let controls;
   let globe;
+  let composer;
+  let bloomPass;
   let textureLoader;
   let ktx2Loader;
   let supportsKtx2Textures = false;
   let globeGroup;
   let markerGroup;
   let structureGroup;
+  let trafficGroup;
   let moonWidget = null;
   const pulsingStructures = [];
+  const trafficStreams = [];
   const hungarianTextById = data.hungarianTextById || defaultHungarianTextById;
   const etymologyById = data.etymologyById || defaultEtymologyById;
   const notableById = data.notableById || defaultNotableById;
@@ -222,15 +230,19 @@ import { KTX2Loader } from "./KTX2Loader.js";
     globeGroup = new THREE.Object3D();
     markerGroup = new THREE.Object3D();
     structureGroup = new THREE.Object3D();
+    trafficGroup = new THREE.Object3D();
     scene.add(globeGroup);
     createGlobe();
     createStars();
     createPatterns();
     createMarkersAndLabels();
     createStructures();
+    createTrafficRoutes();
     createMoonWidget();
     globeGroup.add(markerGroup);
     globeGroup.add(structureGroup);
+    globeGroup.add(trafficGroup);
+    setupBloomComposer(materialConfig);
 
     buildLayerControls();
     buildLocationList();
@@ -238,6 +250,40 @@ import { KTX2Loader } from "./KTX2Loader.js";
     updateClassifiedState();
     selectLocation(selectedLocation.id, { focus: true });
     updateLayerVisibility();
+  }
+
+  function setupBloomComposer(materialConfig) {
+    const bloomConfig = materialConfig.bloom || {};
+    if (!bloomConfig.enabled) return;
+
+    composer = new EffectComposer(renderer);
+    composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    composer.setSize(width, height);
+    composer.addPass(new RenderPass(scene, camera));
+
+    bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(width, height),
+      bloomConfig.strength === undefined ? 0.85 : bloomConfig.strength,
+      bloomConfig.radius === undefined ? 0.48 : bloomConfig.radius,
+      bloomConfig.threshold === undefined ? 0.38 : bloomConfig.threshold
+    );
+    composer.addPass(bloomPass);
+  }
+
+  function setupMoonBloomComposer(targetRenderer, targetScene, targetCamera, moonConfig) {
+    const bloomConfig = moonConfig.bloom || {};
+    if (!bloomConfig.enabled) return null;
+
+    const moonComposer = new EffectComposer(targetRenderer);
+    moonComposer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    moonComposer.addPass(new RenderPass(targetScene, targetCamera));
+    moonComposer.addPass(new UnrealBloomPass(
+      new THREE.Vector2(1, 1),
+      bloomConfig.strength === undefined ? 0.75 : bloomConfig.strength,
+      bloomConfig.radius === undefined ? 0.42 : bloomConfig.radius,
+      bloomConfig.threshold === undefined ? 0.45 : bloomConfig.threshold
+    ));
+    return moonComposer;
   }
 
   function createGlobe() {
@@ -405,7 +451,8 @@ import { KTX2Loader } from "./KTX2Loader.js";
       moonConfig.sunColor || 0xd9e6ff,
       moonConfig.sunIntensity === undefined ? 1.45 : moonConfig.sunIntensity
     );
-    moonSun.position.set(2.5, -3.1, 2.2);
+    const moonSunPosition = moonConfig.sunPosition || { x: 2.5, y: -3.1, z: 2.2 };
+    moonSun.position.set(moonSunPosition.x, moonSunPosition.y, moonSunPosition.z);
     moonScene.add(moonSun);
 
     const moonGroup = new THREE.Object3D();
@@ -424,23 +471,32 @@ import { KTX2Loader } from "./KTX2Loader.js";
     });
     if (moonTextures.colorMap) {
       moonMaterial.map = loadSceneTexture(moonTextures.colorMap, moonRenderer, function () {
+        applyMoonTextureTone(moonMaterial.map, moonConfig);
         moonMaterial.needsUpdate = true;
       });
+      applyMoonTextureTone(moonMaterial.map, moonConfig);
     }
-    if (moonTextures.bumpMap) {
+    const moonReliefMap = moonConfig.reliefMap || "normal";
+    if (moonReliefMap === "bump" && moonTextures.bumpMap) {
       moonMaterial.bumpMap = loadSceneTexture(moonTextures.bumpMap, moonRenderer, function () {
         moonMaterial.needsUpdate = true;
       });
-    }
-    if (moonTextures.normalMap) {
+    } else if (moonTextures.normalMap) {
       moonMaterial.normalMap = loadSceneTexture(moonTextures.normalMap, moonRenderer, function () {
         moonMaterial.needsUpdate = true;
       }, { normalMap: true });
+    } else if (moonTextures.bumpMap) {
+      moonMaterial.bumpMap = loadSceneTexture(moonTextures.bumpMap, moonRenderer, function () {
+        moonMaterial.needsUpdate = true;
+      });
     }
 
     const moonMesh = new THREE.Mesh(new THREE.SphereBufferGeometry(moonRadius, 96, 64), moonMaterial);
     moonMesh.rotateX(Math.PI / 2);
     moonGroup.add(moonMesh);
+
+    const moonNightOverlay = createMoonNightOverlay(moonTextures, moonConfig, moonRenderer, moonRadius);
+    if (moonNightOverlay) moonGroup.add(moonNightOverlay);
 
     const moonHalo = new THREE.Mesh(
       new THREE.SphereBufferGeometry(moonRadius * 1.035, 72, 40),
@@ -475,6 +531,8 @@ import { KTX2Loader } from "./KTX2Loader.js";
     });
     moonGroup.add(moonMarkerGroup);
 
+    const moonComposer = setupMoonBloomComposer(moonRenderer, moonScene, moonCamera, moonConfig);
+
     moonRenderer.domElement.addEventListener("click", handleMoonCanvasClick);
 
     moonWidget = {
@@ -484,6 +542,7 @@ import { KTX2Loader } from "./KTX2Loader.js";
       scene: moonScene,
       camera: moonCamera,
       renderer: moonRenderer,
+      composer: moonComposer,
       controls: moonControls,
       group: moonGroup,
       mesh: moonMesh,
@@ -498,6 +557,115 @@ import { KTX2Loader } from "./KTX2Loader.js";
     };
 
     resizeMoonWidget();
+  }
+
+  function applyMoonTextureTone(texture, moonConfig) {
+    if (!texture) return;
+    const contrast = moonConfig.mapContrast === undefined ? 1 : moonConfig.mapContrast;
+    const brightness = moonConfig.mapBrightness === undefined ? 0 : moonConfig.mapBrightness;
+    if (contrast === 1 && brightness === 0) return;
+
+    texture.onUpdate = function () {
+      if (!texture.image || texture.userData.toneAdjusted) return;
+
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = texture.image.width;
+        canvas.height = texture.image.height;
+        const context = canvas.getContext("2d");
+        context.drawImage(texture.image, 0, 0);
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = toneChannel(data[i], contrast, brightness);
+          data[i + 1] = toneChannel(data[i + 1], contrast, brightness);
+          data[i + 2] = toneChannel(data[i + 2], contrast, brightness);
+        }
+
+        context.putImageData(imageData, 0, 0);
+        texture.image = canvas;
+        texture.userData.toneAdjusted = true;
+        texture.needsUpdate = true;
+      } catch (error) {
+        texture.userData.toneAdjusted = true;
+      }
+    };
+  }
+
+  function toneChannel(value, contrast, brightness) {
+    return Math.max(0, Math.min(255, (value - 128) * contrast + 128 + brightness));
+  }
+
+  function createMoonNightOverlay(textures, moonConfig, moonRenderer, moonRadius) {
+    if (!textures.nightMap) return null;
+
+    const overlayConfig = moonConfig.nightOverlay || {};
+    if (overlayConfig.enabled === false) return null;
+
+    const mode = normalizeOverlayMode(overlayConfig.mode);
+    const opacity = overlayConfig.opacity === undefined ? 0.68 : overlayConfig.opacity;
+    const nightTexture = loadSceneTexture(textures.nightMap, moonRenderer);
+    const overlayGeometry = new THREE.SphereBufferGeometry(moonRadius * (overlayConfig.radiusScale || 1.006), 96, 64);
+    let overlayMaterial;
+
+    if (mode === "full") {
+      overlayMaterial = new THREE.MeshBasicMaterial({
+        map: nightTexture,
+        transparent: true,
+        opacity,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+    } else {
+      overlayMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          nightMap: { type: "t", value: nightTexture },
+          nightOpacity: { type: "f", value: opacity },
+          sunDirection: { type: "v3", value: getSunDirection(moonConfig) },
+          edgeSoftness: { type: "f", value: overlayConfig.edgeSoftness === undefined ? 0 : overlayConfig.edgeSoftness }
+        },
+        vertexShader: [
+          "varying vec2 vUv;",
+          "varying vec3 vWorldNormal;",
+          "void main() {",
+          "  vUv = uv;",
+          "  vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);",
+          "  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);",
+          "}"
+        ].join("\n"),
+        fragmentShader: [
+          "uniform sampler2D nightMap;",
+          "uniform float nightOpacity;",
+          "uniform vec3 sunDirection;",
+          "uniform float edgeSoftness;",
+          "varying vec2 vUv;",
+          "varying vec3 vWorldNormal;",
+          "void main() {",
+          "  vec4 nightColor = texture2D(nightMap, vUv);",
+          "  float dayAmount = dot(normalize(vWorldNormal), normalize(sunDirection));",
+          "  float softDay = smoothstep(-edgeSoftness, edgeSoftness, dayAmount);",
+          "  float hardNight = 1.0 - step(0.0, dayAmount);",
+          "  float nightMask = mix(hardNight, 1.0 - softDay, step(0.001, edgeSoftness));",
+          "  gl_FragColor = vec4(nightColor.rgb, nightColor.a * nightOpacity * nightMask);",
+          "}"
+        ].join("\n"),
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+    }
+
+    const overlay = new THREE.Mesh(overlayGeometry, overlayMaterial);
+    overlay.rotateX(Math.PI / 2);
+
+    const glow = createNightLightGlowOverlay(nightTexture, moonConfig, overlayConfig, moonRadius);
+    if (!glow) return overlay;
+
+    const group = new THREE.Object3D();
+    group.add(overlay);
+    group.add(glow);
+    return group;
   }
 
   function ensureMoonWidgetStyles() {
@@ -688,7 +856,80 @@ import { KTX2Loader } from "./KTX2Loader.js";
 
     const overlay = new THREE.Mesh(overlayGeometry, overlayMaterial);
     overlay.rotateX(Math.PI / 2);
-    return overlay;
+
+    const glow = createNightLightGlowOverlay(nightTexture, materialConfig, overlayConfig);
+    if (!glow) return overlay;
+
+    const group = new THREE.Object3D();
+    group.add(overlay);
+    group.add(glow);
+    return group;
+  }
+
+  function createNightLightGlowOverlay(nightTexture, materialConfig, overlayConfig, globeRadius) {
+    const glowConfig = materialConfig.nightGlow || {};
+    if (!glowConfig.enabled) return null;
+
+    const mode = normalizeOverlayMode(glowConfig.mode || overlayConfig.mode);
+    const opacity = glowConfig.opacity === undefined ? 0.55 : glowConfig.opacity;
+    const threshold = glowConfig.threshold === undefined ? 0.32 : glowConfig.threshold;
+    const softness = glowConfig.softness === undefined ? 0.42 : glowConfig.softness;
+    const colorBoost = glowConfig.colorBoost === undefined ? 1.4 : glowConfig.colorBoost;
+    const radiusScale = glowConfig.radiusScale || 1.006;
+    const geometry = new THREE.SphereBufferGeometry((globeRadius || GLOBE_RADIUS) * radiusScale, 96, 64);
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        nightMap: { type: "t", value: nightTexture },
+        glowOpacity: { type: "f", value: opacity },
+        threshold: { type: "f", value: threshold },
+        softness: { type: "f", value: softness },
+        colorBoost: { type: "f", value: colorBoost },
+        sunDirection: { type: "v3", value: getSunDirection(materialConfig) },
+        edgeSoftness: { type: "f", value: glowConfig.edgeSoftness === undefined ? overlayConfig.edgeSoftness || 0 : glowConfig.edgeSoftness },
+        fullMode: { type: "f", value: mode === "full" ? 1 : 0 }
+      },
+      vertexShader: [
+        "varying vec2 vUv;",
+        "varying vec3 vWorldNormal;",
+        "void main() {",
+        "  vUv = uv;",
+        "  vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);",
+        "  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);",
+        "}"
+      ].join("\n"),
+      fragmentShader: [
+        "uniform sampler2D nightMap;",
+        "uniform float glowOpacity;",
+        "uniform float threshold;",
+        "uniform float softness;",
+        "uniform float colorBoost;",
+        "uniform vec3 sunDirection;",
+        "uniform float edgeSoftness;",
+        "uniform float fullMode;",
+        "varying vec2 vUv;",
+        "varying vec3 vWorldNormal;",
+        "void main() {",
+        "  vec4 nightColor = texture2D(nightMap, vUv);",
+        "  float luminance = dot(nightColor.rgb, vec3(0.2126, 0.7152, 0.0722));",
+        "  float warmth = max(nightColor.r, nightColor.g * 0.92) - nightColor.b * 0.24;",
+        "  float lightMask = smoothstep(threshold, min(1.0, threshold + softness), max(luminance, warmth));",
+        "  float dayAmount = dot(normalize(vWorldNormal), normalize(sunDirection));",
+        "  float softDay = smoothstep(-edgeSoftness, edgeSoftness, dayAmount);",
+        "  float hardNight = 1.0 - step(0.0, dayAmount);",
+        "  float nightMask = mix(hardNight, 1.0 - softDay, step(0.001, edgeSoftness));",
+        "  nightMask = mix(nightMask, 1.0, fullMode);",
+        "  vec3 glowColor = max(nightColor.rgb * colorBoost, vec3(1.0, 0.72, 0.34) * luminance);",
+        "  gl_FragColor = vec4(glowColor, lightMask * nightMask * glowOpacity);",
+        "}"
+      ].join("\n"),
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    const glow = new THREE.Mesh(geometry, material);
+    glow.rotateX(Math.PI / 2);
+    return glow;
   }
 
   function resolveSurfaceMap(textures, materialConfig) {
@@ -770,6 +1011,7 @@ import { KTX2Loader } from "./KTX2Loader.js";
   }
 
   function createOrbitalRing(pattern) {
+    const group = new THREE.Object3D();
     const color = colorForLayer(pattern.layer);
     const ringGeometry = new THREE.TorusBufferGeometry(GLOBE_RADIUS * 1.18, 0.008, 8, 180);
     const ringMaterial = new THREE.MeshBasicMaterial({
@@ -780,7 +1022,124 @@ import { KTX2Loader } from "./KTX2Loader.js";
     });
     const ring = new THREE.Mesh(ringGeometry, ringMaterial);
     ring.rotation.x = Math.PI / 2;
-    return ring;
+    ring.visible = pattern.ringVisible === true;
+    group.add(ring);
+
+    createOrbitalPanels(pattern).forEach((panel) => group.add(panel));
+    return group;
+  }
+
+  function createOrbitalPanels(pattern) {
+    const panels = [];
+    const width = getOrbitalPanelWidth(pattern);
+    if (!width) return panels;
+
+    const radius = GLOBE_RADIUS * (pattern.panelRadiusScale || 1.18);
+    const panelSize = pattern.panelSize === undefined ? 0.022 : pattern.panelSize;
+    const panelStep = pattern.panelStep || 5.5;
+    const rowStep = pattern.panelRowStep || 1.7;
+    const panelGeometry = createHexPanelGeometry(panelSize);
+    const panelMaterial = new THREE.MeshBasicMaterial({
+      color: pattern.panelColor || 0x9ba4aa,
+      transparent: true,
+      opacity: pattern.panelOpacity === undefined ? 0.24 : pattern.panelOpacity,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const wireMaterial = new THREE.MeshBasicMaterial({
+      color: pattern.panelWireColor || 0xcfd8dc,
+      transparent: true,
+      opacity: pattern.panelWireOpacity === undefined ? 0.18 : pattern.panelWireOpacity,
+      wireframe: true,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const arcs = normalizePanelArcs(pattern);
+    const rowOffset = (width - 1) / 2;
+
+    arcs.forEach((arc, arcIndex) => {
+      for (let row = 0; row < width; row += 1) {
+        const lat = (row - rowOffset) * rowStep;
+        const stagger = row % 2 ? panelStep * 0.5 : 0;
+        for (let lon = arc.start + stagger; lon <= arc.end; lon += panelStep) {
+          if (shouldSkipOrbitalPanel(pattern, arcIndex, row, lon)) continue;
+          panels.push(createOrbitalPanelMesh(panelGeometry, panelMaterial, wireMaterial, lat, lon, radius));
+        }
+      }
+    });
+
+    return panels;
+  }
+
+  function createHexPanelGeometry(size) {
+    const vertices = [0, 0, 0];
+    for (let i = 0; i < 6; i += 1) {
+      const angle = (Math.PI / 6) + i * Math.PI / 3;
+      vertices.push(Math.cos(angle) * size, Math.sin(angle) * size, 0);
+    }
+
+    const indices = [];
+    for (let i = 1; i <= 6; i += 1) {
+      indices.push(0, i, i === 6 ? 1 : i + 1);
+    }
+
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return geometry;
+  }
+
+  function createOrbitalPanelMesh(panelGeometry, panelMaterial, wireMaterial, lat, lon, radius) {
+    const normal = latLonToVector(lat, lon, 1).normalize();
+    let tangent = new THREE.Vector3(-normal.y, normal.x, 0);
+    if (tangent.lengthSq() < 0.000001) tangent = new THREE.Vector3(1, 0, 0);
+    tangent.normalize();
+    const bitangent = new THREE.Vector3().crossVectors(normal, tangent).normalize();
+    const position = normal.clone().multiplyScalar(radius);
+    const matrix = new THREE.Matrix4().makeBasis(tangent, bitangent, normal);
+
+    const group = new THREE.Object3D();
+    group.position.copy(position);
+    group.setRotationFromMatrix(matrix);
+
+    const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+    const wire = new THREE.Mesh(panelGeometry, wireMaterial);
+    group.add(panel);
+    group.add(wire);
+    return group;
+  }
+
+  function normalizePanelArcs(pattern) {
+    const sourceArcs = Array.isArray(pattern.panelArcs) && pattern.panelArcs.length
+      ? pattern.panelArcs
+      : splitLonRange(pattern.lonMin || 0, pattern.lonMax === undefined ? 360 : pattern.lonMax).map((range) => ({ start: range.min, end: range.max }));
+    const arcs = [];
+    sourceArcs.forEach((arc) => {
+      const start = normalizeLon(arc.start);
+      const end = normalizeLon(arc.end);
+      if (start <= end) {
+        arcs.push({ start, end });
+      } else {
+        arcs.push({ start, end: 360 });
+        arcs.push({ start: 0, end });
+      }
+    });
+    return arcs;
+  }
+
+  function shouldSkipOrbitalPanel(pattern, arcIndex, row, lon) {
+    const gapChance = pattern.panelGapChance === undefined ? 0.18 : pattern.panelGapChance;
+    const holeChance = pattern.panelHoleChance === undefined ? 0.12 : pattern.panelHoleChance;
+    const seed = hashTrafficSeed(`${pattern.id || "orbital"}:${arcIndex}:${row}:${Math.round(lon * 10)}`);
+    const edgeBias = row === 0 || row === getOrbitalPanelWidth(pattern) - 1 ? 0.04 : 0;
+    if (seededTrafficRandom(seed) < gapChance + edgeBias) return true;
+    return seededTrafficRandom(seed + 4099) < holeChance && row > 0;
+  }
+
+  function getOrbitalPanelWidth(pattern) {
+    const maxWidth = pattern.panelMaxWidth === undefined ? 12 : pattern.panelMaxWidth;
+    return Math.max(0, Math.min(maxWidth, pattern.panelWidth === undefined ? 3 : pattern.panelWidth));
   }
 
   function createCivilizationOverlay(layer) {
@@ -849,6 +1208,214 @@ import { KTX2Loader } from "./KTX2Loader.js";
   function createLine(points, material) {
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
     return new THREE.Line(geometry, material);
+  }
+
+  function createTrafficRoutes() {
+    const config = data.traffic || {};
+    const routes = data.trafficRoutes || [];
+    if (config.enabled === false || !routes.length || !trafficGroup) return;
+
+    routes.forEach((route, routeIndex) => {
+      const from = resolveTrafficEndpoint(route.from || route.fromId || route.start);
+      const to = resolveTrafficEndpoint(route.to || route.toId || route.end);
+      if (!from || !to) return;
+
+      const count = route.count || config.count || 5;
+      const lineCount = Math.max(1, Math.min(12, count));
+      const spacing = route.lineSpacing === undefined ? config.lineSpacing === undefined ? 0.018 : config.lineSpacing : route.lineSpacing;
+      const routePhase = (route.phase || 0) + routeIndex * (config.routeStagger === undefined ? 1.35 : config.routeStagger);
+
+      for (let i = 0; i < lineCount; i += 1) {
+        const jitter = createTrafficLaneJitter(route, config, routeIndex, i);
+        const lateralOffset = (i - (lineCount - 1) / 2) * spacing + jitter.lateral;
+        const stream = createTrafficStream(route, config, from, to, lateralOffset, routePhase, i, jitter);
+        if (!stream) continue;
+
+        trafficStreams.push(stream);
+        trafficGroup.add(stream.line);
+      }
+    });
+  }
+
+  function createTrafficStream(route, config, from, to, lateralOffset, routePhase, laneIndex, jitter) {
+    const radius = GLOBE_RADIUS * (route.radiusScale || config.radiusScale || 1.105);
+    const baseArcHeight = route.arcHeight === undefined ? config.arcHeight === undefined ? 0.28 : config.arcHeight : route.arcHeight;
+    const arcHeight = Math.max(0, baseArcHeight + jitter.height);
+    const segments = Math.max(16, route.segments || config.segments || 96);
+    const points = createTrafficArcPoints(from, to, radius + jitter.altitude, arcHeight, lateralOffset, segments, jitter.tilt);
+    if (points.length < 2) return null;
+
+    const progress = new Float32Array(points.length);
+    for (let i = 0; i < progress.length; i += 1) {
+      progress[i] = i / (progress.length - 1);
+    }
+
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    geometry.setAttribute("routeProgress", new THREE.BufferAttribute(progress, 1));
+
+    const color = new THREE.Color(route.color || config.color || "#ffd36a");
+    const intensity = route.intensity === undefined ? config.intensity === undefined ? 1.35 : config.intensity : route.intensity;
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { type: "c", value: color },
+        uProgress: { type: "f", value: 0 },
+        uTrailLength: { type: "f", value: route.trailLength === undefined ? config.trailLength === undefined ? 0.24 : config.trailLength : route.trailLength },
+        uFadeDistance: { type: "f", value: route.fadeDistance === undefined ? config.fadeDistance === undefined ? 0.12 : config.fadeDistance : route.fadeDistance },
+        uOpacity: { type: "f", value: route.opacity === undefined ? config.opacity === undefined ? 0.88 : config.opacity : route.opacity },
+        uIntensity: { type: "f", value: intensity },
+        uHeadPower: { type: "f", value: route.headPower === undefined ? config.headPower === undefined ? 2.4 : config.headPower : route.headPower }
+      },
+      vertexShader: [
+        "attribute float routeProgress;",
+        "varying float vRouteProgress;",
+        "void main() {",
+        "  vRouteProgress = routeProgress;",
+        "  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);",
+        "}"
+      ].join("\n"),
+      fragmentShader: [
+        "uniform vec3 uColor;",
+        "uniform float uProgress;",
+        "uniform float uTrailLength;",
+        "uniform float uFadeDistance;",
+        "uniform float uOpacity;",
+        "uniform float uIntensity;",
+        "uniform float uHeadPower;",
+        "varying float vRouteProgress;",
+        "void main() {",
+        "  float delta = uProgress - vRouteProgress;",
+        "  float inTrail = step(0.0, delta) * step(delta, uTrailLength);",
+        "  float tail = 1.0 - clamp(delta / max(0.0001, uTrailLength), 0.0, 1.0);",
+        "  float head = pow(tail, uHeadPower);",
+        "  float arrivalFade = 1.0 - smoothstep(1.0 - uFadeDistance, 1.0, uProgress);",
+        "  float launchFade = smoothstep(0.0, min(0.2, uTrailLength), uProgress);",
+        "  float alpha = inTrail * arrivalFade * launchFade * uOpacity * mix(0.12, 1.0, head);",
+        "  if (alpha <= 0.002) discard;",
+        "  vec3 color = uColor * uIntensity * mix(0.45, 1.35, head);",
+        "  gl_FragColor = vec4(color, alpha);",
+        "}"
+      ].join("\n"),
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      depthTest: true
+    });
+
+    const line = new THREE.Line(geometry, material);
+    const speed = route.speed === undefined ? config.speed === undefined ? 0.12 : config.speed : route.speed;
+    const duration = route.duration || Math.max(0.1, 1 / Math.max(0.001, speed * jitter.speed));
+    const pause = route.pause === undefined ? config.pause === undefined ? 1.4 : config.pause : route.pause;
+    const lineStagger = route.lineStagger === undefined ? config.lineStagger === undefined ? 0.08 : config.lineStagger : route.lineStagger;
+
+    return {
+      line,
+      material,
+      duration,
+      cycle: duration + pause,
+      phase: routePhase + laneIndex * lineStagger + jitter.phase,
+      baseOpacity: material.uniforms.uOpacity.value,
+      restricted: Boolean(route.classified || from.classified || from.traitorSensitive || to.classified || to.traitorSensitive)
+    };
+  }
+
+  function createTrafficLaneJitter(route, config, routeIndex, laneIndex) {
+    const seedBase = hashTrafficSeed(`${route.id || routeIndex}:${route.from || route.start}:${route.to || route.end}:${laneIndex}`);
+    const rand = (offset) => seededTrafficRandom(seedBase + offset * 1013);
+    const randomAmount = route.randomness === undefined ? config.randomness === undefined ? 1 : config.randomness : route.randomness;
+    const lateralJitter = route.lateralJitter === undefined ? config.lateralJitter === undefined ? 0.007 : config.lateralJitter : route.lateralJitter;
+    const altitudeJitter = route.altitudeJitter === undefined ? config.altitudeJitter === undefined ? 0.018 : config.altitudeJitter : route.altitudeJitter;
+    const arcHeightJitter = route.arcHeightJitter === undefined ? config.arcHeightJitter === undefined ? 0.055 : config.arcHeightJitter : route.arcHeightJitter;
+    const tiltJitter = route.tiltJitter === undefined ? config.tiltJitter === undefined ? 0.055 : config.tiltJitter : route.tiltJitter;
+    const phaseJitter = route.phaseJitter === undefined ? config.phaseJitter === undefined ? 0.22 : config.phaseJitter : route.phaseJitter;
+    const speedJitter = route.speedJitter === undefined ? config.speedJitter === undefined ? 0.08 : config.speedJitter : route.speedJitter;
+
+    return {
+      lateral: centeredRandom(rand(1)) * lateralJitter * randomAmount,
+      altitude: centeredRandom(rand(2)) * altitudeJitter * randomAmount,
+      height: centeredRandom(rand(3)) * arcHeightJitter * randomAmount,
+      tilt: centeredRandom(rand(4)) * tiltJitter * randomAmount,
+      phase: centeredRandom(rand(5)) * phaseJitter * randomAmount,
+      speed: Math.max(0.1, 1 + centeredRandom(rand(6)) * speedJitter * randomAmount)
+    };
+  }
+
+  function hashTrafficSeed(value) {
+    let hash = 2166136261;
+    const text = String(value);
+    for (let i = 0; i < text.length; i += 1) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function seededTrafficRandom(seed) {
+    const value = Math.sin(seed * 12.9898) * 43758.5453;
+    return value - Math.floor(value);
+  }
+
+  function centeredRandom(value) {
+    return value * 2 - 1;
+  }
+
+  function createTrafficArcPoints(from, to, radius, arcHeight, lateralOffset, segments, tiltOffset) {
+    const start = latLonToVector(from.lat, from.lon, 1).normalize();
+    const end = latLonToVector(to.lat, to.lon, 1).normalize();
+    let routeNormal = new THREE.Vector3().crossVectors(start, end);
+    if (routeNormal.lengthSq() < 0.000001) {
+      routeNormal = new THREE.Vector3().crossVectors(start, new THREE.Vector3(0, 0, 1));
+      if (routeNormal.lengthSq() < 0.000001) {
+        routeNormal = new THREE.Vector3().crossVectors(start, new THREE.Vector3(0, 1, 0));
+      }
+    }
+    routeNormal.normalize();
+    if (tiltOffset) {
+      const midAxis = start.clone().add(end).normalize();
+      if (midAxis.lengthSq() > 0.000001) {
+        routeNormal.applyAxisAngle(midAxis, tiltOffset).normalize();
+      }
+    }
+
+    const points = [];
+    for (let i = 0; i <= segments; i += 1) {
+      const t = i / segments;
+      const base = slerpUnitVectors(start, end, t, routeNormal);
+      const lateral = routeNormal.clone().cross(base).normalize().multiplyScalar(lateralOffset);
+      const direction = base.clone().add(lateral).normalize();
+      const altitude = radius + arcHeight * Math.sin(Math.PI * t);
+      points.push(direction.multiplyScalar(altitude));
+    }
+    return points;
+  }
+
+  function slerpUnitVectors(start, end, t, fallbackAxis) {
+    const dot = Math.max(-1, Math.min(1, start.dot(end)));
+    if (dot > 0.9995) {
+      return start.clone().lerp(end, t).normalize();
+    }
+    if (dot < -0.9995) {
+      return start.clone().applyAxisAngle(fallbackAxis, Math.PI * t).normalize();
+    }
+
+    const theta = Math.acos(dot);
+    const sinTheta = Math.sin(theta);
+    const startScale = Math.sin((1 - t) * theta) / sinTheta;
+    const endScale = Math.sin(t * theta) / sinTheta;
+    return start.clone().multiplyScalar(startScale).add(end.clone().multiplyScalar(endScale)).normalize();
+  }
+
+  function resolveTrafficEndpoint(endpoint) {
+    if (!endpoint) return null;
+    if (typeof endpoint === "string") {
+      return getLocation(endpoint);
+    }
+    if (typeof endpoint.lat === "number" && typeof endpoint.lon === "number") {
+      return endpoint;
+    }
+    if (endpoint.id) {
+      return getLocation(endpoint.id);
+    }
+    return null;
   }
 
   function createMarkersAndLabels() {
@@ -942,7 +1509,11 @@ import { KTX2Loader } from "./KTX2Loader.js";
       baseOpacity: material.opacity,
       baseIntensity: light.intensity,
       baseGlowSize: structure.glowSize || 0.28,
-      pulseSpeed: structure.pulseSpeed || 2.4
+      pulseSpeed: structure.pulseSpeed || 2.4,
+      pulseIntensity: structure.pulseIntensity === undefined ? 1 : structure.pulseIntensity,
+      opacityPulseIntensity: structure.opacityPulseIntensity === undefined ? structure.pulseIntensity === undefined ? 1 : structure.pulseIntensity : structure.opacityPulseIntensity,
+      lightPulseIntensity: structure.lightPulseIntensity === undefined ? structure.pulseIntensity === undefined ? 1 : structure.pulseIntensity : structure.lightPulseIntensity,
+      glowPulseIntensity: structure.glowPulseIntensity === undefined ? structure.pulseIntensity === undefined ? 1 : structure.pulseIntensity : structure.glowPulseIntensity
     });
 
     return mesh;
@@ -1004,7 +1575,7 @@ import { KTX2Loader } from "./KTX2Loader.js";
       map: canvasTexture(canvas),
       color: 0xffffff,
       transparent: true,
-      opacity: 0.92,
+      opacity: markerStyle.visible === false ? 0 : markerStyle.opacity === undefined ? 0.92 : markerStyle.opacity,
       depthTest: false
     });
   }
@@ -1404,15 +1975,43 @@ import { KTX2Loader } from "./KTX2Loader.js";
     });
     pulsingStructures.forEach((structure, index) => {
       const pulse = 0.5 + Math.sin(elapsed * structure.pulseSpeed + index * 0.7) * 0.5;
-      structure.material.opacity = structure.baseOpacity * (0.68 + pulse * 0.32);
-      structure.light.intensity = structure.baseIntensity * (0.55 + pulse * 0.7);
-      const glowScale = structure.baseGlowSize * (0.82 + pulse * 0.42);
+      const opacityPulse = (0.68 + pulse * 0.32 - 1) * structure.opacityPulseIntensity;
+      const lightPulse = (0.55 + pulse * 0.7 - 1) * structure.lightPulseIntensity;
+      const glowPulse = (0.82 + pulse * 0.42 - 1) * structure.glowPulseIntensity;
+      structure.material.opacity = Math.max(0, structure.baseOpacity * (1 + opacityPulse));
+      structure.light.intensity = Math.max(0, structure.baseIntensity * (1 + lightPulse));
+      const glowScale = structure.baseGlowSize * Math.max(0.01, 1 + glowPulse);
       structure.glow.scale.set(glowScale, glowScale, glowScale);
     });
+    updateTrafficRoutes(elapsed);
     updateMoonWidget(elapsed);
     if (controls.update) controls.update();
-    renderer.render(scene, camera);
+    if (composer) {
+      composer.render();
+    } else {
+      renderer.render(scene, camera);
+    }
     updateLabels();
+  }
+
+  function updateTrafficRoutes(elapsed) {
+    trafficStreams.forEach((stream) => {
+      if (stream.restricted && !classifiedUnlocked) {
+        stream.line.visible = false;
+        return;
+      }
+
+      const localTime = (elapsed + stream.phase) % stream.cycle;
+      if (localTime > stream.duration) {
+        stream.line.visible = false;
+        return;
+      }
+
+      const progress = Math.min(1, localTime / stream.duration);
+      stream.line.visible = true;
+      stream.material.uniforms.uProgress.value = progress;
+      stream.material.uniforms.uOpacity.value = stream.baseOpacity;
+    });
   }
 
 
@@ -1476,7 +2075,11 @@ camera.position.lerp(cameraFocusAnimation.to, eased);
       marker.scale.set(0.09 * pulse, 0.09 * pulse, 0.09 * pulse);
     });
     if (moonWidget.controls.update) moonWidget.controls.update();
-    moonWidget.renderer.render(moonWidget.scene, moonWidget.camera);
+    if (moonWidget.composer) {
+      moonWidget.composer.render();
+    } else {
+      moonWidget.renderer.render(moonWidget.scene, moonWidget.camera);
+    }
     updateMoonLabels();
   }
 
@@ -1541,6 +2144,10 @@ camera.position.lerp(cameraFocusAnimation.to, eased);
     moonWidget.camera.aspect = moonWidget.width / moonWidget.height;
     moonWidget.camera.updateProjectionMatrix();
     moonWidget.renderer.setSize(moonWidget.width, moonWidget.height);
+    if (moonWidget.composer) {
+      moonWidget.composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      moonWidget.composer.setSize(moonWidget.width, moonWidget.height);
+    }
     if (moonWidget.controls.handleResize) moonWidget.controls.handleResize();
   }
 
@@ -1550,6 +2157,10 @@ camera.position.lerp(cameraFocusAnimation.to, eased);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
+    if (composer) {
+      composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      composer.setSize(width, height);
+    }
     resizeMoonWidget();
   }
 

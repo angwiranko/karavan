@@ -9,6 +9,7 @@
 - `earth_bedrock_bathymetry_color_8k.jpg`: optional dry/ocean-floor color map generated from the same NOAA ETOPO1 Bedrock source.
 - `moon_color_lroc_4k.jpg`: browser-ready JPG generated from the NASA Scientific Visualization Studio CGI Moon Kit LRO color texture. Source: https://svs.gsfc.nasa.gov/4720/
 - `moon_bump_lola_4k.jpg` / `moon_normal_lola_4k.png` / `moon_normal_lola_4k.webp` / `moon_normal_lola_4k_uastc.ktx2`: derived browser-ready bump and normal maps generated from the NASA Scientific Visualization Studio CGI Moon Kit LOLA elevation map. PNG remains the fallback; lossless WebP and UASTC KTX2 are used by modern browsers. Source: https://svs.gsfc.nasa.gov/4720/
+- `moon_nightmap_4k.jpg`: temporary test texture resized from `earth_nightmap_8ki.jpg` to exercise the Luna night-glow renderer. This is not a real lunar city-light data source and should be replaced with project art or a lore map later.
 - `earth_daymap_2k.jpg`: NASA Blue Marble fallback, land surface, ocean color, and sea ice. Source: https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57730/land_ocean_ice_2048.jpg
 - `earth_clouds_2k.jpg`, `earth_normal_map_2k.*`, `earth_specular_map_2k.*`: lower-resolution Solar System Scope fallbacks.
 

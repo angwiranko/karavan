@@ -916,7 +916,7 @@
       baseOpacity: material.opacity,
       baseIntensity: light.intensity,
       baseGlowSize: structure.glowSize || 0.28,
-      pulseSpeed: structure.pulseSpeed || 2.4
+      pulseSpeed: structure.pulseSpeed || 1.4
     });
 
     return mesh;
