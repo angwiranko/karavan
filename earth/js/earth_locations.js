@@ -10,10 +10,12 @@ window.PLANET_RPG_DATA = {
     bathymetryMap: "images/earth_bedrock_bathymetry_color_8ki.jpg",
     colorMap: "images/earth_daymap_8k.jpg",
     normalMap: {
+      ktx2: "images/earth_normal_map_8k_uastc.ktx2",
       webp: "images/earth_normal_map_8k.webp",
       fallback: "images/earth_normal_map_8k.png"
     },
     bathymetryNormalMap: {
+      ktx2: "images/earth_bedrock_bathymetry_normal_8ki_uastc.ktx2",
       webp: "images/earth_bedrock_bathymetry_normal_8ki.webp",
       fallback: "images/earth_bedrock_bathymetry_normal_8ki.png"
     },
@@ -36,8 +38,8 @@ window.PLANET_RPG_DATA = {
     ambient: 0x6f858a,
     emissive: 0x020608,
     specular: 0x476b7d,
-    shininess: 22,
-    normalScale: 5,
+    shininess: 2,
+    normalScale: 10,
     haloColor: 0x9ccfff,
     haloOpacity: 0.07,
     cloudOpacity: 0.04
@@ -106,6 +108,7 @@ window.PLANET_RPG_DATA = {
       colorMap: "images/moon_color_lroc_4k.jpg",
       bumpMap: "images/moon_bump_lola_4k.jpg",
       normalMap: {
+        ktx2: "images/moon_normal_lola_4k_uastc.ktx2",
         webp: "images/moon_normal_lola_4k.webp",
         fallback: "images/moon_normal_lola_4k.png"
       }
