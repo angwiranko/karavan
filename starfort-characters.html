@@ -266,6 +266,7 @@
       <button class="location-btn active" data-location="starfort">Starfort</button>
       <button class="location-btn" data-location="starfort2">Starfort 2</button>
       <button class="location-btn" data-location="starfort3">Starfort 3</button>
+      <button class="location-btn" data-location="starfort4">Starfort 4</button>
     </div>
   </header>
 
@@ -380,6 +381,17 @@
         'NH_Elisabeth Mendax.jpg',
         'NH_Noe.jpg',
         'NH_Scaevola.jpg'
+      ],
+      starfort4: [
+        'ChatGPT Image Jul 14, 2026, 05_42_57 PM.png',
+        'ChatGPT Image Jul 14, 2026, 05_43_07 PM.png',
+        'ChatGPT Image Jul 14, 2026, 05_43_14 PM.png',
+        'ChatGPT Image Jul 14, 2026, 05_43_23 PM.png',
+        'ChatGPT Image Jul 14, 2026, 05_43_31 PM.png',
+        'ChatGPT Image Jul 14, 2026, 05_43_37 PM.png',
+        'ChatGPT Image Jul 14, 2026, 05_43_43 PM.png',
+        'ChatGPT Image Jul 14, 2026, 05_43_50 PM.png',
+        'ChatGPT Image Jul 14, 2026, 05_44_00 PM.png'
       ]
     };
 
@@ -424,7 +436,32 @@
         'NH_Carla Mendax.jpg':'Carla Mendax',
         'NH_Elisabeth Mendax.jpg':'Elisabeth Mendax',
         'NH_Noe.jpg':'Noé',
-        'NH_Scaevola.jpg':'Scaevola'
+        'NH_Scaevola.jpg':'Scaevola',
+        'ChatGPT Image Jul 14, 2026, 05_43_07 PM.png': 'Quantum Age 2',
+        'ChatGPT Image Jul 14, 2026, 05_43_14 PM.png': 'Quantum Age 3',
+        'ChatGPT Image Jul 14, 2026, 05_43_23 PM.png': 'Quantum Age 4',
+        'ChatGPT Image Jul 14, 2026, 05_43_31 PM.png': 'Quantum Age 5',
+        'ChatGPT Image Jul 14, 2026, 05_43_37 PM.png': 'Quantum Age 6',
+        'ChatGPT Image Jul 14, 2026, 05_43_43 PM.png': 'Quantum Age 7',
+        'ChatGPT Image Jul 14, 2026, 05_43_50 PM.png': 'beltér',
+        'ChatGPT Image Jul 14, 2026, 05_44_00 PM.png': 'kapu',
+        'ChatGPT Image Jul 14, 2026, 05_42_57 PM.png': 'alja'
+    };
+
+    // Per-picture blur switches — set true to blur a specific image, false to show it
+    // Applies to starfort4 (and can be extended to any location)
+    const blurOverrides = {
+      starfort4: {
+        'ChatGPT Image Jul 14, 2026, 05_43_07 PM.png': false, // Quantum Age 2
+        'ChatGPT Image Jul 14, 2026, 05_43_14 PM.png': false, // Quantum Age 3
+        'ChatGPT Image Jul 14, 2026, 05_43_23 PM.png': false, // Quantum Age 4
+        'ChatGPT Image Jul 14, 2026, 05_43_31 PM.png': false, // Quantum Age 5
+        'ChatGPT Image Jul 14, 2026, 05_43_37 PM.png': false, // Quantum Age 6
+        'ChatGPT Image Jul 14, 2026, 05_43_43 PM.png': false, // Quantum Age 7
+        'ChatGPT Image Jul 14, 2026, 05_43_50 PM.png': true, // beltér
+        'ChatGPT Image Jul 14, 2026, 05_44_00 PM.png': true,  // kapu
+        'ChatGPT Image Jul 14, 2026, 05_42_57 PM.png': true, // alja
+      }
     };
 
     let currentLocation = 'starfort';
@@ -480,7 +517,13 @@
       const card = document.createElement('div');
       card.className = 'character-card';
 
-      const isBlurred = currentLocation === 'starfort3';
+      // Check per-picture blur override first, then fall back to location default
+      let isBlurred;
+      if (blurOverrides[currentLocation] && character.name in blurOverrides[currentLocation]) {
+        isBlurred = blurOverrides[currentLocation][character.name];
+      } else {
+        isBlurred = currentLocation === 'starfort3';
+      }
 
       if (isBlurred) {
         card.classList.add('blurred');
