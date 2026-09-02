@@ -1,5 +1,7 @@
 const CONFIG = {
-  sheetName: 'TerraOstroma',
+  spreadsheetId: '1HS2z9dVFxzIzQCb3Ix2e7fDNlU_unGRhQncjLFmzrN0',
+  sheetId: 1904387278,
+  sheetName: 'Terraostroma',
   headers: [
     'record_type',
     'segment_id',
@@ -12,7 +14,8 @@ const CONFIG = {
     'character_name',
     'character_image',
     'character_group',
-    'updated_at'
+    'updated_at',
+    'entry_status'
   ]
 };
 
@@ -27,7 +30,14 @@ function doPost(e) {
 
   try {
     const payload = parseRequest(e);
+    if (payload.sheetId !== CONFIG.sheetId || payload.spreadsheetId !== CONFIG.spreadsheetId) {
+      throw new Error('A kérés nem a Terraostroma munkalapot célozza.');
+    }
+    if (!['update-segment', 'add-entry', 'remove-entry', 'update-entry-status', 'update-character-group'].includes(payload.action)) {
+      throw new Error('Ismeretlen művelet.');
+    }
     const sheet = getTargetSheet();
+    ensureHeaders(sheet);
 
     switch (payload.action) {
       case 'update-segment':
@@ -36,6 +46,8 @@ function doPost(e) {
         return jsonResponse({ success: true, ...handleAddEntry(sheet, payload.segment, payload.entry) });
       case 'remove-entry':
         return jsonResponse({ success: true, ...handleRemoveEntry(sheet, payload.entryId) });
+      case 'update-entry-status':
+        return jsonResponse({ success: true, ...handleUpdateEntryStatus(sheet, payload.entryId, payload.status) });
       case 'update-character-group':
         return jsonResponse({ success: true, ...handleUpdateCharacter(sheet, payload.character) });
       default:
@@ -50,7 +62,19 @@ function doPost(e) {
 }
 
 function doGet() {
-  return jsonResponse({ success: true, message: 'Terra Ostroma webhook aktív.' });
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) return jsonResponse({ success: false, message: 'A rendszer foglalt.' });
+  try {
+    const sheet = getTargetSheet();
+    if (sheet.getLastRow() === 0) return jsonResponse({ success: true, rows: [] });
+    checkHeaders(sheet);
+    const rows = sheet.getLastRow() < 2 ? [] : sheet.getRange(2, 1, sheet.getLastRow() - 1, CONFIG.headers.length).getValues().map(rowToObject);
+    return jsonResponse({ success: true, rows });
+  } catch (error) {
+    return jsonResponse({ success: false, message: error.message });
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function doOptions() {
@@ -70,24 +94,28 @@ function parseRequest(e) {
 }
 
 function getTargetSheet() {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = spreadsheet.getSheetByName(CONFIG.sheetName);
-  if (!sheet) {
-    sheet = spreadsheet.insertSheet(CONFIG.sheetName);
-  }
-
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(CONFIG.headers);
-  }
-
-  const currentHeaders = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), CONFIG.headers.length)).getValues()[0];
-  CONFIG.headers.forEach((header, index) => {
-    if (currentHeaders[index] !== header) {
-      sheet.getRange(1, index + 1).setValue(header);
-    }
-  });
-
+  const spreadsheet = SpreadsheetApp.openById(CONFIG.spreadsheetId);
+  const sheet = spreadsheet.getSheets().find(item => item.getSheetId() === CONFIG.sheetId);
+  if (!sheet) throw new Error('A rögzített Terraostroma munkalap nem található.');
   return sheet;
+}
+
+function checkHeaders(sheet) {
+  const headers = sheet.getRange(1, 1, 1, CONFIG.headers.length).getValues()[0];
+  CONFIG.headers.forEach((header, index) => {
+    // The last column is the only extension of the original Terra schema.
+    if (index === CONFIG.headers.length - 1 && !headers[index]) return;
+    if (headers[index] !== header) throw new Error('Eltérő táblaszerkezet; meglévő adatokat nem írunk felül.');
+  });
+}
+
+function ensureHeaders(sheet) {
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, CONFIG.headers.length).setValues([CONFIG.headers]);
+    return;
+  }
+  checkHeaders(sheet);
+  sheet.getRange(1, CONFIG.headers.length).setValue('entry_status');
 }
 
 function handleUpdateSegment(sheet, segment) {
@@ -120,7 +148,9 @@ function handleAddEntry(sheet, segment, entry) {
   row.segment_order = getSegmentOrder(segment.id);
   row.defense = clampDefense(segment.defense);
   row.item_id = entry.id;
-  row.label = entry.label || '';
+  row.label = String(entry.label || '').trim();
+  if (!row.label || row.label.length > 160) throw new Error('A bejegyzés hossza 1–160 karakter lehet.');
+  row.entry_status = normalizeEntryStatus(entry.status);
   row.updated_at = new Date();
   writeRow(sheet, rowNumber, row);
   return { rowNumber: rowNumber || sheet.getLastRow() };
@@ -131,7 +161,7 @@ function handleRemoveEntry(sheet, entryId) {
     throw new Error('Az entryId megadása kötelező.');
   }
 
-  const rowNumber = findRow(sheet, 'item_id', entryId);
+  const rowNumber = findRow(sheet, 'item_id', entryId, row => row.record_type === 'entry');
   if (!rowNumber) {
     return { removed: false };
   }
@@ -139,8 +169,20 @@ function handleRemoveEntry(sheet, entryId) {
   return { rowNumber, removed: true };
 }
 
+function handleUpdateEntryStatus(sheet, entryId, status) {
+  const rowNumber = findRow(sheet, 'item_id', entryId, row => row.record_type === 'entry');
+  if (!rowNumber) throw new Error('A bejegyzés nem található.');
+  sheet.getRange(rowNumber, CONFIG.headers.indexOf('entry_status') + 1).setValue(normalizeEntryStatus(status));
+  sheet.getRange(rowNumber, CONFIG.headers.indexOf('updated_at') + 1).setValue(new Date());
+  return { rowNumber };
+}
+
+function normalizeEntryStatus(status) {
+  return ['normal', 'inkognito', 'jogosultsag'].includes(status) ? status : 'normal';
+}
+
 function handleUpdateCharacter(sheet, character) {
-  if (!character || !character.id) {
+  if (!character || !/^character-0[1-7]$/.test(character.id) || !['rogue-trader', 'smuggler'].includes(character.group)) {
     throw new Error('A character.id megadása kötelező.');
   }
 
@@ -164,7 +206,10 @@ function buildEmptyRow() {
 }
 
 function writeRow(sheet, rowNumber, row) {
-  const values = CONFIG.headers.map(header => row[header] === undefined ? '' : row[header]);
+  const values = CONFIG.headers.map(header => {
+    const value = row[header] === undefined ? '' : row[header];
+    return typeof value === 'string' && /^[=+@\-]/.test(value) ? "'" + value : value;
+  });
   if (rowNumber) {
     sheet.getRange(rowNumber, 1, 1, values.length).setValues([values]);
     return;
@@ -203,7 +248,8 @@ function rowToObject(values) {
 function getSegmentOrder(segmentId) {
   const order = ['paktum', 'propaganda', 'hadmuvelet', 'merenylet', 'blokad', 'titkok'];
   const index = order.indexOf(segmentId);
-  return index === -1 ? '' : index + 1;
+  if (index === -1) throw new Error('Ismeretlen műveleti terület.');
+  return index + 1;
 }
 
 function clampDefense(value) {
@@ -211,16 +257,15 @@ function clampDefense(value) {
   if (!Number.isFinite(number)) {
     return 2;
   }
-  return Math.min(6, Math.max(2, number));
+  return Math.min(6, Math.max(2, Math.round(number)));
 }
 
 function jsonResponse(payload) {
-  const response = ContentService.createTextOutput(JSON.stringify(payload))
+  return ContentService.createTextOutput(JSON.stringify({
+    service: 'terra-ostroma-v1',
+    spreadsheetId: CONFIG.spreadsheetId,
+    sheetId: CONFIG.sheetId,
+    ...payload
+  }))
     .setMimeType(ContentService.MimeType.JSON);
-
-  response.setHeader('Access-Control-Allow-Origin', '*');
-  response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  return response;
 }

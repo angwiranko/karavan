@@ -1,0 +1,47 @@
+:root {
+  color-scheme: dark;
+  --bg: #101214;
+  --surface: #17191a;
+  --ink: #e5e5df;
+  --muted: #939c9f;
+  --line: #343737;
+  --gold: #c4a563;
+  --gold-bright: #f3dca1;
+  --silver: #92b5c6;
+  --violet: #aa7fc0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); }
+button, a { -webkit-tap-highlight-color: transparent; }
+button, input { font: inherit; }
+button, a { touch-action: manipulation; }
+button { color: inherit; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+button:disabled { opacity: .32; cursor: default; }
+button:focus-visible, a:focus-visible, .viewport:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: -3px; }
+[hidden] { display: none !important; }
+.masthead { min-height: 78px; padding: 14px 26px; display: flex; align-items: center; justify-content: space-between; gap: 26px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 13px; flex: 0 0 auto; font-family: "Cinzel", Georgia, serif; color: var(--gold-bright); font-size: 24px; line-height: 1.25; }
+.brand small { display: block; margin-top: 4px; font: 10px "Segoe UI", sans-serif; text-transform: uppercase; color: var(--muted); }
+.brand-mark { display: grid; place-items: center; width: 27px; height: 39px; font-family: Georgia, serif; font-size: 29px; border-block: 2px solid var(--gold); border-inline: 1px solid #665a40; }
+.top-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; font-size: 12px; }
+.top-nav a { padding: 11px 12px; border-bottom: 1px solid transparent; color: #b0b6b6; }
+.top-nav a:hover { color: var(--ink); background: #ffffff06; }
+.top-nav a[aria-current] { color: var(--gold-bright); border-color: var(--gold); }
+.top-nav .planet { color: #b5bc9d; }
+.top-nav .mars { color: #ce9283; }
+
+@media (max-width: 1100px) {
+  .masthead { padding: 12px 18px; gap: 12px; }
+  .brand { font-size: 21px; }
+  .top-nav a { padding: 10px 8px; }
+}
+@media (max-width: 800px) {
+  .masthead { flex-direction: column; align-items: flex-start; padding: 16px 16px 0; }
+  .brand { font-size: 23px; }
+  .top-nav { width: 100%; flex-wrap: nowrap; overflow: auto; gap: 2px; scrollbar-width: none; }
+  .top-nav a { white-space: nowrap; min-height: 43px; padding: 13px 10px; }
+}

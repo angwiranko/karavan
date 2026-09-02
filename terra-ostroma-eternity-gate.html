@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101214">
+  <meta name="description" content="Az Imperiális Palota bejárható metszete: a külső kaputól az Arany Trónusig, az Alsóváros mélyén át.">
+  <meta property="og:title" content="Eternity Gate | Terra ostroma">
+  <meta property="og:description" content="Az Imperiális Palota öt körzete. Külső kapu, Belső város, Alsóváros, Végtelen Kapuja és Arany Trónus.">
+  <meta name="twitter:card" content="summary">
+  <title>Eternity Gate | Terra ostroma</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="terra-ostroma-eternity-gate.css">
+  <script src="terra-ostroma-eternity-gate.js" defer></script>
+  <script src="terra-ostroma-atlas.js" defer></script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="terra-ostroma-eternity-gate.html"><span class="brand-mark" aria-hidden="true">I</span><span>Eternity Gate<small>Terra / Palatium Imperialis</small></span></a>
+    <nav class="top-nav" aria-label="Terra ostroma menü">
+      <a href="terra-ostroma.html">Ostrom</a>
+      <a href="terra-ostroma-karakterek.html">Karakterek</a>
+      <a href="terra-ostroma-npc.html">NPC</a>
+      <a href="terra-ostroma-astronomicon.html">Astronomicon</a>
+      <a href="terra-ostroma-eternity-gate.html" aria-current="page">Eternity Gate</a>
+      <a class="planet" href="earth/index.html">Terra</a>
+      <a class="planet mars" href="mars/index.html">Mars</a>
+    </nav>
+  </header>
+
+  <nav class="districts" aria-label="Palotakörzetek" id="districts">
+    <a href="#overview" data-scene="overview" aria-current="location"><span>00</span>Totálkép</a>
+    <a href="#outer" data-scene="outer"><span>01</span>Külső kapu</a>
+    <a href="#city" data-scene="city"><span>02</span>Belső város</a>
+    <a href="#undercity" data-scene="undercity"><span>03</span>Alsóváros</a>
+    <a href="#gate" data-scene="gate"><span>04</span>Végtelen Kapuja</a>
+    <a href="#throne" data-scene="throne"><span>05</span>Arany Trónus</a>
+  </nav>
+
+  <main class="atlas" id="atlas">
+    <section class="drawing" aria-label="Az Imperiális Palota interaktív metszete">
+      <div class="drawing-header">
+        <div class="drawing-caption"><span class="seal-dot" aria-hidden="true"></span><span id="drawingTitle">Imperiális Palota</span><span class="plate-code" id="plateCode">TERRA / 00</span></div>
+        <div class="tools" aria-label="Nézet vezérlése">
+          <button class="icon-button" id="back" type="button" aria-label="Vissza a totálképhez" title="Vissza a totálképhez" disabled data-icon="arrow-left"></button>
+          <span class="tool-divider"></span>
+          <button class="icon-button" id="zoomOut" type="button" aria-label="Kicsinyítés" title="Kicsinyítés" data-icon="zoom-out" disabled></button>
+          <output id="zoomValue" aria-label="Nagyítás">100%</output>
+          <button class="icon-button" id="zoomIn" type="button" aria-label="Nagyítás" title="Nagyítás" data-icon="zoom-in"></button>
+          <button class="icon-button" id="reset" type="button" aria-label="Nézet alaphelyzetbe" title="Nézet alaphelyzetbe" data-icon="rotate-ccw"></button>
+          <span class="tool-divider"></span>
+          <button class="icon-button" id="motion" type="button" aria-label="Animációk szüneteltetése" title="Animációk szüneteltetése" aria-pressed="false" data-icon="pause"></button>
+          <button class="icon-button" id="expand" type="button" aria-label="Teljes képernyő" title="Teljes képernyő" data-icon="maximize"></button>
+        </div>
+      </div>
+
+      <div class="viewport" id="viewport" tabindex="0" aria-label="Palotametszet">
+        <div class="artboard" id="artboard">
+          <div class="scene" id="scene">
+            <img class="scene-image" id="sceneImage" src="images/terra-ostroma/eternity-gate/overview.png" alt="A Himalája hegyeibe épített Imperiális Palota részletes izometrikus metszete" draggable="false" fetchpriority="high">
+            <svg id="effects" class="effects" viewBox="0 0 1000 562.5" preserveAspectRatio="none" aria-hidden="true"></svg>
+            <div class="hotspots" id="hotspots"></div>
+          </div>
+        </div>
+        <div class="image-status" id="imageStatus" role="status" hidden></div>
+        <div class="image-error" id="imageError" hidden><p>A metszet nem tölthető be.</p><button type="button" id="retry">Újrapróbálás</button></div>
+        <div class="scene-signature" aria-hidden="true"><span id="signature">PALATIUM IMPERIALIS</span><span>ARCHIVUM TERRAE</span></div>
+      </div>
+
+      <footer class="drawing-footer">
+        <div class="legend"><span><i class="legend-gold"></i>Szakrális tengely</span><span><i class="legend-silver"></i>Palotaszerkezet</span><span><i class="legend-violet"></i>Warpmező</span></div>
+        <span class="level" id="level">Felszín + alsóváros</span>
+      </footer>
+    </section>
+
+    <aside class="dossier" aria-labelledby="panelTitle">
+      <div class="dossier-heading"><span class="eyebrow" id="eyebrow">Cartographia / Totálkép</span><h1 id="panelTitle">Imperiális Palota</h1><p id="panelLead"></p></div>
+      <div class="room-index"><div class="index-heading"><span id="listHeading">Körzetek</span><span id="listCount">05</span></div><div id="roomList"></div></div>
+      <section class="room-description" id="roomDescription" aria-live="polite"><span class="eyebrow" id="detailCategory"></span><h2 id="detailTitle"></h2><p id="detailText"></p></section>
+      <div class="connections"><span class="eyebrow">Kapcsolódó körzetek</span><div id="connections"></div></div>
+      <p class="archive-note">Administratum / Terra ostroma<br><span>Kampánytérkép · Birodalmi irattár</span></p>
+    </aside>
+  </main>
+  <p class="sr-only" id="announcer" role="status"></p>
+  <noscript><p class="noscript">A helyszínek bejárásához engedélyezni kell a JavaScriptet. A palota totálképe felett látható.</p></noscript>
+</body>
+</html>
