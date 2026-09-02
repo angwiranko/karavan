@@ -1,0 +1,23 @@
+.astronomicon-page .drawing { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+.telemetry { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 0; padding: 12px 18px; border-bottom: 1px solid #40525c59; background: #101c25; }
+.telemetry > div { padding: 0 14px; border-left: 1px solid #3b4b53; }
+.telemetry > div:first-child { border-left: 0; padding-left: 0; }
+.telemetry dt { font: 9px/1.4 Consolas, monospace; color: #899da8; margin-bottom: 5px; }
+.telemetry dd { margin: 0; font: 14px/1.4 "Segoe UI", Arial, sans-serif; color: #ddcfac; overflow-wrap: anywhere; }
+.altitude-line { stroke: #92adbb; stroke-width: .8; fill: none; vector-effect: non-scaling-stroke; }
+.atmosphere-line { stroke: #779eaf; stroke-width: .7; stroke-dasharray: 3 6; opacity: .4; fill: none; vector-effect: non-scaling-stroke; }
+.altitude-label { font: 11px Consolas, monospace; fill: #c4d0d2; }
+.axis-caption { font: 9px Consolas, monospace; fill: #8ea5b0; }
+.warp-boundary { stroke: #c3b586; stroke-width: 1; stroke-dasharray: 5 6; fill: none; opacity: .6; vector-effect: non-scaling-stroke; }
+.energy.orbit { stroke-dasharray: 15 55 4 55; }
+.astronomicon-page .legend-violet { background: transparent; border-top: 1px dashed #c3b586; }
+.astronomicon-page .altitude-label, .astronomicon-page .axis-caption { paint-order: stroke; stroke: #031426; stroke-width: 3px; stroke-linejoin: round; }
+.astronomicon-page .dossier-heading > p { margin-bottom: 18px; }
+.astronomicon-page .room-button { padding-block: 11px; }
+@media (max-width: 800px) {
+  .telemetry { padding: 10px 12px; gap: 10px 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .telemetry > div:nth-child(3) { border-left: 0; padding-left: 0; }
+  .telemetry dd { font-size: 12px; }
+  .astronomicon-page .drawing { min-height: 450px; }
+  .astronomicon-page .overview-label { display: none; }
+}
