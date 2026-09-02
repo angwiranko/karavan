@@ -8,16 +8,19 @@
   <style>
     :root {
       --bg: #07070a;
-      --panel: rgba(17, 17, 24, 0.88);
-      --panel-strong: rgba(25, 25, 33, 0.94);
-      --border: #3b3b45;
-      --accent: #ffcc33;
-      --danger: #ff5555;
-      --terra: #9ccfff;
-      --mars: #ff774d;
-      --text-primary: #f5f5f5;
-      --text-secondary: #b7b7c5;
-      --shadow: 0 18px 44px rgba(0, 0, 0, 0.38);
+      --panel: rgba(18, 16, 16, 0.9);
+      --panel-strong: rgba(27, 23, 21, 0.96);
+      --border: #5a4930;
+      --accent: #d8ad4b;
+      --accent-bright: #f0cf77;
+      --bone: #d8d0bf;
+      --crimson: #6d1712;
+      --danger: #a73a2f;
+      --terra: #c9b56d;
+      --mars: #b86a42;
+      --text-primary: #efe8d6;
+      --text-secondary: #aaa292;
+      --shadow: 0 18px 44px rgba(0, 0, 0, 0.44);
     }
 
     *, *::before, *::after {
@@ -28,7 +31,10 @@
       margin: 0;
       min-height: 100vh;
       font-family: 'Orbitron', sans-serif;
-      background: radial-gradient(circle at top, rgba(31, 26, 38, 0.82), rgba(5, 5, 9, 0.96)), url('images/starfort.jpg') center/cover fixed;
+      background:
+        linear-gradient(90deg, rgba(49, 11, 8, 0.24), rgba(0, 0, 0, 0) 22%, rgba(104, 83, 44, 0.13) 50%, rgba(0, 0, 0, 0) 78%, rgba(49, 11, 8, 0.22)),
+        radial-gradient(circle at top, rgba(55, 45, 30, 0.72), rgba(5, 5, 9, 0.96)),
+        url('images/starfort.jpg') center/cover fixed;
       color: var(--text-primary);
       padding: clamp(12px, 1.7vw, 24px);
       overflow-x: hidden;
@@ -39,8 +45,10 @@
       position: fixed;
       inset: 0;
       pointer-events: none;
-      background: linear-gradient(rgba(255, 204, 51, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 204, 51, 0.025) 1px, transparent 1px);
-      background-size: 34px 34px;
+      background:
+        repeating-linear-gradient(0deg, rgba(216, 173, 75, 0.055) 0 1px, transparent 1px 7px),
+        linear-gradient(90deg, transparent, rgba(216, 173, 75, 0.07) 50%, transparent);
+      background-size: auto, 100% 100%;
       mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent 74%);
     }
 
@@ -70,7 +78,7 @@
       line-height: 1;
       letter-spacing: 2px;
       text-transform: uppercase;
-      text-shadow: 0 0 14px rgba(255, 204, 51, 0.36), 0 0 32px rgba(255, 153, 51, 0.2);
+      text-shadow: 0 2px 0 rgba(0, 0, 0, 0.8), 0 0 18px rgba(216, 173, 75, 0.24);
     }
 
     .subtitle {
@@ -97,8 +105,10 @@
       padding: 8px 13px;
       border: 1px solid var(--border);
       border-radius: 4px;
-      background: linear-gradient(145deg, rgba(26, 26, 26, 0.98), rgba(43, 43, 43, 0.98));
-      color: var(--accent);
+      background:
+        repeating-linear-gradient(135deg, rgba(216, 173, 75, 0.08) 0 1px, transparent 1px 7px),
+        linear-gradient(145deg, rgba(28, 24, 20, 0.98), rgba(10, 10, 12, 0.98));
+      color: var(--bone);
       font-size: 0.75rem;
       letter-spacing: 0.8px;
       text-decoration: none;
@@ -106,27 +116,32 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      box-shadow: 0 0 10px rgba(255, 170, 0, 0.16);
+      box-shadow: inset 0 0 0 1px rgba(216, 173, 75, 0.08), 0 10px 26px rgba(0, 0, 0, 0.28);
       transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
     }
 
     .nav-button:hover,
     .nav-button.active {
       border-color: rgba(255, 204, 51, 0.72);
-      box-shadow: 0 0 12px rgba(255, 204, 51, 0.28);
+      color: var(--accent-bright);
+      box-shadow: inset 0 -3px 0 rgba(216, 173, 75, 0.58), 0 0 10px rgba(216, 173, 75, 0.16);
       transform: translateY(-1px);
     }
 
     .nav-button.terra {
       color: var(--terra);
-      border-color: rgba(156, 207, 255, 0.46);
-      background: linear-gradient(145deg, rgba(9, 39, 54, 0.96), rgba(4, 18, 24, 0.96));
+      border-color: rgba(201, 181, 109, 0.44);
+      background:
+        repeating-linear-gradient(135deg, rgba(216, 173, 75, 0.07) 0 1px, transparent 1px 7px),
+        linear-gradient(145deg, rgba(35, 31, 22, 0.96), rgba(11, 14, 14, 0.98));
     }
 
     .nav-button.mars {
       color: var(--mars);
-      border-color: rgba(255, 119, 77, 0.5);
-      background: linear-gradient(145deg, rgba(71, 17, 10, 0.96), rgba(18, 9, 7, 0.96));
+      border-color: rgba(184, 106, 66, 0.5);
+      background:
+        repeating-linear-gradient(135deg, rgba(216, 173, 75, 0.06) 0 1px, transparent 1px 7px),
+        linear-gradient(145deg, rgba(80, 23, 17, 0.94), rgba(20, 11, 9, 0.98));
     }
 
     .dashboard {
@@ -147,13 +162,17 @@
     .segment-card,
     .side-panel,
     .group-zone {
-      background: linear-gradient(160deg, rgba(33, 33, 44, 0.86), rgba(11, 11, 16, 0.94));
-      border: 1px solid rgba(255, 204, 51, 0.18);
+      background:
+        repeating-linear-gradient(0deg, rgba(216, 173, 75, 0.045) 0 1px, transparent 1px 8px),
+        linear-gradient(160deg, rgba(34, 29, 24, 0.9), rgba(11, 10, 12, 0.96));
+      border: 1px solid rgba(216, 173, 75, 0.26);
       border-radius: 8px;
-      box-shadow: var(--shadow);
+      box-shadow: inset 0 0 0 1px rgba(239, 207, 119, 0.055), var(--shadow);
     }
 
     .segment-card {
+      position: relative;
+      overflow: hidden;
       min-height: 0;
       padding: clamp(12px, 1.2vw, 17px);
       display: grid;
@@ -161,17 +180,26 @@
       gap: 10px;
     }
 
+    .segment-card::before,
+    .group-zone::before {
+      content: "";
+      height: 3px;
+      background: linear-gradient(90deg, transparent, rgba(216, 173, 75, 0.64), rgba(109, 23, 18, 0.5), transparent);
+      border-radius: 8px 8px 0 0;
+    }
+
     .segment-header {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       gap: 10px;
-      border-bottom: 1px solid rgba(255, 204, 51, 0.2);
+      border-bottom: 1px double rgba(216, 173, 75, 0.28);
       padding-bottom: 8px;
     }
 
     .segment-title {
       margin: 0;
+      color: var(--bone);
       font-size: clamp(0.98rem, 1.08vw, 1.28rem);
       letter-spacing: 1px;
       text-transform: uppercase;
@@ -223,10 +251,12 @@
     }
 
     .defense-die.active {
-      background: radial-gradient(circle at center, rgba(255, 204, 51, 0.68), rgba(255, 153, 51, 0.52));
-      border-color: rgba(255, 204, 51, 0.85);
+      background:
+        repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0 1px, transparent 1px 6px),
+        linear-gradient(145deg, rgba(240, 207, 119, 0.9), rgba(126, 80, 22, 0.88));
+      border-color: rgba(240, 207, 119, 0.85);
       color: #1c1200;
-      box-shadow: 0 0 12px rgba(255, 204, 51, 0.45);
+      box-shadow: inset 0 0 0 1px rgba(255, 245, 200, 0.22), 0 0 10px rgba(216, 173, 75, 0.2);
     }
 
     .entry-list {
@@ -240,16 +270,58 @@
 
     .entry-chip {
       display: grid;
-      grid-template-columns: 1fr 24px;
+      grid-template-columns: 22px 1fr 24px;
       align-items: center;
       gap: 8px;
       padding: 7px 8px 7px 10px;
-      border: 1px solid rgba(138, 160, 201, 0.35);
+      border: 1px solid rgba(216, 173, 75, 0.24);
       border-radius: 6px;
-      background: rgba(138, 160, 201, 0.12);
-      color: #cbd8f5;
+      background:
+        repeating-linear-gradient(90deg, rgba(216, 173, 75, 0.055) 0 1px, transparent 1px 7px),
+        rgba(14, 13, 14, 0.72);
+      color: var(--bone);
       font-size: 0.72rem;
       line-height: 1.3;
+      user-select: none;
+      transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .entry-chip.status-inkognito {
+      border-color: rgba(154, 132, 181, 0.68);
+      background:
+        repeating-linear-gradient(90deg, rgba(154, 132, 181, 0.08) 0 1px, transparent 1px 7px),
+        rgba(18, 14, 25, 0.82);
+      box-shadow: inset 3px 0 0 rgba(154, 132, 181, 0.72);
+    }
+
+    .entry-chip.status-jogosultsag {
+      border-color: rgba(216, 173, 75, 0.62);
+      background:
+        repeating-linear-gradient(90deg, rgba(216, 173, 75, 0.09) 0 1px, transparent 1px 7px),
+        rgba(30, 24, 13, 0.82);
+      box-shadow: inset 3px 0 0 rgba(216, 173, 75, 0.78);
+    }
+
+    .entry-kind-icon {
+      width: 20px;
+      height: 20px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid rgba(216, 173, 75, 0.3);
+      border-radius: 50%;
+      color: var(--text-secondary);
+      font-size: 0.62rem;
+      line-height: 1;
+    }
+
+    .entry-chip.status-inkognito .entry-kind-icon {
+      border-color: rgba(154, 132, 181, 0.74);
+      color: #c9b7df;
+    }
+
+    .entry-chip.status-jogosultsag .entry-kind-icon {
+      border-color: rgba(216, 173, 75, 0.74);
+      color: var(--accent-bright);
     }
 
     .entry-remove {
@@ -307,35 +379,35 @@
       min-height: 0;
       padding: clamp(12px, 1.2vw, 17px);
       display: grid;
-      grid-template-rows: auto auto 1fr;
+      grid-template-rows: 1fr auto;
       gap: 12px;
     }
 
-    .summary-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-    }
-
-    .stat {
-      border: 1px solid rgba(255, 255, 255, 0.05);
+    .admin-log {
+      border: 1px solid rgba(216, 173, 75, 0.18);
       border-radius: 6px;
-      background: rgba(0, 0, 0, 0.24);
-      padding: 10px;
-    }
-
-    .stat-value {
-      color: var(--accent);
-      font-size: 1.3rem;
-      line-height: 1;
-    }
-
-    .stat-label {
-      margin-top: 5px;
+      background:
+        repeating-linear-gradient(90deg, rgba(216, 173, 75, 0.04) 0 1px, transparent 1px 7px),
+        rgba(0, 0, 0, 0.28);
+      padding: 9px 10px;
+      display: grid;
+      gap: 5px;
       color: var(--text-secondary);
       font-size: 0.62rem;
-      letter-spacing: 1px;
+      letter-spacing: 0.8px;
       text-transform: uppercase;
+    }
+
+    .admin-log div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .admin-log strong {
+      color: var(--accent-bright);
+      font-weight: 700;
+      text-align: right;
     }
 
     .groups {
@@ -349,7 +421,9 @@
       min-height: 0;
       padding: 12px;
       display: grid;
-      grid-template-rows: auto 1fr;
+      position: relative;
+      overflow: hidden;
+      grid-template-rows: 3px auto 1fr;
       gap: 10px;
       border-color: rgba(255, 204, 51, 0.2);
     }
@@ -382,20 +456,20 @@
       align-content: start;
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
-      min-height: 64px;
+      gap: 12px;
+      min-height: 96px;
       overflow: auto;
     }
 
     .character-token {
-      width: 48px;
-      height: 48px;
-      border: 2px solid rgba(255, 204, 51, 0.62);
+      width: 78px;
+      height: 78px;
+      border: 2px solid rgba(216, 173, 75, 0.78);
       border-radius: 50%;
       overflow: hidden;
       background: #111;
       cursor: grab;
-      box-shadow: 0 0 12px rgba(255, 204, 51, 0.22);
+      box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.56), 0 0 12px rgba(216, 173, 75, 0.2);
     }
 
     .character-token:active {
@@ -559,6 +633,15 @@
       .nav-button.mars {
         grid-column: 1 / -1;
       }
+
+      .character-token {
+        width: 68px;
+        height: 68px;
+      }
+
+      .side-panel {
+        grid-template-rows: auto auto;
+      }
     }
   </style>
 </head>
@@ -582,22 +665,6 @@
       <section class="segments-grid" id="segmentsGrid" aria-label="Szabotázs szegmensek"></section>
 
       <aside class="side-panel" aria-label="Küldöttségek">
-        <div class="summary-grid">
-          <div class="stat">
-            <div class="stat-value" id="totalEntries">0</div>
-            <div class="stat-label">Szerzett nyom</div>
-          </div>
-          <div class="stat">
-            <div class="stat-value" id="defenseAverage">2.0</div>
-            <div class="stat-label">Védelem átlag</div>
-          </div>
-        </div>
-
-        <div class="stat">
-          <div class="stat-value" id="highestPressure">Paktum</div>
-          <div class="stat-label">Legjobban előkészített szegmens</div>
-        </div>
-
         <div class="groups">
           <section class="group-zone" data-group="rogue-trader">
             <div class="group-heading">
@@ -615,6 +682,12 @@
             <div class="character-bin" id="smuggler-bin"></div>
           </section>
         </div>
+
+        <div class="admin-log" aria-label="Adminisztratív log">
+          <div><span>Szerzett nyom</span><strong id="totalEntries">0</strong></div>
+          <div><span>Védelem átlag</span><strong id="defenseAverage">2.0</strong></div>
+          <div><span>Legaktívabb terület</span><strong id="highestPressure">Paktum</strong></div>
+        </div>
       </aside>
     </main>
   </div>
@@ -631,7 +704,7 @@
       segments: [
         { id: 'paktum', name: 'Paktum', tag: 'frakciók', defense: 2, entries: [] },
         { id: 'propaganda', name: 'Propaganda', tag: 'néptámogatás', defense: 2, entries: [] },
-        { id: 'hadmuvelet', name: 'Hadművelet', tag: 'katonai manőverek', defense: 2, entries: [] },
+        { id: 'hadmuvelet', name: 'Roham', tag: 'katonai manőverek', defense: 2, entries: [] },
         { id: 'merenylet', name: 'Merénylet', tag: 'asszaszinációk', defense: 2, entries: [] },
         { id: 'blokad', name: 'Blokád', tag: 'gazdaság', defense: 2, entries: [] },
         { id: 'titkok', name: 'Titkok', tag: 'fedett tudás', defense: 2, entries: [] }
@@ -645,13 +718,65 @@
       ]
     };
 
-    let state = loadLocalState() || cloneState(fallbackState);
+    let state = normalizeState(loadLocalState() || cloneState(fallbackState));
 
     const segmentsGrid = document.getElementById('segmentsGrid');
     const toast = document.getElementById('toast');
 
     function cloneState(value) {
       return JSON.parse(JSON.stringify(value));
+    }
+
+    function normalizeState(sourceState) {
+      const savedSegments = new Map((sourceState.segments || []).map(segment => [segment.id, segment]));
+      const savedCharacters = new Map((sourceState.characters || []).map(character => [character.id, character]));
+      return {
+        segments: fallbackState.segments.map(baseSegment => {
+          const savedSegment = savedSegments.get(baseSegment.id) || {};
+          return {
+            ...baseSegment,
+            defense: clampDefense(savedSegment.defense ?? baseSegment.defense),
+            entries: Array.isArray(savedSegment.entries) ? savedSegment.entries.map(normalizeEntry) : []
+          };
+        }),
+        characters: fallbackState.characters.map(baseCharacter => {
+          const savedCharacter = savedCharacters.get(baseCharacter.id) || {};
+          return {
+            ...baseCharacter,
+            group: savedCharacter.group === 'smuggler' || savedCharacter.group === 'rogue-trader'
+              ? savedCharacter.group
+              : baseCharacter.group
+          };
+        })
+      };
+    }
+
+    function normalizeEntry(entry) {
+      return {
+        id: entry.id || createId('entry'),
+        label: entry.label || '',
+        status: normalizeEntryStatus(entry.status)
+      };
+    }
+
+    function normalizeEntryStatus(status) {
+      return ['normal', 'inkognito', 'jogosultsag'].includes(status) ? status : 'normal';
+    }
+
+    function nextEntryStatus(status) {
+      const order = ['normal', 'inkognito', 'jogosultsag'];
+      return order[(order.indexOf(normalizeEntryStatus(status)) + 1) % order.length];
+    }
+
+    function entryStatusMeta(status) {
+      const normalized = normalizeEntryStatus(status);
+      if (normalized === 'inkognito') {
+        return { icon: '◐', label: 'Inkognitó' };
+      }
+      if (normalized === 'jogosultsag') {
+        return { icon: '⚜', label: 'Jogosultság' };
+      }
+      return { icon: '·', label: 'Normál' };
     }
 
     function createId(prefix) {
@@ -754,7 +879,8 @@
             if (segment && row.label) {
               segment.entries.push({
                 id: row.item_id || createId('entry'),
-                label: row.label
+                label: row.label,
+                status: normalizeEntryStatus(row.entry_status || row.status || row.kategoria)
               });
             }
           }
@@ -858,7 +984,8 @@
           </form>
           <div class="entry-list">
             ${segment.entries.length ? segment.entries.map(entry => `
-              <div class="entry-chip" data-entry-id="${entry.id}">
+              <div class="entry-chip status-${normalizeEntryStatus(entry.status)}" data-entry-id="${entry.id}" data-entry-status="${normalizeEntryStatus(entry.status)}" title="Hosszú kattintás: kategória váltása">
+                <span class="entry-kind-icon" aria-label="${entryStatusMeta(entry.status).label}">${entryStatusMeta(entry.status).icon}</span>
                 <span>${escapeHtml(entry.label)}</span>
                 <button class="entry-remove" type="button" aria-label="Bejegyzés törlése">×</button>
               </div>
@@ -926,7 +1053,7 @@
         return;
       }
 
-      const entry = { id: createId('entry'), label: label.trim() };
+      const entry = { id: createId('entry'), label: label.trim(), status: 'normal' };
       segment.entries.push(entry);
       saveLocalState();
       render();
@@ -962,6 +1089,24 @@
         render();
         showToast('Nem sikerült törölni a bejegyzést.');
       }
+    }
+
+    async function cycleEntryStatus(segmentId, entryId) {
+      const segment = state.segments.find(item => item.id === segmentId);
+      if (!segment) {
+        return;
+      }
+
+      const entry = segment.entries.find(item => item.id === entryId);
+      if (!entry) {
+        return;
+      }
+
+      entry.status = nextEntryStatus(entry.status);
+      saveLocalState();
+      render();
+
+      showToast(`${entryStatusMeta(entry.status).label} helyben jelölve.`);
     }
 
     async function moveCharacter(characterId, group) {
@@ -1004,6 +1149,45 @@
         if (chip) {
           removeEntry(card.dataset.segmentId, chip.dataset.entryId);
         }
+        event.stopPropagation();
+        return;
+      }
+    });
+
+    let longPressTimer = null;
+    let longPressTarget = null;
+
+    segmentsGrid.addEventListener('pointerdown', event => {
+      const chip = event.target.closest('.entry-chip');
+      if (!chip || event.target.closest('.entry-remove')) {
+        return;
+      }
+
+      const card = chip.closest('.segment-card');
+      if (!card) {
+        return;
+      }
+
+      longPressTarget = { segmentId: card.dataset.segmentId, entryId: chip.dataset.entryId };
+      longPressTimer = setTimeout(() => {
+        if (longPressTarget) {
+          cycleEntryStatus(longPressTarget.segmentId, longPressTarget.entryId);
+          longPressTarget = null;
+        }
+      }, 620);
+    });
+
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(eventName => {
+      segmentsGrid.addEventListener(eventName, () => {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+        longPressTarget = null;
+      });
+    });
+
+    segmentsGrid.addEventListener('contextmenu', event => {
+      if (event.target.closest('.entry-chip') && !event.target.closest('.entry-remove')) {
+        event.preventDefault();
       }
     });
 
