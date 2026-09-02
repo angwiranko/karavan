@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const crypto = require('node:crypto');
+const { makeSheetService } = require('./terra-ostroma-sheet.test-helpers.cjs');
 const { atlasHarness } = require('./terra-ostroma-atlas.test-helpers.cjs');
 const astro = require('./terra-ostroma-astronomicon.js');
 const read = name => fs.readFileSync(path.join(__dirname, name), 'utf8');
@@ -88,7 +89,7 @@ test('Astronomicon image races, errors, aliases and reduced motion are handled',
   assert.equal(page.elements.get('panelTitle').textContent, astro.scenes.warp.title);
 });
 
-function recordsHarness(filename, saved = null) {
+function recordsHarness(filename, saved = null, options = {}) {
   class Element {
     constructor(id) {
       this.id = id; this.dataset = {}; this.listeners = {}; this.children = [];
@@ -111,18 +112,20 @@ function recordsHarness(filename, saved = null) {
   doc.createElement = tag => new Element(tag);
   doc.querySelectorAll = selector => selector === '.group-zone' ? groups : [];
   const stored = new Map(saved ? [['terra-ostroma-state-v1', JSON.stringify(saved)]] : []);
+  if (options.stored) for (const [key, value] of options.stored) stored.set(key, value);
+  const cloud = options.cloud || makeSheetService();
   const timers = new Map(); let timerId = 0;
-  const context = vm.createContext({ document: doc, console, localStorage: { getItem: id => stored.get(id), setItem: (id, value) => stored.set(id, value) }, setTimeout: (fn, delay) => { timers.set(++timerId, { fn, delay }); return timerId; }, clearTimeout: id => timers.delete(id) });
+  const context = vm.createContext({ document: doc, console, crypto: crypto.webcrypto, AbortController, fetch: options.fetch || cloud.fetch, localStorage: { getItem: id => stored.get(id), setItem: (id, value) => stored.set(id, value) }, setTimeout: (fn, delay) => { timers.set(++timerId, { fn, delay }); return timerId; }, clearTimeout: id => timers.delete(id) });
   const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).join('\n');
   vm.runInContext(script, context);
-  return { elements, groups, doc, stored, context, timers,
+  return { elements, groups, doc, stored, context, timers, cloud,
     state: () => JSON.parse(vm.runInContext('JSON.stringify(state)', context)),
     run: code => vm.runInContext(code, context),
     settle: () => new Promise(resolve => setImmediate(resolve))
   };
 }
 
-test('Ostrom preserves six scales, entries, category cycling, deletion and local persistence', async () => {
+test('Ostrom saves six scales, entries, category cycling and deletion to the target sheet', async () => {
   const page = recordsHarness('terra-ostroma.html'); await page.settle();
   const grid = page.elements.get('segmentsGrid');
   assert.equal(grid.children.length, 6);
@@ -150,6 +153,7 @@ test('Ostrom preserves six scales, entries, category cycling, deletion and local
   grid.emit('pointerdown', { target });
   const hold = [...page.timers.values()].find(timer => timer.delay === 620);
   assert.ok(hold); hold.fn();
+  await page.settle();
   assert.equal(page.state().segments[0].entries[0].status, 'inkognito');
   grid.emit('pointerup');
   const remove = { closest: () => chip };
@@ -170,10 +174,101 @@ test('all seven portraits and their saved group assignment survive the redesign'
   page.groups[1].emit('drop', { preventDefault() {}, dataTransfer });
   await page.settle();
   assert.equal(page.state().characters[0].group, 'smuggler');
-  const reloaded = recordsHarness('terra-ostroma.html', page.state()); await reloaded.settle();
+  const reloaded = recordsHarness('terra-ostroma.html', page.state(), { cloud: page.cloud }); await reloaded.settle();
   assert.equal(reloaded.state().characters[0].group, 'smuggler');
   assert.equal(reloaded.state().characters.length, 7);
   for (const character of reloaded.state().characters) assert.ok(fs.existsSync(path.join(__dirname, character.image)));
+});
+
+test('empty remote sheet does not resurrect cached deletions, and legacy data has a separate backup', async () => {
+  const first = recordsHarness('terra-ostroma.html'); await first.settle();
+  await first.run("addEntry('paktum', 'Régi helyi bejegyzés')");
+  const legacy = first.state();
+  const page = recordsHarness('terra-ostroma.html', legacy); await page.settle();
+  assert.equal(page.state().segments[0].entries.length, 0);
+  assert.equal(page.elements.get('localBackupNotice').hidden, false);
+  assert.equal(JSON.parse(page.stored.get('terra-ostroma-local-backup-v1')).state.segments[0].entries[0].label, 'Régi helyi bejegyzés');
+  await page.run('importLocalState()');
+  assert.equal(page.state().segments[0].entries.length, 1);
+  assert.equal(page.elements.get('localBackupNotice').hidden, true);
+  const id = page.state().segments[0].entries[0].id;
+  await page.run(`removeEntry('paktum', '${id}')`);
+  const reloaded = recordsHarness('terra-ostroma.html', legacy, { stored: page.stored, cloud: page.cloud }); await reloaded.settle();
+  assert.equal(reloaded.state().segments[0].entries.length, 0);
+  assert.equal(reloaded.elements.get('localBackupNotice').hidden, true);
+});
+
+test('legacy import adds missing records without overwriting existing remote values', async () => {
+  const remote = recordsHarness('terra-ostroma.html'); await remote.settle();
+  await remote.run("updateDefense('paktum', 6)");
+  await remote.run("addEntry('paktum', 'Táblázatban lévő bejegyzés')");
+  await remote.run("moveCharacter('character-01', 'smuggler')");
+  const legacy = remote.state();
+  legacy.segments[0].defense = 3;
+  legacy.segments[0].entries[0].label = 'Elavult helyi változat';
+  legacy.segments[0].entries.push({ id: 'legacy-extra', label: 'Helyi új nyom', status: 'inkognito' });
+  legacy.characters[0].group = 'rogue-trader';
+  const page = recordsHarness('terra-ostroma.html', legacy, { cloud: remote.cloud }); await page.settle();
+  await page.run('importLocalState()');
+  assert.equal(page.state().segments[0].defense, 6);
+  assert.equal(page.state().characters[0].group, 'smuggler');
+  assert.equal(page.state().segments[0].entries[0].label, 'Táblázatban lévő bejegyzés');
+  assert.equal(page.state().segments[0].entries[1].status, 'inkognito');
+  await page.run('importLocalState()');
+  assert.equal(page.state().segments[0].entries.length, 2);
+});
+
+test('wrong-target and HTML responses never report a successful connection', async () => {
+  for (const data of [null, { success: true, service: 'terra-ostroma-v1', spreadsheetId: 'wrong', sheetId: 1140814065, rows: [] }]) {
+    const page = recordsHarness('terra-ostroma.html', null, { fetch: async () => ({ ok: true, text: async () => data ? JSON.stringify(data) : '<html>Sign in</html>' }) });
+    await page.settle();
+    assert.equal(page.run('sheetReady'), false);
+    assert.equal(await page.run("addEntry('paktum', 'Nem menthető')"), false);
+    assert.equal(page.state().segments[0].entries.length, 0);
+    assert.match(page.elements.get('sheetStatus').textContent, /nem elérhető/);
+  }
+});
+
+test('unconfirmed writes retain drafts and disable further mutations until refresh', async () => {
+  const cloud = makeSheetService();
+  let fail = true;
+  const page = recordsHarness('terra-ostroma.html', null, { cloud, fetch: async (url, options) => {
+    if (fail && options.method === 'POST') return { ok: true, text: async () => '<html>Unavailable</html>' };
+    return cloud.fetch(url, options);
+  } });
+  await page.settle();
+  page.run("entryDrafts.set('paktum', 'Megőrzendő vázlat')");
+  assert.equal(await page.run("addEntry('paktum', 'Megőrzendő vázlat')"), false);
+  assert.equal(page.state().segments[0].entries.length, 0);
+  assert.equal(page.run("entryDrafts.get('paktum')"), 'Megőrzendő vázlat');
+  assert.equal(page.run('sheetReady'), false);
+  fail = false;
+  await page.run('refreshFromSheet()');
+  assert.equal(await page.run("addEntry('paktum', 'Megőrzendő vázlat')"), true);
+  assert.equal(page.cloud.get().rows.filter(row => row.record_type === 'entry').length, 1);
+});
+
+test('pending read and write requests cannot race with another mutation', async () => {
+  const cloud = makeSheetService();
+  let release;
+  const page = recordsHarness('terra-ostroma.html', null, { cloud, fetch: (url, options) => new Promise(resolve => { release = () => resolve(cloud.fetch(url, options)); }) });
+  assert.equal(await page.run("addEntry('paktum', 'Too early')"), false);
+  release(); await page.settle();
+  const firstSave = page.run("updateDefense('paktum', 4)");
+  assert.equal(await page.run("updateDefense('paktum', 6)"), false);
+  assert.equal(page.state().segments[0].defense, 2);
+  release(); await firstSave;
+  assert.equal(page.state().segments[0].defense, 4);
+});
+
+test('the Apps Script refuses a different target and a foreign header without touching Starfort', () => {
+  const cloud = makeSheetService();
+  assert.equal(cloud.post({ action: 'add-entry', spreadsheetId: 'wrong', sheetId: 1140814065 }).success, false);
+  assert.equal(cloud.writes.length, 0);
+  const foreign = makeSheetService([['location_id', 'Starfort data']]);
+  const before = JSON.stringify(foreign.cells);
+  assert.equal(foreign.post({ action: 'update-segment', spreadsheetId: '1HS2z9dVFxzIzQCb3Ix2e7fDNlU_unGRhQncjLFmzrN0', sheetId: 1904387278, segment: { id: 'paktum', defense: 2 } }).success, false);
+  assert.equal(JSON.stringify(foreign.cells), before);
 });
 
 test('character gallery opens, navigates, wraps and restores focus', () => {

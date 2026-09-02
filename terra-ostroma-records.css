@@ -5,7 +5,7 @@
 .record-bar > span { font: 10px Consolas, monospace; color: var(--muted); }
 .record-bar .record-code { margin-left: auto; }
 .icon { display: block; width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.65; stroke-linecap: round; stroke-linejoin: round; }
-.dashboard { height: calc(100dvh - 131px); min-height: 550px; display: grid; grid-template-columns: minmax(0, 1fr) 316px; }
+.dashboard { height: calc(100dvh - 131px); min-height: 550px; display: grid; grid-template-columns: minmax(0, 1fr) 540px; }
 .segments-grid { min-width: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 24px; }
 .segment-card { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); align-content: start; gap: 16px; padding: 18px; background: #181d20; border: 1px solid #37444b; border-radius: 4px; border-top: 2px solid #837349; }
 .segment-header { display: flex; flex-direction: column; gap: 5px; padding-bottom: 12px; border-bottom: 1px solid #35434b; }
@@ -43,13 +43,18 @@
 .group-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-bottom: 20px; }
 .group-heading h2 { margin: 0; font: 500 16px/1.4 "Cinzel", Georgia, serif; color: #ddd4ba; }
 .group-count { padding-top: 3px; font: 11px Consolas, monospace; color: var(--gold); }
-.character-bin { display: flex; flex-wrap: wrap; align-content: start; gap: 12px; overflow: auto; min-height: 86px; scrollbar-width: thin; }
-.character-token { flex: 0 0 78px; width: 78px; height: 78px; overflow: hidden; border: 1px solid #b8a478; border-radius: 50%; background: #101416; cursor: grab; }
+.character-bin { display: grid; grid-template-columns: repeat(3, 156px); align-content: start; gap: 12px; overflow: auto; min-height: 164px; scrollbar-width: thin; }
+.character-token { width: 156px; height: 156px; overflow: hidden; border: 1px solid #b8a478; border-radius: 50%; background: #101416; cursor: grab; }
 .character-token:active { cursor: grabbing; }
 .character-token img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
 .admin-log { display: grid; gap: 8px; padding-top: 18px; margin-top: 10px; font: 10px/1.5 Consolas, monospace; color: #8f9999; }
 .admin-log > div { display: flex; justify-content: space-between; gap: 10px; }
 .admin-log strong { font-weight: 400; color: #c3c3b5; text-align: right; }
+.admin-log .sheet-status-row { align-items: center; color: #c8bb96; border-top: 1px solid var(--line); padding-top: 5px; }
+.sheet-status-row > span { overflow-wrap: anywhere; }
+.sheet-status-row button { flex-shrink: 0; }
+.admin-log .local-backup-notice { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; }
+.local-backup-notice button { display: inline-flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid #7c704e; border-radius: 2px; color: var(--gold-bright); background: #c4a56313; }
 .toast { position: fixed; bottom: 20px; right: 20px; z-index: 30; max-width: min(380px, calc(100% - 40px)); padding: 12px 16px; border: 1px solid #7c704e; background: #171f23; color: var(--gold-bright); font-size: 12px; line-height: 1.5; opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .2s; pointer-events: none; }
 .toast.show { opacity: 1; transform: none; }
 .collection { padding: 28px 26px; }
@@ -75,13 +80,13 @@
 .empty-gallery h2 { font: 500 21px "Cinzel", Georgia, serif; margin: 0; color: #c9c7b9; text-align: center; }
 .empty-gallery p { margin: 0; color: #8c979b; font: 11px Consolas, monospace; }
 @media (max-width: 1250px) {
-  .dashboard { grid-template-columns: minmax(0, 1fr) 275px; }
+  .dashboard { grid-template-columns: minmax(0, 1fr) 466px; }
   .segments-grid { gap: 12px; padding: 18px; }
   .segment-card { padding: 13px; gap: 13px; }
   .segment-title { font-size: 18px; }
   .side-panel { padding: 23px 18px; }
-  .character-token { flex-basis: 68px; width: 68px; height: 68px; }
-  .character-bin { gap: 10px; }
+  .character-token { width: 136px; height: 136px; }
+  .character-bin { grid-template-columns: repeat(3, 136px); gap: 10px; min-height: 144px; }
   .character-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .character-image { max-height: 290px; }
 }
@@ -89,9 +94,10 @@
   .dashboard { height: auto; min-height: 0; display: block; }
   .segments-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, 290px); }
   .side-panel { border-left: 0; border-top: 1px solid #514a38; }
-  .groups { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+  .groups { grid-template-columns: 1fr; grid-template-rows: auto; }
   .group-zone { min-height: 150px; }
-  .character-token { flex-basis: 78px; width: 78px; height: 78px; }
+  .character-token { width: 156px; height: 156px; }
+  .character-bin { grid-template-columns: repeat(3, 156px); min-height: 164px; }
   .admin-log { width: min(100%, 500px); margin-left: auto; }
 }
 @media (max-width: 700px) {
@@ -109,6 +115,7 @@
   .entry-chip { grid-template-columns: 18px minmax(0, 1fr) 34px; }
   .groups { grid-template-columns: 1fr; gap: 24px; }
   .group-zone { min-height: 150px; }
+  .character-bin { grid-template-columns: repeat(auto-fit, 156px); }
   .collection { padding: 20px 16px; }
   .character-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .character-name { padding: 12px 8px; font-size: 13px; }
@@ -116,5 +123,16 @@
   .portrait-toolbar h2 { font-size: 14px; }
   .portrait-control { width: 32px; height: 34px; }
   .empty-gallery { min-height: 360px; padding: 20px; }
+}
+@media (min-width: 1001px) and (max-width: 1400px) {
+  .segments-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(250px, 1fr)); overflow-y: auto; }
+}
+@media (min-width: 1001px) {
+  .groups { grid-template-rows: repeat(2, minmax(260px, 1fr)); overflow-y: auto; }
+  .group-heading { flex-shrink: 0; }
+}
+@media (max-width: 360px) {
+  .character-bin { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .character-token { width: 100%; height: auto; aspect-ratio: 1; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }

@@ -51,6 +51,8 @@
           <div><span>Szerzett nyom</span><strong id="totalEntries">0</strong></div>
           <div><span>Védelem átlag</span><strong id="defenseAverage">2.0</strong></div>
           <div><span>Legaktívabb terület</span><strong id="highestPressure">Paktum</strong></div>
+          <div class="sheet-status-row"><span id="sheetStatus" role="status">Google-adatok betöltése…</span><button id="refreshSheet" class="entry-remove" type="button" title="Adatok újraolvasása" aria-label="Adatok újraolvasása"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5"/></svg></button></div>
+          <div id="localBackupNotice" class="local-backup-notice" hidden><span>Korábbi helyi adatok várnak feltöltésre.</span><button id="importLocal" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>Helyi adatok feltöltése</button></div>
         </div>
       </aside>
     </main>
@@ -60,9 +62,12 @@
 
   <script>
     const STORAGE_KEY = 'terra-ostroma-state-v1';
-    const SHEET_NAME = 'TerraOstroma';
-    const SHEET_CSV_URL = '';
-    const SHEET_API_URL = '';
+    const SHEET_NAME = 'Terraostroma';
+    const SPREADSHEET_ID = '1HS2z9dVFxzIzQCb3Ix2e7fDNlU_unGRhQncjLFmzrN0';
+    const SHEET_ID = 1904387278;
+    const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbyPoIqbyY9BwJPpOu8YgQ6Ylp5BL8jj7cY0aenZdtF2ynIaaKwuVR6-nIurMZELYzTv/exec';
+    const REMOTE_CACHE_KEY = 'terra-ostroma-remote-cache-v1';
+    const LOCAL_BACKUP_KEY = 'terra-ostroma-local-backup-v1';
 
     const fallbackState = {
       segments: [
@@ -85,9 +90,32 @@
     };
 
     let state = normalizeState(loadLocalState() || cloneState(fallbackState));
+    let sheetReady = false;
+    let saving = false;
+    const entryDrafts = new Map();
+    let localBackup = readStored(LOCAL_BACKUP_KEY);
+    if (!localBackup && !readStored(REMOTE_CACHE_KEY) && hasLocalChanges(state)) {
+      localBackup = { state: cloneState(state), imported: false };
+      writeStored(LOCAL_BACKUP_KEY, localBackup);
+    }
 
     const segmentsGrid = document.getElementById('segmentsGrid');
     const toast = document.getElementById('toast');
+
+    function readStored(key) {
+      try { return JSON.parse(localStorage.getItem(key) || 'null'); }
+      catch (_) { return null; }
+    }
+
+    function writeStored(key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); }
+      catch (_) { /* Google remains authoritative when browser storage is unavailable. */ }
+    }
+
+    function hasLocalChanges(value) {
+      return value.segments.some(segment => segment.entries.length || segment.defense !== 2) ||
+        value.characters.some((character, index) => character.group !== fallbackState.characters[index].group);
+    }
 
     function cloneState(value) {
       return JSON.parse(JSON.stringify(value));
@@ -146,7 +174,7 @@
     }
 
     function createId(prefix) {
-      return `${prefix}-${Math.random().toString(16).slice(2, 10)}`;
+      return `${prefix}-${crypto.randomUUID()}`;
     }
 
     function escapeHtml(text) {
@@ -176,145 +204,174 @@
     }
 
     function saveLocalState() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      writeStored(STORAGE_KEY, state);
     }
 
-    async function syncWithSheet(action, payload = {}, { silent = false } = {}) {
-      if (!SHEET_API_URL) {
-        return { skipped: true };
+    function assertSheetResponse(response, data) {
+      if (!response.ok || !data || data.success !== true) {
+        throw new Error(data?.message || 'A Google-mentés nem igazolható.');
       }
+      if (data.service !== 'terra-ostroma-v1' || data.spreadsheetId !== SPREADSHEET_ID || data.sheetId !== SHEET_ID) {
+        throw new Error('A kapcsolat nem a Terraostroma munkalaphoz tartozik.');
+      }
+      return data;
+    }
 
-      const response = await fetch(SHEET_API_URL, {
-        method: 'POST',
-        redirect: 'follow',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          sheetName: SHEET_NAME,
-          action,
-          ...payload
-        })
-      });
-
-      const rawText = await response.text();
-      let data = null;
+    async function sheetRequest(method, payload) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 45000);
       try {
-        data = rawText ? JSON.parse(rawText) : null;
-      } catch (error) {
-        console.warn('Nem JSON választ kaptunk a Google Apps Script-től:', rawText);
-      }
+        const response = await fetch(method === 'GET' ? SHEET_API_URL + '?t=' + Date.now() : SHEET_API_URL, {
+          method, redirect: 'follow', cache: 'no-store', credentials: 'omit', signal: controller.signal,
+          ...(method === 'POST' ? {
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ ...payload, spreadsheetId: SPREADSHEET_ID, sheetId: SHEET_ID, sheetName: SHEET_NAME })
+          } : {})
+        });
+        let data;
+        try { data = JSON.parse(await response.text()); }
+        catch (_) { throw new Error('A Google nem adott érvényes mentési választ.'); }
+        return assertSheetResponse(response, data);
+      } finally { clearTimeout(timeout); }
+    }
 
-      if (!response.ok || (data && data.success === false)) {
-        throw new Error(data?.message || `Sheet API hiba (${response.status})`);
-      }
+    async function syncWithSheet(action, payload = {}) {
+      if (!sheetReady) throw new Error('A Google-kapcsolat még nem áll készen.');
+      return sheetRequest('POST', { ...payload, action });
+    }
 
-      if (!silent) {
-        showToast('Mentve a Google Sheet-be.');
-      }
+    async function readSheetRows() {
+      const data = await sheetRequest('GET');
+      if (!Array.isArray(data.rows)) throw new Error('Hiányzik a munkalap adatlistája.');
+      return data.rows;
+    }
 
-      return data || { success: true };
+    function stateFromRows(rows) {
+      const nextState = cloneState(fallbackState);
+      rows.forEach(row => {
+        if (row.record_type === 'segment') {
+          const segment = nextState.segments.find(item => item.id === row.segment_id);
+          if (segment) segment.defense = clampDefense(row.defense);
+        }
+        if (row.record_type === 'entry') {
+          const segment = nextState.segments.find(item => item.id === row.segment_id);
+          if (segment && row.item_id && row.label && !segment.entries.some(entry => entry.id === row.item_id)) {
+            segment.entries.push({ id: String(row.item_id), label: String(row.label), status: normalizeEntryStatus(row.entry_status || row.status || row.kategoria) });
+          }
+        }
+        if (row.record_type === 'character') {
+          const character = nextState.characters.find(item => item.id === row.character_id);
+          if (character && ['rogue-trader', 'smuggler'].includes(row.character_group)) character.group = row.character_group;
+        }
+      });
+      return nextState;
     }
 
     async function loadFromSheet() {
-      if (!SHEET_CSV_URL) {
-        return null;
-      }
+      return stateFromRows(await readSheetRows());
+    }
 
+    function updateSyncControls() {
+      document.getElementById('refreshSheet').disabled = saving;
+      document.getElementById('importLocal').disabled = saving || !sheetReady;
+      document.getElementById('localBackupNotice').hidden = !localBackup || localBackup.imported;
+    }
+
+    function setSheetStatus(message) {
+      document.getElementById('sheetStatus').textContent = message;
+      updateSyncControls();
+    }
+
+    function canEdit() {
+      if (!sheetReady || saving) {
+        showToast(saving ? 'A mentés folyamatban van.' : 'A Google-kapcsolat nem elérhető. Próbáld újra az adatfrissítést.');
+        return false;
+      }
+      return true;
+    }
+
+    async function refreshFromSheet() {
+      if (saving) return;
+      saving = true;
+      sheetReady = false;
+      setSheetStatus('Google-adatok betöltése…');
+      render();
       try {
-        const response = await fetch(SHEET_CSV_URL);
-        const text = await response.text();
-        const rows = parseCsv(text);
-        if (!rows.length) {
-          return null;
-        }
-
-        const nextState = cloneState(fallbackState);
-        nextState.segments.forEach(segment => {
-          segment.entries = [];
-        });
-
-        rows.forEach(row => {
-          if (row.record_type === 'segment') {
-            const segment = nextState.segments.find(item => item.id === row.segment_id);
-            if (segment) {
-              segment.defense = clampDefense(row.defense);
-            }
-          }
-
-          if (row.record_type === 'entry') {
-            const segment = nextState.segments.find(item => item.id === row.segment_id);
-            if (segment && row.label) {
-              segment.entries.push({
-                id: row.item_id || createId('entry'),
-                label: row.label,
-                status: normalizeEntryStatus(row.entry_status || row.status || row.kategoria)
-              });
-            }
-          }
-
-          if (row.record_type === 'character') {
-            const character = nextState.characters.find(item => item.id === row.character_id);
-            if (character && (row.character_group === 'rogue-trader' || row.character_group === 'smuggler')) {
-              character.group = row.character_group;
-            }
-          }
-        });
-
-        return nextState;
+        state = await loadFromSheet();
+        sheetReady = true;
+        saveLocalState();
+        writeStored(REMOTE_CACHE_KEY, true);
+        setSheetStatus('Google Táblázat · szinkronban');
       } catch (error) {
-        console.warn('Nem sikerült betölteni a Terra Ostroma Google Sheet adatait.', error);
-        return null;
+        setSheetStatus('Google-kapcsolat nem elérhető');
+        showToast(error.message);
+      } finally {
+        saving = false;
+        render();
       }
     }
 
-    function parseCsv(text) {
-      const lines = text.trim().split(/\r?\n/).filter(Boolean);
-      if (!lines.length) {
-        return [];
+    // Only confirmed remote writes enter the cache; failed requests keep drafts.
+    async function commitChange(action, payload, apply, message) {
+      if (!canEdit()) return false;
+      saving = true;
+      setSheetStatus('Mentés a Google Táblázatba…');
+      render();
+      try {
+        await syncWithSheet(action, payload);
+        apply();
+        saveLocalState();
+        setSheetStatus('Google Táblázat · mentve');
+        showToast(message);
+        return true;
+      } catch (error) {
+        sheetReady = false;
+        setSheetStatus('Mentés nem igazolt · újraolvasás szükséges');
+        showToast(error.message);
+        return false;
+      } finally {
+        saving = false;
+        render();
       }
-      const headers = splitCsvLine(lines[0]).map(normalizeHeader);
-      return lines.slice(1).map(line => {
-        const values = splitCsvLine(line);
-        return headers.reduce((row, key, index) => {
-          if (key) {
-            row[key] = values[index] || '';
+    }
+
+    async function importLocalState() {
+      if (!canEdit() || !localBackup || localBackup.imported) return;
+      saving = true;
+      setSheetStatus('Korábbi helyi adatok feltöltése…');
+      render();
+      try {
+        const rows = await readSheetRows();
+        const oldState = normalizeState(localBackup.state);
+        for (const segment of oldState.segments) {
+          if (!rows.some(row => row.record_type === 'segment' && row.segment_id === segment.id)) {
+            await syncWithSheet('update-segment', { segment: { id: segment.id, name: segment.name, defense: segment.defense } });
           }
-          return row;
-        }, {});
-      });
-    }
-
-    function splitCsvLine(line) {
-      const result = [];
-      let current = '';
-      let inQuotes = false;
-
-      for (let index = 0; index < line.length; index += 1) {
-        const char = line[index];
-        const next = line[index + 1];
-        if (char === '"' && next === '"') {
-          current += '"';
-          index += 1;
-        } else if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          result.push(current);
-          current = '';
-        } else {
-          current += char;
+          for (const entry of segment.entries) {
+            if (!rows.some(row => row.record_type === 'entry' && row.item_id === entry.id)) {
+              await syncWithSheet('add-entry', { segment: { id: segment.id, name: segment.name, defense: segment.defense }, entry });
+            }
+          }
         }
+        for (const character of oldState.characters) {
+          if (!rows.some(row => row.record_type === 'character' && row.character_id === character.id)) {
+            await syncWithSheet('update-character-group', { character });
+          }
+        }
+        state = await loadFromSheet();
+        localBackup.imported = true;
+        writeStored(LOCAL_BACKUP_KEY, localBackup);
+        saveLocalState();
+        setSheetStatus('Google Táblázat · szinkronban');
+        showToast('A korábbi helyi adatok feltöltve. A már létező táblázatsorok változatlanok.');
+      } catch (error) {
+        sheetReady = false;
+        setSheetStatus('Feltöltés megszakadt · a biztonsági másolat megmaradt');
+        showToast(error.message);
+      } finally {
+        saving = false;
+        render();
       }
-
-      result.push(current);
-      return result;
-    }
-
-    function normalizeHeader(value) {
-      return String(value || '')
-        .normalize('NFD')
-        .replace(/\p{Diacritic}/gu, '')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '_')
-        .replace(/^_+|_+$/g, '');
     }
 
     function clampDefense(value) {
@@ -322,7 +379,7 @@
       if (!Number.isFinite(number)) {
         return 2;
       }
-      return Math.min(6, Math.max(2, number));
+      return Math.min(6, Math.max(2, Math.round(number)));
     }
 
     function renderSegments() {
@@ -340,20 +397,20 @@
             <span class="section-label">Terrai védelem</span>
             <div class="defense-track">
               ${[2, 3, 4, 5, 6].map(level => `
-                <button class="defense-die ${segment.defense >= level ? 'active' : ''}" type="button" data-level="${level}" aria-label="${segment.name} védelem ${level}" aria-pressed="${segment.defense === level}">${level}</button>
+                <button class="defense-die ${segment.defense >= level ? 'active' : ''}" type="button" data-level="${level}" aria-label="${segment.name} védelem ${level}" aria-pressed="${segment.defense === level}" ${!sheetReady || saving ? 'disabled' : ''}>${level}</button>
               `).join('')}
             </div>
           </div>
           <form class="entry-form">
-            <input type="text" maxlength="160" placeholder="Új feljegyzés…" aria-label="Új bejegyzés" required>
-            <button type="submit" aria-label="Hozzáadás" title="Bejegyzés hozzáadása"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
+            <input type="text" maxlength="160" placeholder="Új feljegyzés…" aria-label="Új bejegyzés" value="${escapeHtml(entryDrafts.get(segment.id) || '')}" ${!sheetReady || saving ? 'disabled' : ''} required>
+            <button type="submit" aria-label="Hozzáadás" title="Bejegyzés hozzáadása" ${!sheetReady || saving ? 'disabled' : ''}><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
           </form>
           <div class="entry-list">
             ${segment.entries.length ? segment.entries.map(entry => `
-              <div class="entry-chip status-${normalizeEntryStatus(entry.status)}" data-entry-id="${entry.id}" data-entry-status="${normalizeEntryStatus(entry.status)}" title="Hosszú kattintás: kategória váltása">
+              <div class="entry-chip status-${normalizeEntryStatus(entry.status)}" data-entry-id="${escapeHtml(entry.id)}" data-entry-status="${normalizeEntryStatus(entry.status)}" title="Hosszú kattintás: kategória váltása">
                 <span class="entry-kind-icon" aria-label="${entryStatusMeta(entry.status).label}">${entryStatusMeta(entry.status).icon}</span>
                 <span>${escapeHtml(entry.label)}</span>
-                <button class="entry-remove" type="button" aria-label="Bejegyzés törlése" title="Bejegyzés törlése"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12"/></svg></button>
+                <button class="entry-remove" type="button" aria-label="Bejegyzés törlése" title="Bejegyzés törlése" ${!sheetReady || saving ? 'disabled' : ''}><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12"/></svg></button>
               </div>
             `).join('') : '<div class="empty-message">Nincs feljegyzés.</div>'}
           </div>
@@ -368,8 +425,8 @@
         const bin = document.getElementById(`${groupId}-bin`);
         const characters = state.characters.filter(character => character.group === groupId);
         bin.innerHTML = characters.map(character => `
-          <div class="character-token" draggable="true" data-character-id="${character.id}" title="${escapeHtml(character.name)}">
-            <img src="${character.image}" alt="${escapeHtml(character.name)}">
+          <div class="character-token" draggable="${sheetReady && !saving}" data-character-id="${character.id}" title="${escapeHtml(character.name)}">
+            <img src="${character.image}" alt="${escapeHtml(character.name)}" draggable="false">
           </div>
         `).join('');
         document.getElementById(`${groupId}-count`).textContent = `${characters.length}`;
@@ -389,112 +446,47 @@
       renderSegments();
       renderGroups();
       renderSummary();
+      updateSyncControls();
     }
 
     async function updateDefense(segmentId, defense) {
       const segment = state.segments.find(item => item.id === segmentId);
-      if (!segment) {
-        return;
-      }
-
-      const previous = segment.defense;
-      segment.defense = defense;
-      saveLocalState();
-      render();
-
-      try {
-        const result = await syncWithSheet('update-segment', { segment }, { silent: true });
-        showToast(result?.skipped ? 'Védelem helyben mentve.' : 'Védelem mentve a Google Sheet-be.');
-      } catch (error) {
-        segment.defense = previous;
-        saveLocalState();
-        render();
-        showToast('Nem sikerült menteni a védelmet.');
-      }
+      if (!segment) return false;
+      const value = clampDefense(defense);
+      return commitChange('update-segment', { segment: { id: segment.id, name: segment.name, defense: value } },
+        () => { segment.defense = value; }, 'Védelem mentve a Google Táblázatba.');
     }
 
     async function addEntry(segmentId, label) {
       const segment = state.segments.find(item => item.id === segmentId);
-      if (!segment || !label.trim()) {
-        return;
-      }
-
-      const entry = { id: createId('entry'), label: label.trim(), status: 'normal' };
-      segment.entries.push(entry);
-      saveLocalState();
-      render();
-
-      try {
-        const result = await syncWithSheet('add-entry', { segment, entry }, { silent: true });
-        showToast(result?.skipped ? 'Bejegyzés helyben mentve.' : 'Bejegyzés mentve a Google Sheet-be.');
-      } catch (error) {
-        segment.entries = segment.entries.filter(item => item.id !== entry.id);
-        saveLocalState();
-        render();
-        showToast('Nem sikerült hozzáadni a bejegyzést.');
-      }
+      const value = String(label).trim();
+      if (!segment || !value || value.length > 160) return false;
+      const entry = { id: createId('entry'), label: value, status: 'normal' };
+      return commitChange('add-entry', { segment: { id: segment.id, name: segment.name, defense: segment.defense }, entry },
+        () => { segment.entries.push(entry); entryDrafts.delete(segmentId); }, 'Bejegyzés mentve a Google Táblázatba.');
     }
 
     async function removeEntry(segmentId, entryId) {
       const segment = state.segments.find(item => item.id === segmentId);
-      if (!segment) {
-        return;
-      }
-
-      const previousEntries = [...segment.entries];
-      segment.entries = segment.entries.filter(entry => entry.id !== entryId);
-      saveLocalState();
-      render();
-
-      try {
-        const result = await syncWithSheet('remove-entry', { segmentId, entryId }, { silent: true });
-        showToast(result?.skipped ? 'Bejegyzés törölve helyben.' : 'Bejegyzés törölve a Google Sheet-ből.');
-      } catch (error) {
-        segment.entries = previousEntries;
-        saveLocalState();
-        render();
-        showToast('Nem sikerült törölni a bejegyzést.');
-      }
+      if (!segment || !segment.entries.some(entry => entry.id === entryId)) return false;
+      return commitChange('remove-entry', { segmentId, entryId },
+        () => { segment.entries = segment.entries.filter(entry => entry.id !== entryId); }, 'Bejegyzés törölve a Google Táblázatból.');
     }
 
     async function cycleEntryStatus(segmentId, entryId) {
       const segment = state.segments.find(item => item.id === segmentId);
-      if (!segment) {
-        return;
-      }
-
-      const entry = segment.entries.find(item => item.id === entryId);
-      if (!entry) {
-        return;
-      }
-
-      entry.status = nextEntryStatus(entry.status);
-      saveLocalState();
-      render();
-
-      showToast(`${entryStatusMeta(entry.status).label} helyben jelölve.`);
+      const entry = segment?.entries.find(item => item.id === entryId);
+      if (!entry) return false;
+      const status = nextEntryStatus(entry.status);
+      return commitChange('update-entry-status', { segmentId, entryId, status },
+        () => { entry.status = status; }, entryStatusMeta(status).label + ' mentve a Google Táblázatba.');
     }
 
     async function moveCharacter(characterId, group) {
       const character = state.characters.find(item => item.id === characterId);
-      if (!character || character.group === group) {
-        return;
-      }
-
-      const previousGroup = character.group;
-      character.group = group;
-      saveLocalState();
-      render();
-
-      try {
-        const result = await syncWithSheet('update-character-group', { character }, { silent: true });
-        showToast(result?.skipped ? 'Csoport helyben mentve.' : 'Csoport mentve a Google Sheet-be.');
-      } catch (error) {
-        character.group = previousGroup;
-        saveLocalState();
-        render();
-        showToast('Nem sikerült menteni a csoportot.');
-      }
+      if (!character || character.group === group || !['rogue-trader', 'smuggler'].includes(group)) return false;
+      return commitChange('update-character-group', { character: { ...character, group } },
+        () => { character.group = group; }, 'Csoport mentve a Google Táblázatba.');
     }
 
     segmentsGrid.addEventListener('click', event => {
@@ -524,6 +516,7 @@
     let longPressTarget = null;
 
     segmentsGrid.addEventListener('pointerdown', event => {
+      if (!sheetReady || saving) return;
       const chip = event.target.closest('.entry-chip');
       if (!chip || event.target.closest('.entry-remove')) {
         return;
@@ -557,7 +550,12 @@
       }
     });
 
-    segmentsGrid.addEventListener('submit', event => {
+    segmentsGrid.addEventListener('input', event => {
+      const card = event.target.closest('.segment-card');
+      if (card && event.target.closest('.entry-form')) entryDrafts.set(card.dataset.segmentId, event.target.value);
+    });
+
+    segmentsGrid.addEventListener('submit', async event => {
       const form = event.target.closest('.entry-form');
       if (!form) {
         return;
@@ -565,12 +563,13 @@
       event.preventDefault();
       const card = form.closest('.segment-card');
       const input = form.querySelector('input');
-      addEntry(card.dataset.segmentId, input.value);
-      input.value = '';
-      input.focus();
+      entryDrafts.set(card.dataset.segmentId, input.value);
+      await addEntry(card.dataset.segmentId, input.value);
+      segmentsGrid.querySelector(`[data-segment-id="${card.dataset.segmentId}"] input`)?.focus();
     });
 
     document.addEventListener('dragstart', event => {
+      if (!sheetReady || saving) { event.preventDefault(); return; }
       const token = event.target.closest('.character-token');
       if (!token) {
         return;
@@ -597,14 +596,10 @@
       });
     });
 
-    (async function init() {
-      const sheetState = await loadFromSheet();
-      if (sheetState) {
-        state = sheetState;
-        saveLocalState();
-      }
-      render();
-    })();
+    document.getElementById('refreshSheet').addEventListener('click', refreshFromSheet);
+    document.getElementById('importLocal').addEventListener('click', importLocalState);
+    render();
+    refreshFromSheet();
   </script>
 </body>
 </html>
