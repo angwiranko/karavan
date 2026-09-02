@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Astronomicon</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07070a;
+      --panel: rgba(18, 16, 16, 0.92);
+      --panel-strong: rgba(27, 23, 21, 0.97);
+      --border: #5a4930;
+      --accent: #d8ad4b;
+      --accent-bright: #f0cf77;
+      --bone: #d8d0bf;
+      --crimson: #6d1712;
+      --violet: #8e6ab7;
+      --green: #5c9160;
+      --pink: #c9859c;
+      --terra: #c9b56d;
+      --mars: #b86a42;
+      --text-primary: #efe8d6;
+      --text-secondary: #aaa292;
+      --shadow: 0 18px 44px rgba(0, 0, 0, 0.44);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Orbitron', sans-serif;
+      background:
+        linear-gradient(90deg, rgba(49, 11, 8, 0.24), rgba(0, 0, 0, 0) 22%, rgba(104, 83, 44, 0.13) 50%, rgba(0, 0, 0, 0) 78%, rgba(49, 11, 8, 0.22)),
+        radial-gradient(circle at top, rgba(55, 45, 30, 0.72), rgba(5, 5, 9, 0.96)),
+        url('images/starfort.jpg') center/cover fixed;
+      color: var(--text-primary);
+      padding: clamp(12px, 1.7vw, 24px);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(0deg, rgba(216, 173, 75, 0.055) 0 1px, transparent 1px 7px),
+        linear-gradient(90deg, transparent, rgba(216, 173, 75, 0.07) 50%, transparent);
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.72), transparent 74%);
+    }
+
+    .page-shell {
+      position: relative;
+      z-index: 1;
+      width: min(1880px, 100%);
+      min-height: calc(100vh - clamp(24px, 3.4vw, 48px));
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: clamp(12px, 1.4vw, 18px);
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) auto;
+      align-items: end;
+      gap: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--accent);
+      font-size: clamp(1.65rem, 2.5vw, 3rem);
+      line-height: 1;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0 2px 0 rgba(0, 0, 0, 0.8), 0 0 18px rgba(216, 173, 75, 0.24);
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--text-secondary);
+      font-size: clamp(0.78rem, 0.9vw, 0.95rem);
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+    }
+
+    .top-nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .nav-button {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 13px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background:
+        repeating-linear-gradient(135deg, rgba(216, 173, 75, 0.08) 0 1px, transparent 1px 7px),
+        linear-gradient(145deg, rgba(28, 24, 20, 0.98), rgba(10, 10, 12, 0.98));
+      color: var(--bone);
+      font-size: 0.75rem;
+      letter-spacing: 0.8px;
+      text-decoration: none;
+      text-transform: uppercase;
+      box-shadow: inset 0 0 0 1px rgba(216, 173, 75, 0.08), 0 10px 26px rgba(0, 0, 0, 0.28);
+      transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+    }
+
+    .nav-button:hover,
+    .nav-button.active {
+      border-color: rgba(255, 204, 51, 0.72);
+      color: var(--accent-bright);
+      box-shadow: inset 0 -3px 0 rgba(216, 173, 75, 0.58), 0 0 10px rgba(216, 173, 75, 0.16);
+      transform: translateY(-1px);
+    }
+
+    .nav-button.terra {
+      color: var(--terra);
+      border-color: rgba(201, 181, 109, 0.44);
+    }
+
+    .nav-button.mars {
+      color: var(--mars);
+      border-color: rgba(184, 106, 66, 0.5);
+    }
+
+    .workbench {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(330px, 420px);
+      gap: clamp(12px, 1.3vw, 18px);
+    }
+
+    .viz-frame,
+    .data-panel {
+      min-height: 0;
+      border: 1px solid rgba(216, 173, 75, 0.26);
+      border-radius: 8px;
+      background:
+        repeating-linear-gradient(0deg, rgba(216, 173, 75, 0.04) 0 1px, transparent 1px 8px),
+        linear-gradient(160deg, rgba(34, 29, 24, 0.9), rgba(11, 10, 12, 0.96));
+      box-shadow: inset 0 0 0 1px rgba(239, 207, 119, 0.055), var(--shadow);
+    }
+
+    .viz-frame {
+      position: relative;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+    }
+
+    .viz-header {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 12px;
+      border-bottom: 1px double rgba(216, 173, 75, 0.28);
+      background: rgba(0, 0, 0, 0.22);
+    }
+
+    .metric {
+      min-width: 0;
+      padding: 8px 9px;
+      border: 1px solid rgba(216, 173, 75, 0.18);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.24);
+    }
+
+    .metric strong {
+      display: block;
+      color: var(--accent-bright);
+      font-size: clamp(0.9rem, 1.2vw, 1.25rem);
+      line-height: 1.1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 4px;
+      color: var(--text-secondary);
+      font-size: 0.58rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .diagram-wrap {
+      min-height: 0;
+      padding: clamp(8px, 1vw, 14px);
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      min-height: 620px;
+      display: block;
+    }
+
+    .grid-line {
+      stroke: rgba(216, 173, 75, 0.14);
+      stroke-width: 1;
+    }
+
+    .label {
+      fill: var(--text-secondary);
+      font-size: 15px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .small-label {
+      fill: rgba(216, 208, 191, 0.78);
+      font-size: 12px;
+      letter-spacing: 0.6px;
+    }
+
+    .gold-line {
+      fill: none;
+      stroke: rgba(216, 173, 75, 0.76);
+      stroke-width: 2;
+    }
+
+    .fine-line {
+      fill: none;
+      stroke: rgba(216, 173, 75, 0.38);
+      stroke-width: 1.2;
+    }
+
+    .warning-line {
+      fill: none;
+      stroke: rgba(167, 58, 47, 0.8);
+      stroke-dasharray: 9 8;
+      stroke-width: 1.6;
+      animation: dash 14s linear infinite;
+    }
+
+    .warp-flow {
+      fill: none;
+      stroke: rgba(240, 207, 119, 0.8);
+      stroke-dasharray: 4 10;
+      stroke-linecap: round;
+      stroke-width: 3;
+      filter: drop-shadow(0 0 5px rgba(216, 173, 75, 0.5));
+      animation: dash 9s linear infinite;
+    }
+
+    .tower-shell {
+      fill: rgba(216, 173, 75, 0.08);
+      stroke: rgba(216, 173, 75, 0.74);
+      stroke-width: 2;
+    }
+
+    .tower-core {
+      fill: rgba(240, 207, 119, 0.18);
+      stroke: rgba(240, 207, 119, 0.82);
+      stroke-width: 1.5;
+      filter: drop-shadow(0 0 10px rgba(216, 173, 75, 0.34));
+    }
+
+    .plasma {
+      fill: rgba(216, 173, 75, 0.22);
+      stroke: rgba(240, 207, 119, 0.85);
+      stroke-width: 1.5;
+      animation: pulseGold 4.8s ease-in-out infinite;
+    }
+
+    .shield {
+      fill: none;
+      stroke: rgba(201, 181, 109, 0.46);
+      stroke-width: 1.5;
+      stroke-dasharray: 12 9;
+      animation: dash 22s linear infinite reverse;
+    }
+
+    .patrol {
+      fill: rgba(216, 208, 191, 0.78);
+      stroke: rgba(216, 173, 75, 0.7);
+      stroke-width: 1;
+      animation: patrolPulse 3.6s ease-in-out infinite;
+    }
+
+    .blueprint-base {
+      transition: opacity 0.28s ease, filter 0.28s ease;
+    }
+
+    .viz-frame:not([data-view="overview"]) .blueprint-base {
+      opacity: 0.1;
+      filter: blur(0.35px);
+      pointer-events: none;
+    }
+
+    .zoom-layer {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.28s ease;
+    }
+
+    .viz-frame[data-view="fortress"] .zoom-fortress,
+    .viz-frame[data-view="plasma"] .zoom-plasma,
+    .viz-frame[data-view="core"] .zoom-core,
+    .viz-frame[data-view="warp"] .zoom-warp {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .zoom-title {
+      fill: var(--accent-bright);
+      font-size: 23px;
+      letter-spacing: 1.6px;
+      text-transform: uppercase;
+    }
+
+    .zoom-subtitle {
+      fill: var(--text-secondary);
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .zoom-frame {
+      fill: rgba(7, 7, 10, 0.82);
+      stroke: rgba(216, 173, 75, 0.38);
+      stroke-width: 1.4;
+    }
+
+    .room {
+      fill: rgba(216, 173, 75, 0.1);
+      stroke: rgba(216, 173, 75, 0.55);
+      stroke-width: 1.5;
+    }
+
+    .room.ritual {
+      fill: rgba(216, 173, 75, 0.18);
+      stroke: rgba(240, 207, 119, 0.85);
+    }
+
+    .room.machine {
+      fill: rgba(184, 106, 66, 0.16);
+      stroke: rgba(184, 106, 66, 0.78);
+    }
+
+    .room.empty {
+      fill: rgba(216, 208, 191, 0.04);
+      stroke: rgba(216, 173, 75, 0.22);
+    }
+
+    .corridor {
+      fill: none;
+      stroke: rgba(216, 173, 75, 0.66);
+      stroke-width: 12;
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+    }
+
+    .corridor-edge {
+      fill: none;
+      stroke: rgba(7, 7, 10, 0.74);
+      stroke-width: 7;
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+    }
+
+    .service-line {
+      fill: none;
+      stroke: rgba(216, 208, 191, 0.5);
+      stroke-width: 1.2;
+      stroke-dasharray: 5 6;
+      animation: dash 18s linear infinite;
+    }
+
+    .room-label {
+      fill: var(--bone);
+      font-size: 12px;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    .micro-label {
+      fill: rgba(216, 208, 191, 0.66);
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      pointer-events: none;
+    }
+
+    .callout-line {
+      fill: none;
+      stroke: rgba(216, 173, 75, 0.68);
+      stroke-width: 1.4;
+      marker-end: url(#arrowGold);
+    }
+
+    .callout-box {
+      fill: rgba(7, 7, 10, 0.78);
+      stroke: rgba(216, 173, 75, 0.36);
+      stroke-width: 1.2;
+    }
+
+    .plasma-band {
+      fill: none;
+      stroke: rgba(240, 207, 119, 0.72);
+      stroke-width: 11;
+      stroke-linecap: round;
+      stroke-dasharray: 18 20;
+      filter: drop-shadow(0 0 7px rgba(216, 173, 75, 0.48));
+      animation: dash 8s linear infinite;
+    }
+
+    .plasma-sheath {
+      fill: rgba(216, 173, 75, 0.16);
+      stroke: rgba(240, 207, 119, 0.74);
+      stroke-width: 2;
+      animation: pulseGold 4.8s ease-in-out infinite;
+    }
+
+    .coil {
+      fill: none;
+      stroke: rgba(216, 173, 75, 0.6);
+      stroke-width: 2;
+      stroke-dasharray: 12 10;
+      animation: dash 20s linear infinite reverse;
+    }
+
+    .core-body {
+      fill: rgba(216, 173, 75, 0.12);
+      stroke: rgba(240, 207, 119, 0.8);
+      stroke-width: 2;
+      filter: drop-shadow(0 0 12px rgba(216, 173, 75, 0.36));
+    }
+
+    .core-orbit {
+      fill: none;
+      stroke: rgba(240, 207, 119, 0.7);
+      stroke-width: 2;
+      stroke-dasharray: 18 12;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    .core-fast {
+      animation: spin 16s linear infinite;
+    }
+
+    .core-slow {
+      animation: spin 28s linear infinite reverse;
+    }
+
+    .core-pulse {
+      animation: pulseGold 5s ease-in-out infinite;
+    }
+
+    .warp-black {
+      fill: url(#deepWarpFade);
+      stroke: rgba(216, 173, 75, 0.34);
+      stroke-width: 1.5;
+    }
+
+    .warp-boundary {
+      fill: none;
+      stroke: rgba(240, 207, 119, 0.78);
+      stroke-width: 2;
+      stroke-dasharray: 14 14;
+      animation: dash 16s linear infinite;
+    }
+
+    .warp-fracture {
+      fill: none;
+      stroke: rgba(142, 106, 183, 0.8);
+      stroke-width: 2;
+      stroke-dasharray: 4 10;
+      animation: dash 7s linear infinite reverse;
+    }
+
+    .core-ring {
+      fill: none;
+      stroke-width: 2;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    .core-a {
+      stroke: rgba(240, 207, 119, 0.92);
+      stroke-dasharray: 16 8;
+      animation: spin 18s linear infinite;
+    }
+
+    .core-b {
+      stroke: rgba(201, 181, 109, 0.86);
+      stroke-dasharray: 7 10;
+      animation: spin 27s linear infinite reverse;
+    }
+
+    .core-c {
+      stroke: rgba(216, 208, 191, 0.72);
+      stroke-dasharray: 3 8;
+      animation: spin 38s linear infinite;
+    }
+
+    .warp-zone {
+      fill: url(#warpFade);
+      stroke: rgba(216, 173, 75, 0.42);
+      stroke-dasharray: 12 12;
+      stroke-width: 2;
+    }
+
+    .station {
+      cursor: pointer;
+      outline: none;
+    }
+
+    .station-target {
+      fill: rgba(216, 173, 75, 0.08);
+      stroke: rgba(216, 173, 75, 0.32);
+      stroke-width: 1.2;
+      transition: fill 0.18s ease, stroke 0.18s ease;
+    }
+
+    .warp-zone.station-target {
+      fill: url(#warpFade);
+    }
+
+    .station:hover .station-target,
+    .station.active .station-target {
+      fill: rgba(216, 173, 75, 0.16);
+      stroke: rgba(240, 207, 119, 0.9);
+    }
+
+    .station:hover .warp-zone.station-target,
+    .station.active .warp-zone.station-target {
+      fill: url(#warpFade);
+    }
+
+    .station.active .station-label {
+      fill: var(--accent-bright);
+    }
+
+    .station-label {
+      fill: var(--bone);
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+
+    .data-panel {
+      padding: clamp(12px, 1.1vw, 16px);
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .station-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .station-tab {
+      min-height: 38px;
+      border: 1px solid rgba(216, 173, 75, 0.24);
+      border-radius: 6px;
+      background:
+        repeating-linear-gradient(135deg, rgba(216, 173, 75, 0.06) 0 1px, transparent 1px 7px),
+        rgba(0, 0, 0, 0.22);
+      color: var(--bone);
+      font: inherit;
+      font-size: 0.64rem;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .station-tab.active {
+      border-color: rgba(240, 207, 119, 0.76);
+      color: var(--accent-bright);
+      box-shadow: inset 0 -3px 0 rgba(216, 173, 75, 0.58);
+    }
+
+    .panel-title {
+      margin: 0;
+      color: var(--accent);
+      font-size: clamp(1.05rem, 1.4vw, 1.55rem);
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+    }
+
+    .panel-lead {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.76rem;
+      line-height: 1.65;
+    }
+
+    .info-stack {
+      min-height: 0;
+      overflow: auto;
+      display: grid;
+      gap: 9px;
+      padding-right: 4px;
+    }
+
+    .info-card {
+      border: 1px solid rgba(216, 173, 75, 0.18);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.24);
+      padding: 10px;
+    }
+
+    .info-card strong {
+      display: block;
+      color: var(--accent-bright);
+      font-size: 0.7rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .info-card span {
+      display: block;
+      margin-top: 6px;
+      color: var(--bone);
+      font-size: 0.72rem;
+      line-height: 1.55;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 0 12px 12px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--text-secondary);
+      font-size: 0.58rem;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+    }
+
+    .swatch {
+      width: 22px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(216, 173, 75, 0.35);
+    }
+
+    .swatch.warning {
+      background: var(--crimson);
+    }
+
+    .swatch.shield {
+      background: var(--terra);
+    }
+
+    .swatch.warp {
+      background: var(--violet);
+    }
+
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -160;
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes pulseGold {
+      0%, 100% {
+        opacity: 0.64;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes patrolPulse {
+      0%, 100% {
+        opacity: 0.5;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 1180px) {
+      header,
+      .workbench {
+        grid-template-columns: 1fr;
+      }
+
+      .top-nav {
+        justify-content: flex-start;
+      }
+
+      .data-panel {
+        max-height: none;
+      }
+
+      svg {
+        min-height: 720px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 10px;
+      }
+
+      h1 {
+        font-size: 1.55rem;
+      }
+
+      .subtitle {
+        display: none;
+      }
+
+      .top-nav {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .nav-button {
+        width: 100%;
+        min-width: 0;
+        padding-inline: 8px;
+        font-size: 0.66rem;
+      }
+
+      .viz-header,
+      .legend,
+      .station-tabs {
+        grid-template-columns: 1fr;
+      }
+
+      .metric {
+        padding: 7px 8px;
+      }
+
+      svg {
+        min-height: 620px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <header>
+      <div>
+        <h1>Astronomicon</h1>
+        <p class="subtitle">Metszeti adatvizualizáció - Himalája északi medence, 888 km</p>
+      </div>
+      <nav class="top-nav" aria-label="Terra Ostroma menü">
+        <a class="nav-button" href="terra-ostroma.html">Ostrom</a>
+        <a class="nav-button" href="terra-ostroma-karakterek.html">Karakterek</a>
+        <a class="nav-button" href="terra-ostroma-npc.html">NPC</a>
+        <a class="nav-button active" href="terra-ostroma-astronomicon.html">Astronomicon</a>
+        <a class="nav-button" href="terra-ostroma-eternity-gate.html">Eternity Gate</a>
+        <a class="nav-button terra" href="earth/index.html">Terra</a>
+        <a class="nav-button mars" href="mars/index.html">Mars</a>
+      </nav>
+    </header>
+
+    <main class="workbench">
+      <section class="viz-frame" id="vizFrame" data-view="overview" aria-label="Astronomicon metszeti tervrajz">
+        <div class="viz-header">
+          <div class="metric"><strong>888 km</strong><span>teljes toronymagasság</span></div>
+          <div class="metric"><strong>10 000 / nap</strong><span>felhasznált psyker töltés</span></div>
+          <div class="metric"><strong>több tízezer km2</strong><span>himalájai szerkezeti zóna</span></div>
+          <div class="metric"><strong>aktív</strong><span>warp pajzs és flottaöv</span></div>
+        </div>
+
+        <div class="diagram-wrap">
+          <svg viewBox="0 0 1000 960" role="img" aria-labelledby="diagramTitle diagramDesc">
+            <title id="diagramTitle">Az Astronomicon metszeti adatvizualizációja</title>
+            <desc id="diagramDesc">Kattintható tervrajz a teljes toronyról, a Forbidden Fortress talapzatról, a plazma alsó szintről, a középső magokról és a warp zónáról.</desc>
+            <defs>
+              <linearGradient id="towerGold" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0" stop-color="#f0cf77" stop-opacity="0.34" />
+                <stop offset="0.54" stop-color="#d8ad4b" stop-opacity="0.13" />
+                <stop offset="1" stop-color="#6d1712" stop-opacity="0.18" />
+              </linearGradient>
+              <linearGradient id="warpFade" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0" stop-color="#000000" stop-opacity="0.92" />
+                <stop offset="0.55" stop-color="#130d19" stop-opacity="0.6" />
+                <stop offset="1" stop-color="#d8ad4b" stop-opacity="0.1" />
+              </linearGradient>
+              <linearGradient id="deepWarpFade" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0" stop-color="#000000" stop-opacity="0.98" />
+                <stop offset="0.36" stop-color="#09060c" stop-opacity="0.92" />
+                <stop offset="0.72" stop-color="#20142c" stop-opacity="0.42" />
+                <stop offset="1" stop-color="#d8ad4b" stop-opacity="0.08" />
+              </linearGradient>
+              <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0" stop-color="#fff3b0" stop-opacity="0.72" />
+                <stop offset="0.48" stop-color="#d8ad4b" stop-opacity="0.22" />
+                <stop offset="1" stop-color="#000000" stop-opacity="0" />
+              </radialGradient>
+              <marker id="arrowGold" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                <path d="M0 0L10 5L0 10Z" fill="rgba(216,173,75,0.82)" />
+              </marker>
+            </defs>
+
+            <g class="blueprint-base">
+            <rect x="54" y="50" width="892" height="842" fill="rgba(0,0,0,0.18)" stroke="rgba(216,173,75,0.16)" />
+            <path class="grid-line" d="M70 170H930M70 290H930M70 410H930M70 530H930M70 650H930M70 770H930" />
+            <path class="grid-line" d="M175 70V890M325 70V890M500 70V890M675 70V890M825 70V890" />
+
+            <text class="label" x="78" y="94">Magassági tengely</text>
+            <text class="small-label" x="78" y="152">exoszféra / járőr flottaöv</text>
+            <text class="small-label" x="78" y="272">sztratoszféra vonalak</text>
+            <text class="small-label" x="78" y="792">himalájai medence / Forbidden Fortress</text>
+            <text class="small-label" x="805" y="156">anomália riasztás</text>
+            <text class="small-label" x="805" y="178">látásvesztés</text>
+            <text class="small-label" x="805" y="200">warp dózis</text>
+
+            <path class="shield" d="M252 744C318 660 682 660 748 744" />
+            <path class="shield" d="M204 694C294 586 706 586 796 694" />
+            <path class="shield" d="M148 620C270 466 730 466 852 620" />
+            <path class="warning-line" d="M220 238C310 196 406 219 500 185C609 146 706 163 828 120" />
+            <path class="warning-line" d="M184 322C300 282 388 332 500 292C622 249 720 273 844 232" />
+
+            <polygon class="tower-shell" points="462,114 538,114 606,754 394,754" fill="url(#towerGold)" />
+            <path class="tower-core" d="M500 128C484 246 492 364 474 486C461 574 454 642 448 736H552C546 642 539 574 526 486C508 364 516 246 500 128Z" />
+            <rect class="plasma" x="432" y="630" width="136" height="112" rx="24" />
+            <path class="warp-flow" d="M500 828C496 756 484 693 500 638C524 554 474 498 500 410C526 322 482 258 500 166" />
+            <path class="warp-flow" d="M458 824C438 726 466 664 446 602C428 546 432 500 460 444" />
+            <path class="warp-flow" d="M542 824C562 726 534 664 554 602C572 546 568 500 540 444" />
+
+            <g class="station" data-section="warp" tabindex="0" role="button" aria-label="Warp zóna">
+              <path class="warp-zone station-target" d="M418 94H582L548 214H452Z" />
+              <text class="station-label" x="457" y="78">Warp zóna</text>
+            </g>
+
+            <g class="station" data-section="overview" tabindex="0" role="button" aria-label="Totálkép">
+              <rect class="station-target" x="612" y="112" width="202" height="94" rx="8" />
+              <text class="station-label" x="632" y="144">Totálkép</text>
+              <text class="small-label" x="632" y="169">888 km torony</text>
+              <text class="small-label" x="632" y="190">pajzsok / flottaöv</text>
+            </g>
+
+            <g class="station" data-section="core" tabindex="0" role="button" aria-label="Közép Astronomicon">
+              <rect class="station-target" x="584" y="372" width="230" height="118" rx="8" />
+              <text class="station-label" x="604" y="405">Közép Astronomicon</text>
+              <text class="small-label" x="604" y="430">irányító mag</text>
+              <text class="small-label" x="604" y="452">hangoló mag</text>
+              <text class="small-label" x="604" y="474">erőforrás mag</text>
+            </g>
+
+            <g class="station" data-section="plasma" tabindex="0" role="button" aria-label="Alsó plazma szint">
+              <rect class="station-target" x="615" y="610" width="235" height="118" rx="8" />
+              <text class="station-label" x="635" y="643">Alsó plazma szint</text>
+              <text class="small-label" x="635" y="668">folyékony arany-fény</text>
+              <text class="small-label" x="635" y="690">részecskeáramlás</text>
+            </g>
+
+            <g class="station" data-section="fortress" tabindex="0" role="button" aria-label="Forbidden Fortress">
+              <rect class="station-target" x="136" y="734" width="728" height="116" rx="10" />
+              <text class="station-label" x="166" y="766">Forbidden Fortress</text>
+              <text class="small-label" x="166" y="792">leszálló pálya / fogadó termek / templom / gépház</text>
+              <text class="small-label" x="166" y="815">föld alatti barakkok és izolációs pajzsrétegek</text>
+            </g>
+
+            <path class="fine-line" d="M500 742H250V808H500H750V790H500" />
+            <rect x="240" y="790" width="96" height="32" fill="rgba(216,173,75,0.12)" stroke="rgba(216,173,75,0.35)" />
+            <rect x="354" y="770" width="104" height="38" fill="rgba(216,173,75,0.12)" stroke="rgba(216,173,75,0.35)" />
+            <rect x="474" y="790" width="104" height="44" fill="rgba(216,173,75,0.12)" stroke="rgba(216,173,75,0.35)" />
+            <rect x="594" y="770" width="104" height="38" fill="rgba(216,173,75,0.12)" stroke="rgba(216,173,75,0.35)" />
+            <rect x="710" y="790" width="74" height="32" fill="rgba(216,173,75,0.12)" stroke="rgba(216,173,75,0.35)" />
+            <text class="small-label" x="246" y="812">pálya</text>
+            <text class="small-label" x="362" y="794">előkészítő</text>
+            <text class="small-label" x="482" y="815">áldozati</text>
+            <text class="small-label" x="603" y="794">templom</text>
+            <text class="small-label" x="718" y="812">gépház</text>
+            <rect x="352" y="838" width="112" height="32" fill="rgba(109,23,18,0.18)" stroke="rgba(216,173,75,0.28)" />
+            <rect x="536" y="838" width="112" height="32" fill="rgba(109,23,18,0.18)" stroke="rgba(216,173,75,0.28)" />
+            <text class="small-label" x="370" y="859">barakkok</text>
+            <text class="small-label" x="553" y="859">izoláció</text>
+
+            <circle cx="500" cy="430" r="82" fill="url(#coreGlow)" />
+            <circle class="core-ring core-a" cx="500" cy="430" r="74" />
+            <circle class="core-ring core-b" cx="500" cy="430" r="50" />
+            <circle class="core-ring core-c" cx="500" cy="430" r="27" />
+            <text class="small-label" x="464" y="426">irányító</text>
+            <text class="small-label" x="461" y="448">magok</text>
+
+            <path class="gold-line" d="M210 140H314M180 258H302M160 376H288M176 494H314M184 612H326M206 728H352" />
+            <text class="small-label" x="214" y="132">orbitalis járőr</text>
+            <text class="small-label" x="184" y="250">anomália sáv</text>
+            <text class="small-label" x="164" y="368">stratoszféra</text>
+            <text class="small-label" x="180" y="486">corona gyűrűk</text>
+            <text class="small-label" x="188" y="604">plazma védelem</text>
+            <text class="small-label" x="210" y="720">pajzs talapzat</text>
+
+            <circle class="patrol" cx="252" cy="130" r="6" />
+            <circle class="patrol" cx="764" cy="174" r="6" />
+            <circle class="patrol" cx="824" cy="306" r="6" />
+            <circle class="patrol" cx="188" cy="458" r="6" />
+            </g>
+
+            <g class="zoom-layer zoom-fortress">
+              <rect class="zoom-frame" x="70" y="96" width="860" height="768" rx="10" />
+              <text class="zoom-title" x="98" y="136">Forbidden Fortress - talapzat és alépítmény</text>
+              <text class="zoom-subtitle" x="98" y="160">pontosított csarnokkapcsolatok / warp-szűrő pajzsok / föld alatti ellátó szintek</text>
+
+              <path class="shield" d="M154 224C260 142 740 142 846 224" />
+              <path class="shield" d="M122 274C244 178 756 178 878 274" />
+              <text class="small-label" x="146" y="210">külső ostrompajzs</text>
+              <text class="small-label" x="694" y="210">belső warp-szűrő</text>
+
+              <rect class="room" x="94" y="284" width="812" height="112" rx="8" />
+              <rect class="room" x="124" y="312" width="136" height="56" rx="4" />
+              <rect class="room ritual" x="302" y="300" width="128" height="80" rx="4" />
+              <rect class="room ritual" x="462" y="300" width="110" height="80" rx="4" />
+              <rect class="room" x="606" y="312" width="122" height="56" rx="4" />
+              <rect class="room machine" x="760" y="300" width="112" height="80" rx="4" />
+              <path class="corridor" d="M260 340H302M430 340H462M572 340H606M728 340H760" />
+              <path class="corridor-edge" d="M260 340H302M430 340H462M572 340H606M728 340H760" />
+              <text class="room-label" x="146" y="338">leszálló</text>
+              <text class="room-label" x="142" y="354">pálya</text>
+              <text class="room-label" x="322" y="332">fogadó</text>
+              <text class="room-label" x="318" y="350">csarnok</text>
+              <text class="room-label" x="478" y="332">karantén</text>
+              <text class="room-label" x="626" y="346">templom</text>
+              <text class="room-label" x="780" y="334">pajzs</text>
+              <text class="room-label" x="782" y="352">gépház</text>
+
+              <rect class="room" x="172" y="430" width="656" height="118" rx="8" />
+              <rect class="room ritual" x="210" y="454" width="118" height="66" rx="4" />
+              <rect class="room ritual" x="360" y="442" width="124" height="90" rx="4" />
+              <rect class="room ritual" x="518" y="442" width="122" height="90" rx="4" />
+              <rect class="room empty" x="672" y="454" width="84" height="66" rx="4" />
+              <path class="corridor" d="M366 396V487H328M484 487H518M640 487H672" />
+              <path class="corridor-edge" d="M366 396V487H328M484 487H518M640 487H672" />
+              <text class="room-label" x="228" y="486">előkészítő</text>
+              <text class="room-label" x="380" y="480">áldozati</text>
+              <text class="room-label" x="386" y="498">kamra</text>
+              <text class="room-label" x="536" y="480">vezérlő</text>
+              <text class="room-label" x="540" y="498">oltár</text>
+
+              <rect class="room" x="138" y="586" width="724" height="96" rx="8" />
+              <rect class="room" x="170" y="612" width="132" height="44" rx="4" />
+              <rect class="room empty" x="326" y="612" width="82" height="44" rx="4" />
+              <rect class="room" x="432" y="604" width="140" height="60" rx="4" />
+              <rect class="room machine" x="596" y="604" width="120" height="60" rx="4" />
+              <rect class="room empty" x="740" y="612" width="82" height="44" rx="4" />
+              <path class="corridor" d="M500 548V632H302M408 632H432M572 632H596M716 632H740" />
+              <path class="corridor-edge" d="M500 548V632H302M408 632H432M572 632H596M716 632H740" />
+              <text class="room-label" x="190" y="640">barakkok</text>
+              <text class="room-label" x="452" y="638">ellátó sín</text>
+              <text class="room-label" x="614" y="628">tartalék</text>
+              <text class="room-label" x="618" y="646">gépház</text>
+
+              <rect class="room" x="226" y="718" width="548" height="88" rx="8" />
+              <rect class="room" x="258" y="742" width="116" height="40" rx="4" />
+              <rect class="room empty" x="402" y="742" width="82" height="40" rx="4" />
+              <rect class="room" x="512" y="742" width="116" height="40" rx="4" />
+              <rect class="room empty" x="656" y="742" width="82" height="40" rx="4" />
+              <path class="corridor" d="M500 682V762H374M484 762H512M628 762H656" />
+              <path class="corridor-edge" d="M500 682V762H374M484 762H512M628 762H656" />
+              <text class="room-label" x="278" y="766">izoláció</text>
+              <text class="room-label" x="532" y="766">szűrőmag</text>
+
+              <path class="callout-line" d="M526 442L704 238" />
+              <rect class="callout-box" x="710" y="202" width="176" height="66" rx="6" />
+              <text class="micro-label" x="724" y="226">belső mező Terra felé</text>
+              <text class="micro-label" x="724" y="246">külső pajzs ostrom ellen</text>
+              <path class="service-line" d="M130 700H870M158 456H842M500 806V238" />
+            </g>
+
+            <g class="zoom-layer zoom-plasma">
+              <rect class="zoom-frame" x="88" y="96" width="824" height="768" rx="10" />
+              <text class="zoom-title" x="116" y="136">Alsó plazma szint - folyékony védőmag</text>
+              <text class="zoom-subtitle" x="116" y="160">10^8 K feletti plazmaállapot / többes bezárás / psyker-részecske töltés</text>
+              <rect class="plasma-sheath" x="312" y="184" width="376" height="592" rx="126" />
+              <rect class="zoom-frame" x="354" y="224" width="292" height="512" rx="96" />
+              <path class="plasma-band" d="M500 726C458 650 562 592 502 514C440 434 566 364 498 278" />
+              <path class="plasma-band" d="M440 704C394 610 462 548 436 472C410 398 434 326 478 254" />
+              <path class="plasma-band" d="M560 704C606 610 538 548 564 472C590 398 566 326 522 254" />
+              <ellipse class="coil" cx="500" cy="296" rx="210" ry="58" />
+              <ellipse class="coil" cx="500" cy="436" rx="236" ry="70" />
+              <ellipse class="coil" cx="500" cy="592" rx="220" ry="64" />
+              <path class="service-line" d="M256 296H354M646 296H744M238 436H354M646 436H762M260 592H354M646 592H742" />
+              <rect class="callout-box" x="112" y="232" width="176" height="86" rx="6" />
+              <text class="room-label" x="128" y="260">hőfok</text>
+              <text class="micro-label" x="128" y="282">10^8 K felett</text>
+              <text class="micro-label" x="128" y="300">relatív mérés</text>
+              <rect class="callout-box" x="710" y="354" width="168" height="94" rx="6" />
+              <text class="room-label" x="724" y="382">kvantum</text>
+              <text class="micro-label" x="724" y="404">antirészecske</text>
+              <text class="micro-label" x="724" y="422">nanogép-rizikó</text>
+              <rect class="callout-box" x="126" y="584" width="184" height="96" rx="6" />
+              <text class="room-label" x="142" y="612">optikai zár</text>
+              <text class="micro-label" x="142" y="634">közvetlen látvány:</text>
+              <text class="micro-label" x="142" y="652">vakság</text>
+              <circle class="patrol" cx="500" cy="246" r="7" />
+              <circle class="patrol" cx="452" cy="394" r="5" />
+              <circle class="patrol" cx="548" cy="512" r="5" />
+              <circle class="patrol" cx="500" cy="674" r="7" />
+            </g>
+
+            <g class="zoom-layer zoom-core">
+              <rect class="zoom-frame" x="84" y="96" width="832" height="768" rx="10" />
+              <text class="zoom-title" x="112" y="136">Közép Astronomicon - hármas magcsarnok</text>
+              <text class="zoom-subtitle" x="112" y="160">irányító mag / hangoló mag / erőforrás mag / corona frekvencia-átadás</text>
+              <path class="service-line" d="M500 168V812M194 492H806M252 340C388 274 612 274 748 340M252 642C388 708 612 708 748 642" />
+              <circle class="core-body core-pulse" cx="500" cy="492" r="86" />
+              <circle class="core-orbit core-fast" cx="500" cy="492" r="126" />
+              <circle class="core-orbit core-slow" cx="500" cy="492" r="164" />
+              <text class="room-label" x="454" y="486">irányító</text>
+              <text class="room-label" x="468" y="506">mag</text>
+              <circle class="core-body" cx="282" cy="346" r="66" />
+              <ellipse class="core-orbit core-slow" cx="282" cy="346" rx="100" ry="48" />
+              <ellipse class="core-orbit core-fast" cx="282" cy="346" rx="74" ry="98" />
+              <text class="room-label" x="244" y="342">hangoló</text>
+              <text class="room-label" x="266" y="362">mag</text>
+              <circle class="core-body" cx="718" cy="646" r="70" />
+              <ellipse class="core-orbit core-fast" cx="718" cy="646" rx="112" ry="52" />
+              <ellipse class="core-orbit core-slow" cx="718" cy="646" rx="78" ry="112" />
+              <text class="room-label" x="674" y="642">erőforrás</text>
+              <text class="room-label" x="700" y="662">mag</text>
+              <rect class="room" x="184" y="448" width="118" height="88" rx="6" />
+              <rect class="room empty" x="322" y="448" width="72" height="88" rx="6" />
+              <rect class="room" x="606" y="448" width="118" height="88" rx="6" />
+              <rect class="room empty" x="744" y="448" width="72" height="88" rx="6" />
+              <path class="corridor" d="M302 492H414M586 492H606M724 492H744" />
+              <path class="corridor-edge" d="M302 492H414M586 492H606M724 492H744" />
+              <text class="room-label" x="208" y="486">vezérlő</text>
+              <text class="room-label" x="202" y="506">kórus</text>
+              <text class="room-label" x="628" y="486">jeltörő</text>
+              <text class="room-label" x="630" y="506">gyűrű</text>
+              <path class="warp-flow" d="M500 792C482 676 514 598 500 492C486 386 518 296 500 188" />
+              <path class="callout-line" d="M282 282L178 218" />
+              <rect class="callout-box" x="104" y="188" width="170" height="62" rx="6" />
+              <text class="micro-label" x="118" y="214">corona hangolás</text>
+              <text class="micro-label" x="118" y="234">több gyűrűréteg</text>
+              <path class="callout-line" d="M718 716L826 770" />
+              <rect class="callout-box" x="742" y="774" width="156" height="54" rx="6" />
+              <text class="micro-label" x="756" y="800">napi töltés</text>
+              <text class="micro-label" x="756" y="818">szétküldése</text>
+            </g>
+
+            <g class="zoom-layer zoom-warp">
+              <rect class="zoom-frame" x="86" y="96" width="828" height="768" rx="10" />
+              <text class="zoom-title" x="114" y="136">Warp zóna - szerkezeti átfolyás</text>
+              <text class="zoom-subtitle" x="114" y="160">innentől a torony nem teljesen materiális / szaggatott határ / feketébe oldódó corona</text>
+              <path class="warp-black" d="M256 184H744L672 742H328Z" />
+              <path class="warp-boundary" d="M280 250C394 218 606 218 720 250" />
+              <path class="warp-boundary" d="M250 358C380 316 620 316 750 358" />
+              <path class="warp-boundary" d="M222 484C372 430 628 430 778 484" />
+              <path class="warp-fracture" d="M362 194C438 318 380 468 452 596C502 684 472 746 436 824" />
+              <path class="warp-fracture" d="M636 194C560 318 620 468 548 596C498 684 528 746 564 824" />
+              <path class="warp-flow" d="M500 818C492 708 512 624 500 530C484 400 516 302 500 188" />
+              <ellipse class="coil" cx="500" cy="282" rx="242" ry="52" />
+              <ellipse class="coil" cx="500" cy="428" rx="280" ry="72" />
+              <ellipse class="coil" cx="500" cy="594" rx="246" ry="58" />
+              <rect class="callout-box" x="112" y="232" width="186" height="82" rx="6" />
+              <text class="room-label" x="128" y="260">átmeneti határ</text>
+              <text class="micro-label" x="128" y="282">szaggatott anyagvonal</text>
+              <text class="micro-label" x="128" y="300">mérhetetlen zóna</text>
+              <rect class="callout-box" x="706" y="392" width="168" height="92" rx="6" />
+              <text class="room-label" x="722" y="420">színagenda</text>
+              <text class="micro-label" x="722" y="442">bíbor / zöld / rózsaszín</text>
+              <text class="micro-label" x="722" y="460">fekete spektrum</text>
+              <rect class="callout-box" x="130" y="632" width="190" height="82" rx="6" />
+              <text class="room-label" x="146" y="660">corona törés</text>
+              <text class="micro-label" x="146" y="682">warp-irányítás</text>
+              <text class="micro-label" x="146" y="700">gyűrűs vezérlés</text>
+              <circle class="patrol" cx="380" cy="272" r="5" />
+              <circle class="patrol" cx="618" cy="336" r="5" />
+              <circle class="patrol" cx="430" cy="526" r="5" />
+              <circle class="patrol" cx="586" cy="658" r="5" />
+            </g>
+          </svg>
+        </div>
+
+        <div class="legend" aria-label="Jelmagyarázat">
+          <div class="legend-item"><span class="swatch"></span>részecskeáramlás</div>
+          <div class="legend-item"><span class="swatch shield"></span>pajzsréteg</div>
+          <div class="legend-item"><span class="swatch warning"></span>anomália</div>
+          <div class="legend-item"><span class="swatch warp"></span>warp zóna</div>
+        </div>
+      </section>
+
+      <aside class="data-panel" aria-label="Astronomicon információs panel">
+        <div class="station-tabs" id="stationTabs"></div>
+        <div>
+          <h2 class="panel-title" id="panelTitle"></h2>
+          <p class="panel-lead" id="panelLead"></p>
+        </div>
+        <div class="info-stack" id="infoStack"></div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const sections = {
+      overview: {
+        title: 'Totálkép',
+        tab: 'Totál',
+        lead: 'Az Astronomicon egy 888 km magas, észak-himalájai medencéből az űrbe törő torony. A teljes nézet a magasságot, a légköri határsávokat, az anomáliákat, a pajzsöveket és a járőrflotta szintjeit mutatja.',
+        cards: [
+          ['Eredet', 'Marson készült. A Typhon sárkány építette azzal a céllal, hogy a warpot galaktikus léptékben kiterjessze és irányíthatóvá tegye.'],
+          ['Lépték', 'A mai szerkezet több tízezer négyzetkilométernyi területen fekszik, és több száz kilométerrel a Himalája fölé magasodik.'],
+          ['Külső hatás', 'A külső részek is megterhelik a dolgozókat és védőket: kifakulás, warp dózis, lassú testi és tudati torzulás miatt gyakori a rotáció.'],
+          ['Spektrum', 'Adalbert bíborlila, Milipedes zöld, Erda rózsaszín, a Rektor fekete fényre hangolná az Astronomicont. A jelenlegi domináns fény aranyló.']
+        ]
+      },
+      fortress: {
+        title: 'Forbidden Fortress',
+        tab: 'Erőd',
+        lead: 'A talapzat erődítményrendszere egyszerre fogadóállomás, áldozati feldolgozó központ, pajzsgépház és Terra védőszűrője az Astronomicon túlzott hatásával szemben.',
+        cards: [
+          ['Pajzsvédelem', 'A belső warp pajzsok Terrát védik az Astronomicon sugárzásától. A külső pajzsok ostrom, orbitális tűz és beszivárgás ellen dolgoznak.'],
+          ['Psyker útvonal', 'Leszálló pálya, fogadó csarnok, karantén szárny, előkészítő terem és áldozati kamra vezeti a napi töltést a torony plazmaáramába.'],
+          ['Erődszintek', 'A felszínen templom, adminisztratív csarnok és gépház található. A föld alatt barakkok, izolációs cellák, tartalék pajzsgépek és ellátó alagutak húzódnak.'],
+          ['Eye of Night', 'Az Eye of Night védelmet ad az Astronomicon mezőjével szemben, ezért stratégiai értéke az ostrom alatt különösen magas.']
+        ]
+      },
+      plasma: {
+        title: 'Alsó plazma szint',
+        tab: 'Plazma',
+        lead: 'Az alsó Astronomicon folyékony, sűrű, aranyszerű plazmafényként látható. Ez a réteg egyszerre energiaforrás, védőközeg és részecskeirányító csatorna.',
+        cards: [
+          ['Hő- és mezőadatok', 'A becsült belső hőmérséklet mérhetetlenül instabil; a kijelzők csak relatív értéket adnak: 10^8 K feletti plazmaállapot, többszörösen bezárt gravitációs és warp nyomással.'],
+          ['Részecskeáramlás', 'A psyker töltés warp részecskéi az áldozati kamrától az alsó plazmán át a corona gyűrűk felé futnak, majd kifelé terülnek a galaxisba.'],
+          ['Biológiai veszély', 'Aki védőfelszerelés nélkül közel kerül a belső magmezőhöz, annak teste kvantumméretű warp antirészecske-robotokká bomolhat.'],
+          ['Optikai kockázat', 'A belső mag közvetlen látványa vakságot okoz; védett optikával is csak plazmafénnyel izzó, sűrű aranyrészecske-folyamként értelmezhető.']
+        ]
+      },
+      core: {
+        title: 'Közép Astronomicon',
+        tab: 'Magok',
+        lead: 'A középső szinten három mag dolgozik egymásra hangolva: irányító mag, hangoló mag és erőforrás mag. A magok lassú, eltérő ritmusú forgása tartja stabilan a kimenő warp-spektrumot.',
+        cards: [
+          ['Irányító mag', 'A torony agendáját és célpontspektrumát rendezi. A jelenlegi uraló jelenlét aranyló, sűrű fényként érzékelhető.'],
+          ['Hangoló mag', 'A corona gyűrűk felé továbbított frekvenciát állítja. A gyűrűk egymásra rétegzett rendszere képes a warp irányítására.'],
+          ['Erőforrás mag', 'A napi psyker töltést feldolgozza, stabilizálja és kimenő jelként szétküldi. Navigátorok és astropathák ezt távoli fáklyaként érzékelik.'],
+          ['Propaganda mező', 'A rendszer nemcsak navigációs jel: lakott helyekre sugárzott érzelmi nyomással fenntartja a loyalista propaganda hatását.']
+        ]
+      },
+      warp: {
+        title: 'Warp zóna',
+        tab: 'Warp',
+        lead: 'A felső toronyszint egy ponton túl már nem tiszta materiális szerkezet. A metszeti kép szaggatott vonallal jelzi azt a határt, ahol az Astronomicon lassan feketébe oldódik és átfolyik a warpba.',
+        cards: [
+          ['Átmeneti határ', 'A torony koronája nem zárható hagyományos műszaki metszettel: a szerkezeti vonalak megszakadnak, az anyag és a jel egymásba folyik.'],
+          ['Külső igények', 'Mindegyik káoszisteni agenda saját színre és célra akarja állítani a fényt, ezért a felső sáv stratégiai és metafizikai támadási pont.'],
+          ['Corona gyűrűk', 'A felső gyűrűrendszer több egymásra helyezett corona rétegből áll, amelyek a kimenő warp-irányt és spektrumot törik, erősítik vagy torzítják.'],
+          ['Fáklya analógia', 'A jelenlegi aranyló jelenlét az Adalbert-féle bíbor köd viselkedésére emlékeztet, de hideg helyett égő, arany spektrumú nyomást ad.']
+        ]
+      }
+    };
+
+    const tabs = document.getElementById('stationTabs');
+    const vizFrame = document.getElementById('vizFrame');
+    const panelTitle = document.getElementById('panelTitle');
+    const panelLead = document.getElementById('panelLead');
+    const infoStack = document.getElementById('infoStack');
+    const sectionOrder = ['overview', 'fortress', 'plasma', 'core', 'warp'];
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function selectSection(sectionId) {
+      const section = sections[sectionId] || sections.overview;
+      vizFrame.dataset.view = sections[sectionId] ? sectionId : 'overview';
+      document.querySelectorAll('.station').forEach(station => {
+        station.classList.toggle('active', station.dataset.section === sectionId);
+      });
+      document.querySelectorAll('.station-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.section === sectionId);
+      });
+      panelTitle.textContent = section.title;
+      panelLead.textContent = section.lead;
+      infoStack.innerHTML = section.cards.map(([title, body]) => `
+        <article class="info-card">
+          <strong>${escapeHtml(title)}</strong>
+          <span>${escapeHtml(body)}</span>
+        </article>
+      `).join('');
+    }
+
+    tabs.innerHTML = sectionOrder.map(sectionId => `
+      <button class="station-tab" type="button" data-section="${sectionId}">${sections[sectionId].tab}</button>
+    `).join('');
+
+    tabs.addEventListener('click', event => {
+      const button = event.target.closest('.station-tab');
+      if (button) {
+        selectSection(button.dataset.section);
+      }
+    });
+
+    document.querySelectorAll('.station').forEach(station => {
+      station.addEventListener('click', () => selectSection(station.dataset.section));
+      station.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          selectSection(station.dataset.section);
+        }
+      });
+    });
+
+    selectSection('overview');
+  </script>
+</body>
+</html>
