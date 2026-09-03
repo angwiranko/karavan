@@ -93,21 +93,71 @@ function recordsHarness(filename, saved = null, options = {}) {
   class Element {
     constructor(id) {
       this.id = id; this.dataset = {}; this.listeners = {}; this.children = [];
-      this.classList = { add() {}, remove() {} }; this.open = false;
+      this.className = ''; this.attributes = {}; this.value = ''; this.scrollTop = 0;
+      this.classList = {
+        add: name => this.classList.toggle(name, true),
+        remove: name => this.classList.toggle(name, false),
+        toggle: (name, enabled) => {
+          const classes = new Set(this.className.split(' ').filter(Boolean));
+          if (enabled) classes.add(name); else classes.delete(name);
+          this.className = [...classes].join(' ');
+        }
+      }; this.open = false;
     }
-    set innerHTML(value) { this.markup = value; this.children = []; }
+    set innerHTML(value) {
+      this.markup = value; this.children = [];
+      const child = (parent, tag, cls = '') => {
+        const el = new Element(tag); el.className = cls; parent.appendChild(el); return el;
+      };
+      // Materialize the two fixed Ostrom templates for interaction tests.
+      if (value.includes('class="defense-track"')) {
+        for (const level of [2, 3, 4, 5, 6]) child(this, 'button', 'defense-die').dataset.level = String(level);
+        const form = child(this, 'form', 'entry-form');
+        child(form, 'input'); child(form, 'button');
+        child(child(this, 'div', 'entry-list'), 'div', 'empty-message');
+      } else if (value.startsWith('<span class="entry-kind-icon"')) {
+        child(this, 'span', 'entry-kind-icon'); child(this, 'span', 'entry-label'); child(this, 'button', 'entry-remove');
+      }
+    }
     get innerHTML() { return this.markup || ''; }
-    appendChild(child) { this.children.push(child); }
+    appendChild(child) { this.insertBefore(child, null); }
+    insertBefore(child, before) {
+      child.remove(); child.parentElement = this;
+      const index = before ? this.children.indexOf(before) : this.children.length;
+      this.children.splice(index, 0, child);
+    }
+    remove() {
+      if (this.parentElement) this.parentElement.children = this.parentElement.children.filter(child => child !== this);
+      this.parentElement = null;
+    }
+    setAttribute(key, value) { this.attributes[key] = value; }
+    matches(selector) {
+      if (selector.startsWith('.')) return this.className.split(' ').includes(selector.slice(1));
+      const data = selector.match(/^\[data-segment-id="([^"]+)"\]$/);
+      return data ? this.dataset.segmentId === data[1] : this.id === selector;
+    }
+    closest(selector) { return this.matches(selector) ? this : this.parentElement?.closest(selector) || null; }
+    querySelectorAll(selector) {
+      const descendants = this.children.flatMap(child => [child, ...child.querySelectorAll('*')]);
+      if (selector === '*') return descendants;
+      return descendants.filter(child => selector.split(',').some(part => {
+        const pieces = part.trim().split(/\s+/);
+        return child.matches(pieces.at(-1)) && (pieces.length === 1 || child.parentElement?.closest(pieces[0]));
+      }));
+    }
+    querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
     addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); }
     emit(type, event = {}) { for (const fn of this.listeners[type] || []) fn(event); }
     showModal() { this.open = true; }
     close() { this.open = false; this.emit('close'); }
-    focus() { this.focused = true; }
+    focus() { this.focused = true; doc.activeElement = this; }
   }
   const html = read(filename);
   const elements = new Map([...html.matchAll(/\bid="([^"]+)"/g)].map(m => [m[1], new Element(m[1])]));
   const groups = ['rogue-trader', 'smuggler'].map(group => { const el = new Element(group); el.dataset.group = group; return el; });
   const doc = new Element('document');
+  doc.visibilityState = 'visible';
+  const win = new Element('window');
   doc.getElementById = id => { assert.ok(elements.has(id), id); return elements.get(id); };
   doc.createElement = tag => new Element(tag);
   doc.querySelectorAll = selector => selector === '.group-zone' ? groups : [];
@@ -115,13 +165,20 @@ function recordsHarness(filename, saved = null, options = {}) {
   if (options.stored) for (const [key, value] of options.stored) stored.set(key, value);
   const cloud = options.cloud || makeSheetService();
   const timers = new Map(); let timerId = 0;
-  const context = vm.createContext({ document: doc, console, crypto: crypto.webcrypto, AbortController, fetch: options.fetch || cloud.fetch, localStorage: { getItem: id => stored.get(id), setItem: (id, value) => stored.set(id, value) }, setTimeout: (fn, delay) => { timers.set(++timerId, { fn, delay }); return timerId; }, clearTimeout: id => timers.delete(id) });
+  const context = vm.createContext({ document: doc, window: win, console, crypto: crypto.webcrypto, AbortController, fetch: options.fetch || cloud.fetch, localStorage: { getItem: id => stored.get(id), setItem: (id, value) => stored.set(id, value) }, setTimeout: (fn, delay) => { timers.set(++timerId, { fn, delay }); return timerId; }, clearTimeout: id => timers.delete(id) });
   const script = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).join('\n');
   vm.runInContext(script, context);
-  return { elements, groups, doc, stored, context, timers, cloud,
+  return { elements, groups, doc, win, stored, context, timers, cloud,
     state: () => JSON.parse(vm.runInContext('JSON.stringify(state)', context)),
     run: code => vm.runInContext(code, context),
-    settle: () => new Promise(resolve => setImmediate(resolve))
+    settle: () => new Promise(resolve => setImmediate(resolve)),
+    fire: async delay => {
+      const timer = [...timers].find(([, value]) => value.delay === delay);
+      assert.ok(timer, `Missing timer with delay ${delay}`);
+      timers.delete(timer[0]);
+      await timer[1].fn();
+      await new Promise(resolve => setImmediate(resolve));
+    }
   };
 }
 
@@ -141,7 +198,8 @@ test('Ostrom saves six scales, entries, category cycling and deletion to the tar
   }
   await page.run("addEntry('paktum', '  <script>próba</script>  ')");
   const entry = page.state().segments[0].entries[0];
-  assert.match(grid.children[0].innerHTML, /&lt;script&gt;próba&lt;\/script&gt;/);
+  assert.equal(grid.children[0].querySelector('.entry-label').textContent, '<script>próba</script>');
+  assert.equal(grid.children[0].querySelector('.entry-label').innerHTML, '');
   assert.equal(entry.status, 'normal');
   for (const status of ['inkognito', 'jogosultsag', 'normal']) {
     await page.run(`cycleEntryStatus('paktum', '${entry.id}')`);
@@ -193,6 +251,7 @@ test('empty remote sheet does not resurrect cached deletions, and legacy data ha
   assert.equal(page.elements.get('localBackupNotice').hidden, true);
   const id = page.state().segments[0].entries[0].id;
   await page.run(`removeEntry('paktum', '${id}')`);
+  await page.settle();
   const reloaded = recordsHarness('terra-ostroma.html', legacy, { stored: page.stored, cloud: page.cloud }); await reloaded.settle();
   assert.equal(reloaded.state().segments[0].entries.length, 0);
   assert.equal(reloaded.elements.get('localBackupNotice').hidden, true);
@@ -203,6 +262,7 @@ test('legacy import adds missing records without overwriting existing remote val
   await remote.run("updateDefense('paktum', 6)");
   await remote.run("addEntry('paktum', 'Táblázatban lévő bejegyzés')");
   await remote.run("moveCharacter('character-01', 'smuggler')");
+  await remote.settle();
   const legacy = remote.state();
   legacy.segments[0].defense = 3;
   legacy.segments[0].entries[0].label = 'Elavult helyi változat';
@@ -229,7 +289,7 @@ test('wrong-target and HTML responses never report a successful connection', asy
   }
 });
 
-test('unconfirmed writes retain drafts and disable further mutations until refresh', async () => {
+test('unconfirmed writes retain an optimistic durable queue and retry without blocking edits', async () => {
   const cloud = makeSheetService();
   let fail = true;
   const page = recordsHarness('terra-ostroma.html', null, { cloud, fetch: async (url, options) => {
@@ -238,27 +298,202 @@ test('unconfirmed writes retain drafts and disable further mutations until refre
   } });
   await page.settle();
   page.run("entryDrafts.set('paktum', 'Megőrzendő vázlat')");
-  assert.equal(await page.run("addEntry('paktum', 'Megőrzendő vázlat')"), false);
-  assert.equal(page.state().segments[0].entries.length, 0);
-  assert.equal(page.run("entryDrafts.get('paktum')"), 'Megőrzendő vázlat');
-  assert.equal(page.run('sheetReady'), false);
-  fail = false;
-  await page.run('refreshFromSheet()');
   assert.equal(await page.run("addEntry('paktum', 'Megőrzendő vázlat')"), true);
+  await page.settle();
+  assert.equal(page.state().segments[0].entries.length, 1);
+  assert.equal(page.run("entryDrafts.has('paktum')"), false);
+  assert.equal(page.run('sheetReady'), true);
+  assert.equal(JSON.parse(page.stored.get('terra-ostroma-pending-v1')).length, 1);
+  assert.match(page.elements.get('sheetStatus').textContent, /mentés vár/);
+  assert.equal(await page.run("updateDefense('paktum', 6)"), true);
+  assert.equal(page.state().segments[0].defense, 6);
+  fail = false;
+  await page.fire(3000);
   assert.equal(page.cloud.get().rows.filter(row => row.record_type === 'entry').length, 1);
+  assert.equal(page.cloud.get().rows.find(row => row.record_type === 'segment').defense, 6);
+  assert.equal(JSON.parse(page.stored.get('terra-ostroma-pending-v1')).length, 0);
+  assert.match(page.elements.get('sheetStatus').textContent, /szinkronban/);
 });
 
-test('pending read and write requests cannot race with another mutation', async () => {
+test('slow writes never block edits and coalesce unsent values without rewriting the in-flight request', async () => {
   const cloud = makeSheetService();
   let release;
   const page = recordsHarness('terra-ostroma.html', null, { cloud, fetch: (url, options) => new Promise(resolve => { release = () => resolve(cloud.fetch(url, options)); }) });
   assert.equal(await page.run("addEntry('paktum', 'Too early')"), false);
   release(); await page.settle();
-  const firstSave = page.run("updateDefense('paktum', 4)");
-  assert.equal(await page.run("updateDefense('paktum', 6)"), false);
-  assert.equal(page.state().segments[0].defense, 2);
-  release(); await firstSave;
+  assert.equal(await page.run("updateDefense('paktum', 4)"), true);
   assert.equal(page.state().segments[0].defense, 4);
+  assert.equal(await page.run("updateDefense('paktum', 5)"), true);
+  assert.equal(await page.run("updateDefense('paktum', 6)"), true);
+  assert.equal(page.state().segments[0].defense, 6);
+  assert.equal(page.run('pendingChanges.length'), 2);
+  assert.equal(page.elements.get('segmentsGrid').children[0].querySelector('input').disabled, false);
+  release(); await page.settle();
+  assert.equal(page.state().segments[0].defense, 6);
+  assert.equal(page.cloud.get().rows[0].defense, 4);
+  release(); await page.settle();
+  assert.equal(page.cloud.get().rows[0].defense, 6);
+  assert.equal(page.run('pendingChanges.length'), 0);
+});
+
+test('polling reads another player changes without replacing inputs, notes or scroll containers', async () => {
+  const page = recordsHarness('terra-ostroma.html'); await page.settle();
+  await page.run("addEntry('paktum', 'Első nyom')"); await page.settle();
+  const id = page.state().segments[0].entries[0].id;
+  const grid = page.elements.get('segmentsGrid');
+  const card = grid.children[0];
+  const input = card.querySelector('input');
+  const list = card.querySelector('.entry-list');
+  const chip = list.querySelector('.entry-chip');
+  input.value = 'Félkész feljegyzés'; input.focus(); input.selectionStart = 4; input.selectionEnd = 7;
+  grid.emit('input', { target: input }); list.scrollTop = 45;
+  const remote = recordsHarness('terra-ostroma.html', null, { cloud: page.cloud }); await remote.settle();
+  await remote.run("updateDefense('paktum', 6)");
+  await remote.run(`cycleEntryStatus('paktum', '${id}')`);
+  await remote.run("addEntry('paktum', 'Másik játékos nyoma')");
+  await remote.run("moveCharacter('character-01', 'smuggler')"); await remote.settle();
+  await page.fire(10000);
+  assert.equal(page.state().segments[0].defense, 6);
+  assert.equal(page.state().segments[0].entries[0].status, 'inkognito');
+  assert.equal(page.state().segments[0].entries.length, 2);
+  assert.equal(page.state().characters[0].group, 'smuggler');
+  assert.equal(grid.children[0], card);
+  assert.equal(card.querySelector('input'), input);
+  assert.equal(page.doc.activeElement, input);
+  assert.equal(input.value, 'Félkész feljegyzés');
+  assert.equal(input.selectionStart, 4); assert.equal(input.selectionEnd, 7);
+  assert.equal(card.querySelector('.entry-list'), list); assert.equal(list.scrollTop, 45);
+  assert.equal(list.querySelector('.entry-chip'), chip);
+  assert.equal(chip.dataset.entryStatus, 'inkognito');
+  await page.fire(10000);
+  assert.equal(list.querySelector('.entry-chip'), chip);
+  await remote.run(`removeEntry('paktum', '${id}')`); await remote.settle();
+  await page.fire(10000);
+  assert.equal(page.state().segments[0].entries.length, 1);
+  assert.equal(chip.parentElement, null);
+});
+
+test('hidden tabs suspend polling; returning to the tab or reconnecting refreshes immediately', async () => {
+  const page = recordsHarness('terra-ostroma.html'); await page.settle();
+  const remote = recordsHarness('terra-ostroma.html', null, { cloud: page.cloud }); await remote.settle();
+  page.doc.visibilityState = 'hidden'; page.doc.emit('visibilitychange');
+  assert.ok(![...page.timers.values()].some(timer => timer.delay === 10000));
+  await remote.run("updateDefense('paktum', 5)"); await remote.settle();
+  assert.equal(page.state().segments[0].defense, 2);
+  page.doc.visibilityState = 'visible'; page.doc.emit('visibilitychange'); await page.settle();
+  assert.equal(page.state().segments[0].defense, 5);
+  await remote.run("updateDefense('paktum', 6)"); await remote.settle();
+  page.win.emit('online'); await page.settle();
+  assert.equal(page.state().segments[0].defense, 6);
+  assert.equal([...page.timers.values()].filter(timer => timer.delay === 10000).length, 1);
+});
+
+test('edits during a slow background read overlay its old snapshot before serialized writes start', async () => {
+  const cloud = makeSheetService();
+  let delayReads = false; let release;
+  const page = recordsHarness('terra-ostroma.html', null, { cloud, fetch: (url, options) => {
+    const snapshot = cloud.fetch(url, options);
+    return delayReads && options.method === 'GET' ? new Promise(resolve => { release = () => resolve(snapshot); }) : snapshot;
+  } });
+  await page.settle(); delayReads = true;
+  const refreshing = page.run('refreshFromSheet()');
+  await page.run("updateDefense('paktum', 6)");
+  await page.run("addEntry('paktum', 'Olvasás közben')");
+  await page.run("moveCharacter('character-01', 'smuggler')");
+  assert.equal(page.state().segments[0].defense, 6);
+  assert.equal(cloud.calls.filter(call => call.method === 'POST').length, 0);
+  delayReads = false; release(); await refreshing; await page.settle();
+  assert.equal(page.state().segments[0].defense, 6);
+  assert.equal(page.state().segments[0].entries[0].label, 'Olvasás közben');
+  assert.equal(page.state().characters[0].group, 'smuggler');
+  assert.equal(page.run('pendingChanges.length'), 0);
+  assert.equal(cloud.get().rows.find(row => row.record_type === 'segment').defense, 6);
+});
+
+test('repeated long presses cycle immediately during slow saves and the delete button stays independent', async () => {
+  const cloud = makeSheetService();
+  let slow = false; let release;
+  const page = recordsHarness('terra-ostroma.html', null, { cloud, fetch: (url, options) =>
+    slow && options.method === 'POST' ? new Promise(resolve => { release = () => resolve(cloud.fetch(url, options)); }) : cloud.fetch(url, options)
+  });
+  await page.settle(); await page.run("addEntry('paktum', 'Gyors típusváltás')"); await page.settle();
+  const grid = page.elements.get('segmentsGrid');
+  const chip = grid.children[0].querySelector('.entry-chip');
+  const button = chip.querySelector('.entry-remove');
+  slow = true;
+  for (const status of ['inkognito', 'jogosultsag', 'normal']) {
+    grid.emit('pointerdown', { target: chip }); await page.fire(620); grid.emit('pointerup');
+    assert.equal(page.state().segments[0].entries[0].status, status);
+    assert.equal(chip.dataset.entryStatus, status);
+    assert.equal(button.disabled, false);
+    assert.equal(grid.children[0].querySelector('.entry-chip'), chip);
+  }
+  assert.equal(page.run('pendingChanges.length'), 2);
+  grid.emit('pointerdown', { target: button });
+  assert.ok(![...page.timers.values()].some(timer => timer.delay === 620));
+  grid.emit('click', { target: button, stopPropagation() {} });
+  assert.equal(page.state().segments[0].entries.length, 0);
+  assert.equal(page.run('pendingChanges.length'), 3);
+  for (let i = 0; i < 3; i++) { release(); await page.settle(); }
+  assert.equal(cloud.get().rows.filter(row => row.record_type === 'entry').length, 0);
+  assert.equal(page.run('pendingChanges.length'), 0);
+});
+
+test('lost confirmations survive reload and replay without duplicating entries', async () => {
+  const cloud = makeSheetService();
+  const page = recordsHarness('terra-ostroma.html', null, { cloud, fetch: async (url, options) => {
+    const response = await cloud.fetch(url, options);
+    return options.method === 'POST' ? { ok: true, text: async () => '<html>Lost response</html>' } : response;
+  } });
+  await page.settle(); await page.run("addEntry('paktum', 'Megőrzött nyom')"); await page.settle();
+  const id = page.state().segments[0].entries[0].id;
+  await page.run(`cycleEntryStatus('paktum', '${id}')`);
+  assert.equal(page.run('pendingChanges.length'), 2);
+  const reloaded = recordsHarness('terra-ostroma.html', null, { cloud, stored: page.stored }); await reloaded.settle();
+  assert.equal(reloaded.state().segments[0].entries.length, 1);
+  assert.equal(reloaded.state().segments[0].entries[0].status, 'inkognito');
+  assert.equal(cloud.get().rows.filter(row => row.record_type === 'entry').length, 1);
+  assert.equal(cloud.get().rows.find(row => row.record_type === 'entry').entry_status, 'inkognito');
+  assert.equal(reloaded.run('pendingChanges.length'), 0);
+});
+
+test('repeated failures back off, preserve pending work and permit immediate manual retry', async () => {
+  const cloud = makeSheetService(); let fail = true;
+  const page = recordsHarness('terra-ostroma.html', null, { cloud, fetch: (url, options) => {
+    if (fail && options.method === 'POST') throw new Error('Network unavailable');
+    return cloud.fetch(url, options);
+  } });
+  await page.settle(); await page.run("updateDefense('paktum', 6)"); await page.settle();
+  for (const delay of [3000, 6000, 12000, 24000, 30000]) {
+    await page.fire(delay);
+    assert.equal(page.run('pendingChanges.length'), 1);
+    assert.equal(page.state().segments[0].defense, 6);
+  }
+  fail = false;
+  await page.run('refreshFromSheet()'); await page.settle();
+  assert.equal(page.run('pendingChanges.length'), 0);
+  assert.equal(cloud.get().rows[0].defense, 6);
+  assert.equal(page.run('retryTimer'), null);
+});
+
+test('a remotely deleted note cannot block the queue or be resurrected by a queued type change', async () => {
+  const cloud = makeSheetService(); let fail = false;
+  const page = recordsHarness('terra-ostroma.html', null, { cloud, fetch: (url, options) => {
+    if (fail && options.method === 'POST') throw new Error('Offline');
+    return cloud.fetch(url, options);
+  } });
+  await page.settle(); await page.run("addEntry('paktum', 'Eltávolított nyom')"); await page.settle();
+  const id = page.state().segments[0].entries[0].id;
+  const remote = recordsHarness('terra-ostroma.html', null, { cloud }); await remote.settle();
+  fail = true;
+  await page.run(`cycleEntryStatus('paktum', '${id}')`); await page.settle();
+  await page.run("updateDefense('paktum', 5)");
+  await remote.run(`removeEntry('paktum', '${id}')`); await remote.settle();
+  fail = false; await page.fire(3000);
+  assert.equal(page.state().segments[0].entries.length, 0);
+  assert.equal(page.run('pendingChanges.length'), 0);
+  assert.equal(cloud.get().rows.find(row => row.record_type === 'segment').defense, 5);
+  assert.match(page.elements.get('toast').textContent, /időközben töröltek/);
 });
 
 test('the Apps Script refuses a different target and a foreign header without touching Starfort', () => {

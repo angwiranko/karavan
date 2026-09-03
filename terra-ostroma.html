@@ -68,6 +68,8 @@
     const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbyPoIqbyY9BwJPpOu8YgQ6Ylp5BL8jj7cY0aenZdtF2ynIaaKwuVR6-nIurMZELYzTv/exec';
     const REMOTE_CACHE_KEY = 'terra-ostroma-remote-cache-v1';
     const LOCAL_BACKUP_KEY = 'terra-ostroma-local-backup-v1';
+    const PENDING_KEY = 'terra-ostroma-pending-v1';
+    const POLL_INTERVAL = 10000;
 
     const fallbackState = {
       segments: [
@@ -92,7 +94,19 @@
     let state = normalizeState(loadLocalState() || cloneState(fallbackState));
     let sheetReady = false;
     let saving = false;
+    let reading = false;
+    let importing = false;
+    let dragging = false;
+    let refreshRequested = false;
+    let syncError = '';
+    let pollTimer = null;
+    let retryTimer = null;
+    let retryDelay = 3000;
+    const storedPending = readStored(PENDING_KEY);
+    let pendingChanges = Array.isArray(storedPending) ? storedPending : [];
     const entryDrafts = new Map();
+    const segmentViews = new Map();
+    const groupViews = new Map();
     let localBackup = readStored(LOCAL_BACKUP_KEY);
     if (!localBackup && !readStored(REMOTE_CACHE_KEY) && hasLocalChanges(state)) {
       localBackup = { state: cloneState(state), imported: false };
@@ -108,8 +122,8 @@
     }
 
     function writeStored(key, value) {
-      try { localStorage.setItem(key, JSON.stringify(value)); }
-      catch (_) { /* Google remains authoritative when browser storage is unavailable. */ }
+      try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+      catch (_) { return false; }
     }
 
     function hasLocalChanges(value) {
@@ -272,8 +286,8 @@
     }
 
     function updateSyncControls() {
-      document.getElementById('refreshSheet').disabled = saving;
-      document.getElementById('importLocal').disabled = saving || !sheetReady;
+      document.getElementById('refreshSheet').disabled = importing;
+      document.getElementById('importLocal').disabled = importing || reading || pendingChanges.length > 0 || !sheetReady;
       document.getElementById('localBackupNotice').hidden = !localBackup || localBackup.imported;
     }
 
@@ -283,61 +297,163 @@
     }
 
     function canEdit() {
-      if (!sheetReady || saving) {
-        showToast(saving ? 'A mentés folyamatban van.' : 'A Google-kapcsolat nem elérhető. Próbáld újra az adatfrissítést.');
+      if (!sheetReady || importing) {
+        showToast(importing ? 'A korábbi adatok feltöltése folyamatban van.' : 'A Google-kapcsolat nem elérhető. Próbáld újra az adatfrissítést.');
         return false;
       }
       return true;
     }
 
-    async function refreshFromSheet() {
-      if (saving) return;
-      saving = true;
-      sheetReady = false;
-      setSheetStatus('Google-adatok betöltése…');
-      render();
-      try {
-        state = await loadFromSheet();
-        sheetReady = true;
-        saveLocalState();
-        writeStored(REMOTE_CACHE_KEY, true);
-        setSheetStatus('Google Táblázat · szinkronban');
-      } catch (error) {
-        setSheetStatus('Google-kapcsolat nem elérhető');
-        showToast(error.message);
-      } finally {
-        saving = false;
-        render();
+    function schedulePoll() {
+      clearTimeout(pollTimer);
+      if (document.visibilityState === 'hidden' || retryTimer) return;
+      pollTimer = setTimeout(() => refreshFromSheet({ automatic: true }), POLL_INTERVAL);
+    }
+
+    function showSyncStatus() {
+      document.getElementById('sheetStatus').title = syncError;
+      if (syncError) {
+        setSheetStatus(pendingChanges.length
+          ? `${pendingChanges.length} mentés vár · újrapróbálkozás`
+          : 'Google-kapcsolat nem elérhető · újrapróbálkozás');
+      } else if (pendingChanges.length) {
+        setSheetStatus(`${pendingChanges.length} mentés folyamatban · háttérben`);
+      } else {
+        setSheetStatus(reading ? 'Google-adatok ellenőrzése…' : 'Google Táblázat · szinkronban');
       }
     }
 
-    // Only confirmed remote writes enter the cache; failed requests keep drafts.
-    async function commitChange(action, payload, apply, message) {
-      if (!canEdit()) return false;
-      saving = true;
-      setSheetStatus('Mentés a Google Táblázatba…');
-      render();
+    function scheduleRetry(error) {
+      syncError = error.message;
+      showSyncStatus();
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        refreshFromSheet({ automatic: true });
+      }, retryDelay);
+      retryDelay = Math.min(retryDelay * 2, 30000);
+    }
+
+    // Reads and writes share one lane. Edits made during a read are overlaid
+    // on its snapshot before any queued writes start, so old data cannot flash back.
+    async function refreshFromSheet({ automatic = false } = {}) {
+      clearTimeout(pollTimer);
+      if (importing) return;
+      if (saving || reading) { refreshRequested = true; return; }
+      if (!automatic) { clearTimeout(retryTimer); retryTimer = null; }
+      if (sheetReady && pendingChanges.length && !syncError) {
+        refreshRequested = true;
+        return flushChanges();
+      }
+      reading = true;
+      refreshRequested = false;
+      showSyncStatus();
       try {
-        await syncWithSheet(action, payload);
-        apply();
+        const remote = await loadFromSheet();
+        // A note deleted by another player must not keep its status update
+        // at the head of the queue forever, or be recreated from stale cache.
+        const missing = new Set(pendingChanges.filter(change => change.action === 'update-entry-status' &&
+          !remote.segments.some(segment => segment.entries.some(entry => entry.id === change.payload.entryId)) &&
+          !pendingChanges.some(other => other.action === 'add-entry' && other.payload.entry.id === change.payload.entryId))
+          .map(change => change.payload.entryId));
+        if (missing.size) {
+          pendingChanges = pendingChanges.filter(change => change.action !== 'update-entry-status' || !missing.has(change.payload.entryId));
+          writeStored(PENDING_KEY, pendingChanges);
+          showToast('Egy feljegyzést időközben töröltek a táblázatból; a típusváltása már nem alkalmazható.');
+        }
+        pendingChanges.forEach(change => applyChange(remote, change));
+        state = remote;
+        sheetReady = true;
+        syncError = '';
+        if (!pendingChanges.length) retryDelay = 3000;
         saveLocalState();
-        setSheetStatus('Google Táblázat · mentve');
-        showToast(message);
-        return true;
+        writeStored(REMOTE_CACHE_KEY, true);
       } catch (error) {
-        sheetReady = false;
-        setSheetStatus('Mentés nem igazolt · újraolvasás szükséges');
-        showToast(error.message);
+        scheduleRetry(error);
+        if (!automatic) showToast(error.message);
+      } finally {
+        reading = false;
+        render();
+        showSyncStatus();
+        if (!syncError && pendingChanges.length) flushChanges();
+        else schedulePoll();
+      }
+    }
+
+    function applyChange(target, { action, payload }) {
+      const segment = target.segments.find(item => item.id === (payload.segmentId || payload.segment?.id));
+      const entry = segment?.entries.find(item => item.id === payload.entryId);
+      if (action === 'update-segment' && segment) segment.defense = payload.segment.defense;
+      if (action === 'add-entry' && segment && !segment.entries.some(item => item.id === payload.entry.id)) {
+        segment.entries.push(cloneState(payload.entry));
+      }
+      if (action === 'remove-entry' && segment) segment.entries = segment.entries.filter(item => item.id !== payload.entryId);
+      if (action === 'update-entry-status' && entry) entry.status = payload.status;
+      if (action === 'update-character-group') {
+        const character = target.characters.find(item => item.id === payload.character.id);
+        if (character) character.group = payload.character.group;
+      }
+    }
+
+    function changeKey({ action, payload }) {
+      return action + ':' + (payload.entryId || payload.entry?.id || payload.segment?.id || payload.character?.id);
+    }
+
+    function commitChange(action, payload) {
+      if (!canEdit()) return false;
+      const change = { id: createId('change'), action, payload: cloneState(payload), attempted: false };
+      const previous = [...pendingChanges];
+      // Coalesce only unsent values. An in-flight request keeps its own immutable
+      // payload, including when its response is lost and it has to be retried.
+      const index = pendingChanges.findIndex(item => !item.attempted && changeKey(item) === changeKey(change));
+      if (index === -1) pendingChanges.push(change);
+      else pendingChanges[index] = change;
+      if (!writeStored(PENDING_KEY, pendingChanges)) {
+        pendingChanges = previous;
+        showToast('A böngésző nem tudja megőrizni a várakozó mentést. A változtatás nem történt meg.');
         return false;
+      }
+      applyChange(state, change);
+      if (action === 'add-entry') entryDrafts.delete(payload.segment.id);
+      saveLocalState();
+      render();
+      showSyncStatus();
+      flushChanges();
+      return true;
+    }
+
+    async function flushChanges() {
+      if (!sheetReady || saving || reading || importing || retryTimer || !pendingChanges.length) return;
+      clearTimeout(pollTimer);
+      saving = true;
+      try {
+        while (pendingChanges.length) {
+          const change = pendingChanges[0];
+          change.attempted = true;
+          writeStored(PENDING_KEY, pendingChanges);
+          showSyncStatus();
+          await syncWithSheet(change.action, change.payload);
+          pendingChanges.shift();
+          writeStored(PENDING_KEY, pendingChanges);
+          syncError = '';
+          retryDelay = 3000;
+        }
+      } catch (error) {
+        scheduleRetry(error);
       } finally {
         saving = false;
-        render();
+        showSyncStatus();
+        if (refreshRequested && !syncError) refreshFromSheet({ automatic: true });
+        else schedulePoll();
       }
     }
 
     async function importLocalState() {
-      if (!canEdit() || !localBackup || localBackup.imported) return;
-      saving = true;
+      if (!canEdit() || reading || pendingChanges.length || !localBackup || localBackup.imported) return;
+      importing = true;
+      clearTimeout(pollTimer);
+      clearTimeout(retryTimer);
+      retryTimer = null;
       setSheetStatus('Korábbi helyi adatok feltöltése…');
       render();
       try {
@@ -359,6 +475,7 @@
           }
         }
         state = await loadFromSheet();
+        syncError = '';
         localBackup.imported = true;
         writeStored(LOCAL_BACKUP_KEY, localBackup);
         saveLocalState();
@@ -369,8 +486,9 @@
         setSheetStatus('Feltöltés megszakadt · a biztonsági másolat megmaradt');
         showToast(error.message);
       } finally {
-        saving = false;
+        importing = false;
         render();
+        schedulePoll();
       }
     }
 
@@ -383,49 +501,84 @@
     }
 
     function renderSegments() {
-      segmentsGrid.innerHTML = '';
+      const disabled = !sheetReady || importing;
       state.segments.forEach(segment => {
-        const card = document.createElement('article');
-        card.className = 'segment-card';
-        card.dataset.segmentId = segment.id;
-        card.innerHTML = `
-          <div class="segment-header">
-            <h2 class="segment-title">${escapeHtml(segment.name)}</h2>
-            <span class="segment-tag">${escapeHtml(segment.tag)}</span>
-          </div>
-          <div class="defense-row">
-            <span class="section-label">Terrai védelem</span>
-            <div class="defense-track">
-              ${[2, 3, 4, 5, 6].map(level => `
-                <button class="defense-die ${segment.defense >= level ? 'active' : ''}" type="button" data-level="${level}" aria-label="${segment.name} védelem ${level}" aria-pressed="${segment.defense === level}" ${!sheetReady || saving ? 'disabled' : ''}>${level}</button>
-              `).join('')}
+        let view = segmentViews.get(segment.id);
+        if (!view) {
+          const card = document.createElement('article');
+          card.className = 'segment-card';
+          card.dataset.segmentId = segment.id;
+          card.innerHTML = `
+            <div class="segment-header">
+              <h2 class="segment-title">${escapeHtml(segment.name)}</h2>
+              <span class="segment-tag">${escapeHtml(segment.tag)}</span>
             </div>
-          </div>
-          <form class="entry-form">
-            <input type="text" maxlength="160" placeholder="Új feljegyzés…" aria-label="Új bejegyzés" value="${escapeHtml(entryDrafts.get(segment.id) || '')}" ${!sheetReady || saving ? 'disabled' : ''} required>
-            <button type="submit" aria-label="Hozzáadás" title="Bejegyzés hozzáadása" ${!sheetReady || saving ? 'disabled' : ''}><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
-          </form>
-          <div class="entry-list">
-            ${segment.entries.length ? segment.entries.map(entry => `
-              <div class="entry-chip status-${normalizeEntryStatus(entry.status)}" data-entry-id="${escapeHtml(entry.id)}" data-entry-status="${normalizeEntryStatus(entry.status)}" title="Hosszú kattintás: kategória váltása">
-                <span class="entry-kind-icon" aria-label="${entryStatusMeta(entry.status).label}">${entryStatusMeta(entry.status).icon}</span>
-                <span>${escapeHtml(entry.label)}</span>
-                <button class="entry-remove" type="button" aria-label="Bejegyzés törlése" title="Bejegyzés törlése" ${!sheetReady || saving ? 'disabled' : ''}><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12"/></svg></button>
+            <div class="defense-row">
+              <span class="section-label">Terrai védelem</span>
+              <div class="defense-track">
+                ${[2, 3, 4, 5, 6].map(level => `
+                  <button class="defense-die" type="button" data-level="${level}" aria-label="${segment.name} védelem ${level}">${level}</button>
+                `).join('')}
               </div>
-            `).join('') : '<div class="empty-message">Nincs feljegyzés.</div>'}
-          </div>
-        `;
-        segmentsGrid.appendChild(card);
+            </div>
+            <form class="entry-form">
+              <input type="text" maxlength="160" placeholder="Új feljegyzés…" aria-label="Új bejegyzés" required>
+              <button type="submit" aria-label="Hozzáadás" title="Bejegyzés hozzáadása"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
+            </form>
+            <div class="entry-list"><div class="empty-message">Nincs feljegyzés.</div></div>
+          `;
+          segmentsGrid.appendChild(card);
+          view = { card, input: card.querySelector('input'), list: card.querySelector('.entry-list'), entries: new Map() };
+          segmentViews.set(segment.id, view);
+        }
+        // Keep the form and each surviving note mounted during polling and saves.
+        // This preserves the caret, list scroll and pointer target of a long press.
+        for (const button of view.card.querySelectorAll('.defense-die')) {
+          const level = Number(button.dataset.level);
+          button.classList.toggle('active', segment.defense >= level);
+          button.setAttribute('aria-pressed', String(segment.defense === level));
+        }
+        const draft = entryDrafts.get(segment.id) || '';
+        if (view.input.value !== draft) view.input.value = draft;
+        view.list.querySelector('.empty-message').hidden = segment.entries.length > 0;
+        for (const [id, chip] of view.entries) {
+          if (!segment.entries.some(entry => entry.id === id)) {
+            chip.remove();
+            view.entries.delete(id);
+          }
+        }
+        segment.entries.forEach((entry, index) => {
+          let chip = view.entries.get(entry.id);
+          if (!chip) {
+            chip = document.createElement('div');
+            chip.dataset.entryId = entry.id;
+            chip.title = 'Hosszú kattintás: kategória váltása';
+            chip.innerHTML = '<span class="entry-kind-icon"></span><span class="entry-label"></span><button class="entry-remove" type="button" aria-label="Bejegyzés törlése" title="Bejegyzés törlése"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12"/></svg></button>';
+            view.entries.set(entry.id, chip);
+          }
+          if (view.list.children[index + 1] !== chip) view.list.insertBefore(chip, view.list.children[index + 1] || null);
+          chip.className = `entry-chip status-${normalizeEntryStatus(entry.status)}`;
+          chip.dataset.entryStatus = normalizeEntryStatus(entry.status);
+          const icon = chip.querySelector('.entry-kind-icon');
+          icon.textContent = entryStatusMeta(entry.status).icon;
+          icon.setAttribute('aria-label', entryStatusMeta(entry.status).label);
+          chip.querySelector('.entry-label').textContent = entry.label;
+        });
+        for (const control of view.card.querySelectorAll('button, input')) control.disabled = disabled;
       });
     }
 
     function renderGroups() {
+      if (dragging) return;
       const groupIds = ['rogue-trader', 'smuggler'];
       groupIds.forEach(groupId => {
         const bin = document.getElementById(`${groupId}-bin`);
         const characters = state.characters.filter(character => character.group === groupId);
+        const signature = JSON.stringify([characters, sheetReady, importing]);
+        if (groupViews.get(groupId) === signature) return;
+        groupViews.set(groupId, signature);
         bin.innerHTML = characters.map(character => `
-          <div class="character-token" draggable="${sheetReady && !saving}" data-character-id="${character.id}" title="${escapeHtml(character.name)}">
+          <div class="character-token" draggable="${sheetReady && !importing}" data-character-id="${character.id}" title="${escapeHtml(character.name)}">
             <img src="${character.image}" alt="${escapeHtml(character.name)}" draggable="false">
           </div>
         `).join('');
@@ -453,8 +606,7 @@
       const segment = state.segments.find(item => item.id === segmentId);
       if (!segment) return false;
       const value = clampDefense(defense);
-      return commitChange('update-segment', { segment: { id: segment.id, name: segment.name, defense: value } },
-        () => { segment.defense = value; }, 'Védelem mentve a Google Táblázatba.');
+      return commitChange('update-segment', { segment: { id: segment.id, name: segment.name, defense: value } });
     }
 
     async function addEntry(segmentId, label) {
@@ -462,15 +614,13 @@
       const value = String(label).trim();
       if (!segment || !value || value.length > 160) return false;
       const entry = { id: createId('entry'), label: value, status: 'normal' };
-      return commitChange('add-entry', { segment: { id: segment.id, name: segment.name, defense: segment.defense }, entry },
-        () => { segment.entries.push(entry); entryDrafts.delete(segmentId); }, 'Bejegyzés mentve a Google Táblázatba.');
+      return commitChange('add-entry', { segment: { id: segment.id, name: segment.name, defense: segment.defense }, entry });
     }
 
     async function removeEntry(segmentId, entryId) {
       const segment = state.segments.find(item => item.id === segmentId);
       if (!segment || !segment.entries.some(entry => entry.id === entryId)) return false;
-      return commitChange('remove-entry', { segmentId, entryId },
-        () => { segment.entries = segment.entries.filter(entry => entry.id !== entryId); }, 'Bejegyzés törölve a Google Táblázatból.');
+      return commitChange('remove-entry', { segmentId, entryId });
     }
 
     async function cycleEntryStatus(segmentId, entryId) {
@@ -478,15 +628,13 @@
       const entry = segment?.entries.find(item => item.id === entryId);
       if (!entry) return false;
       const status = nextEntryStatus(entry.status);
-      return commitChange('update-entry-status', { segmentId, entryId, status },
-        () => { entry.status = status; }, entryStatusMeta(status).label + ' mentve a Google Táblázatba.');
+      return commitChange('update-entry-status', { segmentId, entryId, status });
     }
 
     async function moveCharacter(characterId, group) {
       const character = state.characters.find(item => item.id === characterId);
       if (!character || character.group === group || !['rogue-trader', 'smuggler'].includes(group)) return false;
-      return commitChange('update-character-group', { character: { ...character, group } },
-        () => { character.group = group; }, 'Csoport mentve a Google Táblázatba.');
+      return commitChange('update-character-group', { character: { ...character, group } });
     }
 
     segmentsGrid.addEventListener('click', event => {
@@ -516,7 +664,9 @@
     let longPressTarget = null;
 
     segmentsGrid.addEventListener('pointerdown', event => {
-      if (!sheetReady || saving) return;
+      if (!sheetReady || importing) return;
+      clearTimeout(longPressTimer);
+      longPressTarget = null;
       const chip = event.target.closest('.entry-chip');
       if (!chip || event.target.closest('.entry-remove')) {
         return;
@@ -569,14 +719,17 @@
     });
 
     document.addEventListener('dragstart', event => {
-      if (!sheetReady || saving) { event.preventDefault(); return; }
+      if (!sheetReady || importing) { event.preventDefault(); return; }
       const token = event.target.closest('.character-token');
       if (!token) {
         return;
       }
+      dragging = true;
       event.dataTransfer.setData('text/plain', token.dataset.characterId);
       event.dataTransfer.effectAllowed = 'move';
     });
+
+    document.addEventListener('dragend', () => { dragging = false; renderGroups(); });
 
     document.querySelectorAll('.group-zone').forEach(zone => {
       zone.addEventListener('dragover', event => {
@@ -590,6 +743,7 @@
 
       zone.addEventListener('drop', event => {
         event.preventDefault();
+        dragging = false;
         zone.classList.remove('drag-over');
         const characterId = event.dataTransfer.getData('text/plain');
         moveCharacter(characterId, zone.dataset.group);
@@ -598,6 +752,11 @@
 
     document.getElementById('refreshSheet').addEventListener('click', refreshFromSheet);
     document.getElementById('importLocal').addEventListener('click', importLocalState);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') clearTimeout(pollTimer);
+      else refreshFromSheet();
+    });
+    window.addEventListener('online', () => refreshFromSheet());
     render();
     refreshFromSheet();
   </script>
