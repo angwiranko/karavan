@@ -22,13 +22,80 @@
       <a href="mars/index.html" class="planet mars">Mars</a>
     </nav>
   </header>
-  <div class="record-bar"><h1>NPC-állomány</h1><span>00 adatlap</span><span class="record-code">ARCHIVUM / TERRA</span></div>
+  <div class="record-bar"><h1>NPC-állomány</h1><span>13 adatlap</span><span class="record-code">ARCHIVUM / TERRA</span></div>
   <main class="collection">
-    <section class="empty-gallery" aria-label="NPC-nyilvántartás">
-      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 13.74a2 2 0 0 1-2 0L2.5 8.87a1 1 0 0 1 0-1.74L11 2.26a2 2 0 0 1 2 0l8.5 4.87a1 1 0 0 1 0 1.74z"/><path d="m20 14.285 1.5.845a1 1 0 0 1 0 1.74L13 21.74a2 2 0 0 1-2 0l-8.5-4.87a1 1 0 0 1 0-1.74l1.5-.845"/></svg>
-      <h2>Nincs nyilvántartott NPC</h2><p>Állomány: 00</p>
-    </section>
-    <footer class="collection-footer"><span>Személyi nyilvántartás</span><span>Terra ostroma / 00</span></footer>
+    <div class="character-grid" id="npcGrid" aria-label="Terra ostroma NPC-k"></div>
+    <footer class="collection-footer"><span>Személyi nyilvántartás</span><span>Terra ostroma / 13</span></footer>
   </main>
+  <dialog class="portrait-dialog" id="modal" aria-labelledby="modalName">
+    <div class="portrait-toolbar">
+      <h2 id="modalName"></h2><span id="portraitCount"></span>
+      <button class="portrait-control" id="previousPortrait" type="button" aria-label="Előző NPC" title="Előző NPC"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7M19 12H5"/></svg></button>
+      <button class="portrait-control" id="nextPortrait" type="button" aria-label="Következő NPC" title="Következő NPC"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
+      <button class="portrait-control close-modal" type="button" aria-label="Bezárás" title="Bezárás"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12"/></svg></button>
+    </div>
+    <div class="portrait-body"><img class="modal-image" id="modalImage" alt=""></div>
+  </dialog>
+  <script>
+    const npcs = [
+      { id: 'npc-diedre', name: 'Diedre / A Rektor', image: 'images/terra-ostroma/NPC/diedre-rektor.png' },
+      { id: 'npc-typhon', name: 'Typhon', image: 'images/terra-ostroma/NPC/typhon.png' },
+      { id: 'npc-antonia', name: 'Antónia / Ananke', image: 'images/terra-ostroma/NPC/antonia-ananke.png' },
+      { id: 'npc-fabius', name: 'Fabius Bile', image: 'images/terra-ostroma/NPC/fabius-bile.png' },
+      { id: 'npc-guilliman', name: 'Roboute Guilliman', image: 'images/terra-ostroma/NPC/roboute-guilliman.png' },
+      { id: 'npc-alpharius', name: 'Alpharius', image: 'images/terra-ostroma/NPC/alpharius.png' },
+      { id: 'npc-yvrain', name: 'Yvrain', image: 'images/terra-ostroma/NPC/yvrain.png' },
+      { id: 'npc-inferna', name: 'Inferna', image: 'images/terra-ostroma/NPC/inferna.png' },
+      { id: 'npc-adalbert', name: 'Adalbert / Szomjas', image: 'images/terra-ostroma/NPC/adalbert-szomjas.png' },
+      { id: 'npc-malcador', name: 'Malcador', image: 'images/terra-ostroma/NPC/malcador.png' },
+      { id: 'npc-milipedes', name: 'Milipedes', image: 'images/terra-ostroma/NPC/milipedes.png' },
+      { id: 'npc-erda', name: 'Erda', image: 'images/terra-ostroma/NPC/erda.png' },
+      { id: 'npc-csaszar', name: 'A Császár', image: 'images/terra-ostroma/NPC/csaszar-utolso-kiserlet.png' }
+    ];
+
+    const grid = document.getElementById('npcGrid');
+    const modal = document.getElementById('modal');
+    const modalImage = document.getElementById('modalImage');
+    const modalName = document.getElementById('modalName');
+    let activeIndex = 0;
+    let opener = null;
+
+    grid.innerHTML = npcs.map((npc, index) => `
+      <button type="button" class="character-card" data-npc-id="${npc.id}" aria-label="${npc.name} portréjának megnyitása">
+        <img class="character-image" src="${npc.image}" alt="${npc.name}" loading="lazy" decoding="async">
+        <span class="character-name"><span class="character-number">${String(index + 1).padStart(2, '0')}</span>${npc.name}</span>
+      </button>
+    `).join('');
+
+    function showPortrait(index) {
+      activeIndex = (index + npcs.length) % npcs.length;
+      const npc = npcs[activeIndex];
+      modalImage.src = npc.image;
+      modalImage.alt = npc.name;
+      modalName.textContent = npc.name;
+      document.getElementById('portraitCount').textContent = `${activeIndex + 1} / ${npcs.length}`;
+    }
+
+    grid.addEventListener('click', event => {
+      const card = event.target.closest('.character-card');
+      if (!card) return;
+      const index = npcs.findIndex(item => item.id === card.dataset.npcId);
+      if (index < 0) return;
+      opener = card;
+      showPortrait(index);
+      modal.showModal();
+    });
+    document.getElementById('previousPortrait').addEventListener('click', () => showPortrait(activeIndex - 1));
+    document.getElementById('nextPortrait').addEventListener('click', () => showPortrait(activeIndex + 1));
+    modal.addEventListener('click', event => {
+      if (event.target === modal || event.target.closest('.close-modal')) modal.close();
+    });
+    modal.addEventListener('close', () => opener?.focus());
+    document.addEventListener('keydown', event => {
+      if (!modal.open) return;
+      if (event.key === 'ArrowLeft') { event.preventDefault(); showPortrait(activeIndex - 1); }
+      if (event.key === 'ArrowRight') { event.preventDefault(); showPortrait(activeIndex + 1); }
+    });
+  </script>
 </body>
 </html>
