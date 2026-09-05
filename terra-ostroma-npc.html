@@ -22,13 +22,279 @@
       <a href="mars/index.html" class="planet mars">Mars</a>
     </nav>
   </header>
-  <div class="record-bar"><h1>NPC-állomány</h1><span>00 adatlap</span><span class="record-code">ARCHIVUM / TERRA</span></div>
+  <div class="record-bar"><h1>NPC-állomány</h1><span>83 adatlap</span><span class="record-code">ARCHIVUM / TERRA</span></div>
   <main class="collection">
-    <section class="empty-gallery" aria-label="NPC-nyilvántartás">
-      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 13.74a2 2 0 0 1-2 0L2.5 8.87a1 1 0 0 1 0-1.74L11 2.26a2 2 0 0 1 2 0l8.5 4.87a1 1 0 0 1 0 1.74z"/><path d="m20 14.285 1.5.845a1 1 0 0 1 0 1.74L13 21.74a2 2 0 0 1-2 0l-8.5-4.87a1 1 0 0 1 0-1.74l1.5-.845"/></svg>
-      <h2>Nincs nyilvántartott NPC</h2><p>Állomány: 00</p>
-    </section>
-    <footer class="collection-footer"><span>Személyi nyilvántartás</span><span>Terra ostroma / 00</span></footer>
+    <nav class="npc-group-index" id="npcGroupIndex" aria-label="NPC-csoportok"></nav>
+    <div class="npc-groups" id="npcGrid" aria-label="Terra ostroma NPC-k"></div>
+    <footer class="collection-footer"><span>Személyi nyilvántartás</span><span>Terra ostroma / 83</span></footer>
   </main>
+  <dialog class="portrait-dialog" id="modal" aria-labelledby="modalName">
+    <div class="portrait-toolbar">
+      <h2 id="modalName"></h2><span id="portraitCount"></span>
+      <button class="portrait-control" id="previousPortrait" type="button" aria-label="Előző NPC" title="Előző NPC"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 19-7-7 7-7M19 12H5"/></svg></button>
+      <button class="portrait-control" id="nextPortrait" type="button" aria-label="Következő NPC" title="Következő NPC"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg></button>
+      <button class="portrait-control close-modal" type="button" aria-label="Bezárás" title="Bezárás"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12"/></svg></button>
+    </div>
+    <div class="portrait-body"><img class="modal-image" id="modalImage" alt=""></div>
+  </dialog>
+  <script>
+    const npcRecords = [
+      { id: 'npc-diedre', name: 'Diedre / A Rektor', image: 'images/terra-ostroma/NPC/diedre-rektor.png' },
+      { id: 'npc-typhon', name: 'Typhon', image: 'images/terra-ostroma/NPC/typhon.png' },
+      { id: 'npc-antonia', name: 'Antónia / Ananke', image: 'images/terra-ostroma/NPC/antonia-ananke.png' },
+      { id: 'npc-fabius', name: 'Fabius Bile', image: 'images/terra-ostroma/NPC/fabius-bile.png' },
+      { id: 'npc-guilliman', name: 'Roboute Guilliman', image: 'images/terra-ostroma/NPC/roboute-guilliman.png' },
+      { id: 'npc-alpharius', name: 'Alpharius', image: 'images/terra-ostroma/NPC/alpharius.png' },
+      { id: 'npc-yvrain', name: 'Yvrain', image: 'images/terra-ostroma/NPC/yvrain.png' },
+      { id: 'npc-inferna', name: 'Inferna', image: 'images/terra-ostroma/NPC/inferna.png' },
+      { id: 'npc-adalbert', name: 'Adalbert / Szomjas', image: 'images/terra-ostroma/NPC/adalbert-szomjas.png' },
+      { id: 'npc-malcador', name: 'Malcador', image: 'images/terra-ostroma/NPC/malcador.png' },
+      { id: 'npc-milipedes', name: 'Milipedes', image: 'images/terra-ostroma/NPC/milipedes.png' },
+      { id: 'npc-erda', name: 'Erda', image: 'images/terra-ostroma/NPC/erda.png' },
+      { id: 'npc-csaszar', name: 'A Császár', image: 'images/terra-ostroma/NPC/csaszar-utolso-kiserlet.png' },
+      { id: 'npc-karkh', name: 'Karkh, a Húsmészáros', image: 'images/terra-ostroma/NPC/karkh.png' },
+      { id: 'npc-sybel', name: 'Sybel IX', image: 'images/terra-ostroma/NPC/sybel-ix.png' },
+      { id: 'npc-vector', name: 'Vector Viator / A Vendég', image: 'images/terra-ostroma/NPC/vector-viator.png' },
+      { id: 'npc-cawl', name: 'Belisarius Cawl', image: 'images/terra-ostroma/NPC/belisarius-cawl.png' },
+      { id: 'npc-celestine', name: 'Saint Celestine', image: 'images/terra-ostroma/NPC/saint-celestine.png' },
+      { id: 'npc-greyfax', name: 'Katarinya Greyfax', image: 'images/terra-ostroma/NPC/katarinya-greyfax.png' },
+      { id: 'npc-valoris', name: 'Trajann Valoris', image: 'images/terra-ostroma/NPC/trajann-valoris.png' },
+      { id: 'npc-fadix', name: 'Fadix', image: 'images/terra-ostroma/NPC/fadix.png' },
+      { id: 'npc-erodcassius', name: 'ErődCassius Vulturii', image: 'images/terra-ostroma/NPC/erodcassius.png' },
+      { id: 'npc-huscassius', name: 'HúsCassius Vulturii', image: 'images/terra-ostroma/NPC/huscassius.png' },
+      { id: 'npc-scoria', name: 'Anacharis Scoria', image: 'images/terra-ostroma/NPC/anarcharis-scoria.png' },
+      { id: 'npc-vespera', name: 'Magos Vespera Kain', image: 'images/terra-ostroma/NPC/vespera-kain.png' },
+      { id: 'npc-orpheon', name: 'Datamancer Orpheon-Null', image: 'images/terra-ostroma/NPC/orpheon-null.png' },
+      { id: 'npc-hekate', name: 'Hekate-13', image: 'images/terra-ostroma/NPC/hekate-13.png' },
+      { id: 'npc-quintus', name: 'Quintus Vulturii', image: 'images/terra-ostroma/NPC/quintus-vulturii.png' },
+      { id: 'npc-corioli', name: 'Corioli II', image: 'images/terra-ostroma/NPC/corioli-ii.png' },
+      { id: 'npc-graucus', name: 'Graucus', image: 'images/terra-ostroma/NPC/graucus.png' },
+      { id: 'npc-corinthia', name: 'Corinthia', image: 'images/terra-ostroma/NPC/corinthia.png' },
+      { id: 'npc-gibbagamma', name: 'GibbaGamma', image: 'images/terra-ostroma/NPC/gibbagamma.png' },
+      { id: 'npc-dalia', name: 'Dalia Cythera', image: 'images/terra-ostroma/NPC/dalia-cythera.png' },
+      { id: 'npc-romu31', name: 'Romu31', image: 'images/terra-ostroma/NPC/romu31.png' },
+      { id: 'npc-exactor', name: 'Conformis Exactor 09', image: 'images/terra-ostroma/NPC/conformis-exactor-09.png' },
+      { id: 'npc-hyperion', name: 'Hyperion', image: 'images/terra-ostroma/NPC/hyperion.png' },
+      { id: 'npc-zeus', name: 'Zeus Zargo', image: 'images/terra-ostroma/NPC/zeus-zargo.png' },
+      { id: 'npc-victoria', name: 'Victoria Libera', image: 'images/terra-ostroma/NPC/victoria-libera.png' },
+      { id: 'npc-cornelia', name: 'Cornelia Antiqua', image: 'images/terra-ostroma/NPC/cornelia-antiqua.png' },
+      { id: 'npc-claudia', name: 'Claudia Revelata', image: 'images/terra-ostroma/NPC/claudia-revelata.png' },
+      { id: 'npc-iunia', name: 'Iunia Ferrata', image: 'images/terra-ostroma/NPC/iunia-ferrata.png' },
+      { id: 'npc-candida', name: 'Candida Altera', image: 'images/terra-ostroma/NPC/candida-altera.png' },
+      { id: 'npc-erasmus', name: 'Pater Erasmus Kael', image: 'images/terra-ostroma/NPC/pater-erasmus-kael.png' },
+      { id: 'npc-argos', name: 'ARGOS', image: 'images/terra-ostroma/NPC/argos.png' },
+      { id: 'npc-misenus', name: 'Castellan Misenus Varr', image: 'images/terra-ostroma/NPC/misenus-varr.png' },
+      { id: 'npc-leuconia', name: 'Scriptora Leuconia Veyl', image: 'images/terra-ostroma/NPC/leuconia-veyl.png' },
+      { id: 'npc-acoet', name: 'Acoet Varro', image: 'images/terra-ostroma/NPC/acoet-varro.png' },
+      { id: 'npc-cercopius', name: 'Protocol Master Cercopius Leth', image: 'images/terra-ostroma/NPC/cercopius-leth.png' },
+      { id: 'npc-biblis', name: 'Biblis Veyra', image: 'images/terra-ostroma/NPC/biblis-veyra.png' },
+      { id: 'npc-perdix', name: 'Perdix Noll', image: 'images/terra-ostroma/NPC/perdix-noll.png' },
+      { id: 'npc-driopa', name: 'Driopa Hex', image: 'images/terra-ostroma/NPC/driopa-hex.png' },
+      { id: 'npc-icaros', name: 'Icaros Pendula', image: 'images/terra-ostroma/NPC/icaros-pendula.png' },
+      { id: 'npc-hera', name: 'Hera Xeris', image: 'images/terra-ostroma/NPC/hera-xeris.png' },
+      { id: 'npc-uran', name: 'Uran Cantor', image: 'images/terra-ostroma/NPC/uran-cantor.png' },
+      { id: 'npc-nona-remus', name: 'Nona Remus', image: 'images/terra-ostroma/NPC/nona-remus.png' },
+      { id: 'npc-cassia', name: 'Cassia Fides', image: 'images/terra-ostroma/NPC/cassia-fides.png' },
+      { id: 'npc-parallax', name: 'Magos Parallax', image: 'images/terra-ostroma/NPC/magos-parallax.png' },
+      { id: 'npc-rufus', name: 'Rufus', image: 'images/terra-ostroma/NPC/rufus.png' },
+      { id: 'npc-silas', name: 'Silas Vane', image: 'images/terra-ostroma/NPC/silas-vane.png' },
+      { id: 'npc-scribonius', name: 'Scribonius Malfias', image: 'images/terra-ostroma/NPC/scribonius-malfias.png' },
+      { id: 'npc-kaelen', name: 'Kaelen Vorn', image: 'images/terra-ostroma/NPC/kaelen-vorn.png' },
+      { id: 'npc-jericus', name: 'Captain Jericus Vance', image: 'images/terra-ostroma/NPC/jericus-vance.png' },
+      { id: 'npc-decimus', name: 'Decimus Vane', image: 'images/terra-ostroma/NPC/decimus-vane.png' },
+      { id: 'npc-vaelen', name: 'Tribunus Vaelen Kross', image: 'images/terra-ostroma/NPC/vaelen-kross.png' },
+      { id: 'npc-malichor', name: 'Secutor Malichor', image: 'images/terra-ostroma/NPC/secutor-malichor.png' },
+      { id: 'npc-drusus', name: 'Custos Drusus', image: 'images/terra-ostroma/NPC/custos-drusus.png' },
+      { id: 'npc-sull', name: 'Sull, a Servitorhajcsár', image: 'images/terra-ostroma/NPC/sull-servitor-hajcsar.png' },
+      { id: 'npc-varek', name: 'Varek, a Megfélemlített Írnok', image: 'images/terra-ostroma/NPC/varek-irnok.png' },
+      { id: 'npc-thrax', name: 'Vulgator Thrax', image: 'images/terra-ostroma/NPC/vulgator-thrax.png' },
+      { id: 'npc-kaelia', name: 'Kaelia Vex', image: 'images/terra-ostroma/NPC/kaelia-vex.png' },
+      { id: 'npc-chirurgeon', name: 'Chirurgeon Malfias', image: 'images/terra-ostroma/NPC/chirurgeon-malfias.png' },
+      { id: 'npc-malvolio', name: 'Censor Malvolio', image: 'images/terra-ostroma/NPC/censor-malvolio.png' },
+      { id: 'npc-tecton', name: 'Magos Tecton', image: 'images/terra-ostroma/NPC/magos-tecton.png' },
+      { id: 'npc-sulla', name: 'Sulla, a Súlytalan', image: 'images/terra-ostroma/NPC/sulla-sulytalan.png' },
+      { id: 'npc-amara', name: 'Amara Septima', image: 'images/terra-ostroma/NPC/amara-septima.png' },
+      { id: 'npc-septimus', name: 'Septimus Clausus', image: 'images/terra-ostroma/NPC/septimus-clausus.png' },
+      { id: 'npc-nona-viridia', name: 'Nona Viridia', image: 'images/terra-ostroma/NPC/nona-viridia.png' },
+      { id: 'npc-decima', name: 'Decima Filia', image: 'images/terra-ostroma/NPC/decima-filia.png' },
+      { id: 'npc-gaius', name: 'Gaius Faber', image: 'images/terra-ostroma/NPC/gaius-faber.png' },
+      { id: 'npc-livia', name: 'Livia Memoria', image: 'images/terra-ostroma/NPC/livia-memoria.png' },
+      { id: 'npc-tarpeia', name: 'Praefecta Tarpeia Ruun', image: 'images/terra-ostroma/NPC/tarpeia-ruun.png' },
+      { id: 'npc-lausus', name: 'Confessor Lausus Venn', image: 'images/terra-ostroma/NPC/lausus-venn.png' },
+      { id: 'npc-euryal', name: 'Cantor Euryal Voss', image: 'images/terra-ostroma/NPC/euryal-voss.png' },
+      { id: 'npc-palinur', name: 'Claviger Palinur Rhex', image: 'images/terra-ostroma/NPC/palinur-rhex.png' },
+      { id: 'npc-horus', name: 'Horus / Lupercal', image: 'images/terra-ostroma/NPC/horus-lupercal.png' },
+      { id: 'npc-sanguinius', name: 'Sanguinius', image: 'images/terra-ostroma/NPC/sanguinius.png' },
+      { id: 'npc-magnus', name: 'Magnus', image: 'images/terra-ostroma/NPC/magnus.png' },
+      { id: 'npc-dorn', name: 'Rogal Dorn', image: 'images/terra-ostroma/NPC/rogal-dorn.png' },
+      { id: 'npc-vulkan', name: 'Vulkan', image: 'images/terra-ostroma/NPC/vulkan.png' },
+      { id: 'npc-jaghatai', name: 'Jaghatai Khan', image: 'images/terra-ostroma/NPC/jaghatai-khan.png' },
+      { id: 'npc-perturabo', name: 'Perturabo', image: 'images/terra-ostroma/NPC/perturabo.png' },
+      { id: 'npc-angron', name: 'Angron', image: 'images/terra-ostroma/NPC/angron.png' },
+      { id: 'npc-mortarion', name: 'Mortarion', image: 'images/terra-ostroma/NPC/mortarion.png' },
+      { id: 'npc-fulgrim', name: 'Fulgrim', image: 'images/terra-ostroma/NPC/fulgrim.png' }
+    ];
+
+    const npcGroups = [
+      {
+        id: 'az-otok',
+        name: 'Az ötök',
+        note: 'A Rektor és a négy káoszisten',
+        members: ['npc-diedre', 'npc-adalbert', 'npc-malcador', 'npc-milipedes', 'npc-erda']
+      },
+      {
+        id: 'guilliman-emberei',
+        name: 'Guilliman emberei',
+        note: 'A Régens politikai, vallási és katonai köre',
+        members: ['npc-yvrain', 'npc-cawl', 'npc-celestine', 'npc-greyfax', 'npc-valoris', 'npc-fadix']
+      },
+      {
+        id: 'bile-emberei',
+        name: 'Bile emberei',
+        note: 'Klónok, mutánsok és biológiai hordozók',
+        members: ['npc-fabius', 'npc-karkh', 'npc-sybel', 'npc-vector']
+      },
+      {
+        id: 'rektor-emberei',
+        name: 'Rektor emberei',
+        note: 'A Dark Mechanicum végrehajtói',
+        members: ['npc-erodcassius', 'npc-huscassius', 'npc-scoria', 'npc-vespera', 'npc-orpheon', 'npc-hekate']
+      },
+      {
+        id: 'kiemelt-szereplok',
+        name: 'Kiemelt szereplők',
+        note: 'A konfliktus önálló hatalmi pólusai',
+        members: ['npc-typhon', 'npc-antonia', 'npc-inferna', 'npc-csaszar']
+      },
+      {
+        id: 'vulturii-kor',
+        name: 'Vulturii-kör',
+        note: 'Családtagok, szövetségesek és régi kapcsolatok',
+        members: ['npc-quintus', 'npc-corioli', 'npc-graucus', 'npc-corinthia', 'npc-gibbagamma']
+      },
+      {
+        id: 'primarchak',
+        name: 'Primarchák',
+        note: 'A Császár hadvezér-fiai',
+        members: ['npc-guilliman', 'npc-alpharius', 'npc-horus', 'npc-sanguinius', 'npc-magnus', 'npc-dorn', 'npc-vulkan', 'npc-jaghatai', 'npc-perturabo', 'npc-angron', 'npc-mortarion', 'npc-fulgrim']
+      },
+      {
+        id: 'noctis-labirintus',
+        name: 'Noctis Labirintus',
+        note: 'Mars · az Astronomicon születési helye',
+        location: true,
+        members: ['npc-dalia', 'npc-romu31', 'npc-exactor', 'npc-hyperion', 'npc-zeus']
+      },
+      {
+        id: 'luna-genlabor',
+        name: 'Luna génlabor',
+        note: 'Luna · Selenar génkultusz',
+        location: true,
+        members: ['npc-victoria', 'npc-cornelia', 'npc-claudia', 'npc-iunia', 'npc-candida']
+      },
+      {
+        id: 'mons-alba',
+        name: 'Mons Alba',
+        note: 'Anktartiszi Inkvizíciós Börtön',
+        location: true,
+        members: ['npc-erasmus', 'npc-argos', 'npc-misenus', 'npc-leuconia', 'npc-acoet', 'npc-cercopius', 'npc-biblis', 'npc-perdix', 'npc-driopa']
+      },
+      {
+        id: 'orbitalis-panelek',
+        name: 'Orbitális panelek gyűrűje',
+        note: 'Terra orbitális védelmi öve',
+        location: true,
+        members: ['npc-icaros', 'npc-hera', 'npc-uran', 'npc-nona-remus', 'npc-cassia', 'npc-parallax', 'npc-rufus']
+      },
+      {
+        id: 'astronomican',
+        name: 'Astronomican',
+        note: 'Forbidden Fortress és a Corona-gyűrűk',
+        location: true,
+        members: ['npc-silas', 'npc-scribonius', 'npc-kaelen', 'npc-jericus', 'npc-decimus', 'npc-vaelen', 'npc-malichor', 'npc-drusus', 'npc-sull', 'npc-varek', 'npc-thrax', 'npc-kaelia', 'npc-chirurgeon', 'npc-malvolio', 'npc-tecton', 'npc-sulla']
+      },
+      {
+        id: 'eternity-gate',
+        name: 'Eternity Gate',
+        note: 'A Kapu, az Adatkripta és Terra Renata',
+        location: true,
+        members: ['npc-amara', 'npc-septimus', 'npc-nona-viridia', 'npc-decima', 'npc-gaius', 'npc-livia', 'npc-tarpeia', 'npc-lausus', 'npc-euryal', 'npc-palinur']
+      }
+    ];
+
+    const npcById = new Map(npcRecords.map(npc => [npc.id, npc]));
+    const npcs = npcGroups.flatMap(group => group.members.map(id => npcById.get(id)).filter(Boolean));
+
+    const grid = document.getElementById('npcGrid');
+    const groupIndex = document.getElementById('npcGroupIndex');
+    const modal = document.getElementById('modal');
+    const modalImage = document.getElementById('modalImage');
+    const modalName = document.getElementById('modalName');
+    let activeIndex = 0;
+    let opener = null;
+
+    groupIndex.innerHTML = npcGroups.map(group => `
+      <a href="#group-${group.id}" class="${group.location ? 'location-link' : ''}">
+        ${group.name}<span>${group.members.length}</span>
+      </a>
+    `).join('');
+
+    let renderedIndex = 0;
+    grid.innerHTML = npcGroups.map((group, groupIndexPosition) => {
+      const locationDivider = group.location && !npcGroups[groupIndexPosition - 1]?.location
+        ? '<div class="npc-location-divider"><span>Helyszínek szerint</span></div>'
+        : '';
+      const cards = group.members.map(id => npcById.get(id)).filter(Boolean).map(npc => {
+        const index = renderedIndex++;
+        return `
+          <button type="button" class="character-card" data-npc-id="${npc.id}" aria-label="${npc.name} portréjának megnyitása">
+            <img class="character-image" src="${npc.image}" alt="${npc.name}" loading="lazy" decoding="async">
+            <span class="character-name"><span class="character-number">${String(index + 1).padStart(2, '0')}</span>${npc.name}</span>
+          </button>
+        `;
+      }).join('');
+      return `
+        ${locationDivider}
+        <section class="npc-group-section ${group.location ? 'location-group' : ''}" id="group-${group.id}" aria-labelledby="heading-${group.id}">
+          <header class="npc-group-heading">
+            <div><span class="npc-group-kicker">${group.location ? 'Helyszín' : 'Csoport'}</span><h2 id="heading-${group.id}">${group.name}</h2></div>
+            <p>${group.note}</p>
+            <span class="npc-group-count">${group.members.length} adatlap</span>
+          </header>
+          <div class="character-grid">${cards}</div>
+        </section>
+      `;
+    }).join('');
+
+    function showPortrait(index) {
+      activeIndex = (index + npcs.length) % npcs.length;
+      const npc = npcs[activeIndex];
+      modalImage.src = npc.image;
+      modalImage.alt = npc.name;
+      modalName.textContent = npc.name;
+      document.getElementById('portraitCount').textContent = `${activeIndex + 1} / ${npcs.length}`;
+    }
+
+    grid.addEventListener('click', event => {
+      const card = event.target.closest('.character-card');
+      if (!card) return;
+      const index = npcs.findIndex(item => item.id === card.dataset.npcId);
+      if (index < 0) return;
+      opener = card;
+      showPortrait(index);
+      modal.showModal();
+    });
+    document.getElementById('previousPortrait').addEventListener('click', () => showPortrait(activeIndex - 1));
+    document.getElementById('nextPortrait').addEventListener('click', () => showPortrait(activeIndex + 1));
+    modal.addEventListener('click', event => {
+      if (event.target === modal || event.target.closest('.close-modal')) modal.close();
+    });
+    modal.addEventListener('close', () => opener?.focus());
+    document.addEventListener('keydown', event => {
+      if (!modal.open) return;
+      if (event.key === 'ArrowLeft') { event.preventDefault(); showPortrait(activeIndex - 1); }
+      if (event.key === 'ArrowRight') { event.preventDefault(); showPortrait(activeIndex + 1); }
+    });
+  </script>
 </body>
 </html>
